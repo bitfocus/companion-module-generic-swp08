@@ -1,0 +1,16 @@
+{
+	"name": "generic-swp08",
+	"version": "1.0.0",
+	"api_version": "1.0.0",
+	"keywords": [ "Router", "Matrix", "Broadcast", "Production" ],
+	"manufacturer": "Generic",
+	"product": "SW-P-08",
+	"shortname": "SW-P-08",
+	"description": "General Remote Control Protocol (SW-P-08)",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Peter Daniel",
+	"license": "MIT"
+}
