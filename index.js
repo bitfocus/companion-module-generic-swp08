@@ -629,13 +629,6 @@ instance.prototype.action = function (action) {
 		return
 	}
 
-	if (action.action === 'select_level_dest') {
-		self.selected_level = opt.level
-		self.selected_dest = opt.dest
-		console.log('set level ' + self.selected_level + ' set destination ' + self.selected_dest)
-		return
-	}
-
 	if (action.action === 'select_source' || action.action === 'select_source_name') {
 		self.selected_source = parseInt(opt.source)
 		console.log('set source ' + self.selected_source)
