@@ -69,7 +69,7 @@ instance.prototype.setupVariables = function () {
 
 	self.levels = []
 
-	self.config.max_levels = (self.config.max_levels === undefined) ? 4 : self.config.max_levels
+	self.config.max_levels = self.config.max_levels === undefined ? 4 : self.config.max_levels
 
 	for (var i = 1; i <= self.config.max_levels; i++) {
 		self.levels.push({ id: i, label: 'Level: ' + i })
