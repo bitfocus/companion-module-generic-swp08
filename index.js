@@ -69,7 +69,7 @@ instance.prototype.setupVariables = function () {
 
 	self.levels = []
 
-	self.config.max_levels = self.config.max_levels === undefined ? 4 : self.config.max_levels
+	self.config.max_levels = self.config.max_levels === undefined ? 3 : self.config.max_levels
 
 	for (var i = 1; i <= self.config.max_levels; i++) {
 		self.levels.push({ id: i, label: 'Level: ' + i })
@@ -331,7 +331,7 @@ instance.prototype.config_fields = function () {
 			label: 'Number of levels defined in router',
 			id: 'max_levels',
 			width: 6,
-			default: 4,
+			default: 3,
 			min: 1,
 			max: 16,
 		},
