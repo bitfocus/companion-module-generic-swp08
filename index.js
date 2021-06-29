@@ -544,8 +544,22 @@ instance.prototype.actions = function () {
 			label: 'Take',
 		},
 
-		clear_all: {
+		clear: {
 			label: 'Clear selection',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Clear',
+					id: 'clear',
+					default: 'all',
+					choices: [
+						{ id: 'all', label: 'All' },
+						{ id: 'level', label: 'Levels' },
+						{ id: 'dest', label: 'Destination' },
+						{ id: 'source', label: 'Source' },
+					],
+				},
+			],
 		},
 
 		set_crosspoint: {
@@ -665,19 +679,27 @@ instance.prototype.action = function (action) {
 		}
 	}
 
-	if (action.action === 'clear_all') {
-		self.selected_level = []
-		self.selected_dest = 0
-		self.selected_source = 0
-
-		self.setVariable('Level', self.selected_level)
-		self.checkFeedbacks('selected_level')
-
-		self.setVariable('Destination', self.selected_dest)
-		self.checkFeedbacks('selected_dest')
-
-		self.setVariable('Source', self.selected_source)
-		self.checkFeedbacks('selected_source')
+	if (action.action === 'clear') {
+		if (opt.clear === 'all' || opt.clear === 'level') {
+			self.selected_level = []
+			self.setVariable('Level', self.selected_level)
+			self.checkFeedbacks('selected_level')
+			console.log('clear levels')
+		}
+		
+		if (opt.clear === 'all' || opt.clear === 'dest') {
+			self.selected_dest = 0
+			self.setVariable('Destination', self.selected_dest)
+			self.checkFeedbacks('selected_dest')
+			console.log('clear dest')
+		}
+		
+		if (opt.clear === 'all' || opt.clear === 'source') {
+			self.selected_source = 0
+			self.setVariable('Source', self.selected_source)
+			self.checkFeedbacks('selected_source')
+			console.log('clear source')
+		}
 	}
 
 	if (action.action === 'get_names') {
