@@ -686,14 +686,14 @@ instance.prototype.action = function (action) {
 			self.checkFeedbacks('selected_level')
 			console.log('clear levels')
 		}
-		
+
 		if (opt.clear === 'all' || opt.clear === 'dest') {
 			self.selected_dest = 0
 			self.setVariable('Destination', self.selected_dest)
 			self.checkFeedbacks('selected_dest')
 			console.log('clear dest')
 		}
-		
+
 		if (opt.clear === 'all' || opt.clear === 'source') {
 			self.selected_source = 0
 			self.setVariable('Source', self.selected_source)
