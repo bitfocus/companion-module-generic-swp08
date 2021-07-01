@@ -73,7 +73,11 @@ instance.prototype.setupVariables = function () {
 
 	for (var i = 1; i <= self.config.max_levels; i++) {
 		self.levels.push({ id: i, label: 'Level: ' + i })
+		self.selected_level.push({ id: i, enabled: true })
 	}
+	
+	console.log(self.levels)
+	console.log(self.selected_level)
 
 	// Labels
 	self.source_names = []
@@ -89,10 +93,6 @@ instance.prototype.setupVariables = function () {
 			name: 'Destinations',
 		},
 		{
-			label: 'Selected levels',
-			name: 'Level',
-		},
-		{
 			label: 'Selected destination',
 			name: 'Destination',
 		},
@@ -105,7 +105,6 @@ instance.prototype.setupVariables = function () {
 	self.setVariable('Sources', 0)
 	self.setVariable('Destinations', 0)
 
-	self.setVariable('Level', self.selected_level)
 	self.setVariable('Destination', self.selected_dest)
 	self.setVariable('Source', self.selected_source)
 }
@@ -227,13 +226,13 @@ instance.prototype.init_tcp = function () {
 										if (data[2] == 0x6a) {
 											// sources
 											self.source_names.splice(label_number - 1, 0, {
-												id: label_number.toString(),
+												id: label_number,
 												label: label_number.toString() + ': ' + label.trim(),
 											})
 										} else if (data[2] == 0x6b) {
 											// destinations
 											self.dest_names.splice(label_number - 1, 0, {
-												id: label_number.toString(),
+												id: label_number,
 												label: label_number.toString() + ': ' + label.trim(),
 											})
 										}
@@ -368,7 +367,7 @@ instance.prototype.setupFeedbacks = function (system) {
 				type: 'multiselect',
 				label: 'Levels',
 				id: 'level',
-				default: '1',
+				default: [1],
 				choices: self.levels,
 				minSelection: 1,
 			},
@@ -421,12 +420,30 @@ instance.prototype.feedback = function (feedback, bank) {
 
 	switch (feedback.type) {
 		case 'selected_level': {
-			// easiest way to compare arrays is to convert to json strings
-			if (JSON.stringify(self.selected_level) === JSON.stringify(feedback.options.level)) {
-				return true
-			} else {
-				return false
+			// console.log('feedback options level')
+			// console.log(feedback.options.level)
+			var l = feedback.options.level.length
+			var k = self.selected_level.length
+			
+			for (var i = 0; i < l; i ++) {
+				// is this level enabled?
+				console.log('tesing ' + feedback.options.level[i])
+				var feedback_test = feedback.options.level[i]
+				for(var j = 0; j < k; j ++) {
+					console.log('id: ' + self.selected_level[j].id)
+					if (self.selected_level[j].id == feedback_test) {
+						if (self.selected_level[j].enabled === true) {
+							// matched
+							// console.log('matched ' + i + ' ' + j)
+						} else {
+							return false
+						}
+						
+					}
+				}
 			}
+			// console.log('all tests passed')
+			return true
 			break
 		}
 
@@ -468,7 +485,21 @@ instance.prototype.actions = function () {
 					type: 'multiselect',
 					label: 'Levels',
 					id: 'level',
-					default: '1',
+					default: [1],
+					choices: self.levels,
+					minSelection: 1,
+				},
+			],
+		},
+		
+		deselect_level: {
+			label: 'De-Select Levels',
+			options: [
+				{
+					type: 'multiselect',
+					label: 'Levels',
+					id: 'level',
+					default: [1],
 					choices: self.levels,
 					minSelection: 1,
 				},
@@ -495,7 +526,7 @@ instance.prototype.actions = function () {
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'dest',
-					default: '1',
+					default: 1,
 					choices: self.dest_names,
 				},
 			],
@@ -521,7 +552,7 @@ instance.prototype.actions = function () {
 					type: 'dropdown',
 					label: 'Source',
 					id: 'source',
-					default: '1',
+					default: 1,
 					choices: self.source_names,
 				},
 			],
@@ -539,13 +570,26 @@ instance.prototype.actions = function () {
 				},
 			],
 		},
+		
+		route_source_name: {
+			label: 'Route Source name to selected Levels and Destination',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Source',
+					id: 'source',
+					default: 1,
+					choices: self.source_names,
+				},
+			],
+		},
 
 		take: {
 			label: 'Take',
 		},
 
 		clear: {
-			label: 'Clear selection',
+			label: 'Clear',
 			options: [
 				{
 					type: 'dropdown',
@@ -569,7 +613,7 @@ instance.prototype.actions = function () {
 					type: 'multiselect',
 					label: 'Levels',
 					id: 'level',
-					default: '1',
+					default: [1],
 					choices: self.levels,
 					minSelection: 1,
 				},
@@ -597,7 +641,7 @@ instance.prototype.actions = function () {
 					type: 'multiselect',
 					label: 'Levels',
 					id: 'level',
-					default: '1',
+					default: [1],
 					choices: self.levels,
 					minSelection: 1,
 				},
@@ -605,14 +649,14 @@ instance.prototype.actions = function () {
 					type: 'dropdown',
 					label: 'Source',
 					id: 'source',
-					default: '1',
+					default: 1,
 					choices: self.source_names,
 				},
 				{
 					type: 'dropdown',
 					label: 'Destination',
 					id: 'dest',
-					default: '1',
+					default: 1,
 					choices: self.dest_names,
 				},
 			],
@@ -630,10 +674,12 @@ instance.prototype.action = function (action) {
 	const opt = action.options
 
 	if (action.action === 'select_level') {
-		self.selected_level = opt.level
-		console.log('set level ' + self.selected_level)
-		self.setVariable('Level', self.selected_level)
-		self.checkFeedbacks('selected_level')
+		self.processLevelsSelection(opt.level, true)
+		return
+	}
+	
+	if (action.action === 'deselect_level') {
+		self.processLevelsSelection(opt.level, false)
 		return
 	}
 
@@ -652,24 +698,24 @@ instance.prototype.action = function (action) {
 		self.checkFeedbacks('selected_source')
 		return
 	}
-
-	if (action.action === 'route_source') {
-		if (self.selected_level.length === 0) {
-			self.log('warn', 'Unable to make route - select some levels and try again')
-			return
-		}
-		for (let level_val of self.selected_level) {
-			self.SetCrosspoint(opt.source, self.selected_dest, level_val)
+	
+	if (action.action === 'route_source' || action.action === 'route_source_name') {
+		console.log(self.selected_level)
+		var l = self.selected_level.length
+		for (var i = 0; i < l; i ++) {
+			if (self.selected_level[i].enabled === true) {
+				self.SetCrosspoint(opt.source, self.selected_dest, self.selected_level[i].id)
+			}
 		}
 	}
 
 	if (action.action === 'take') {
-		if (self.selected_level.length === 0) {
-			self.log('warn', 'Unable to make route - select some levels and try again')
-			return
-		}
-		for (let level_val of self.selected_level) {
-			self.SetCrosspoint(self.selected_source, self.selected_dest, level_val)
+		console.log(self.selected_level)
+		var l = self.selected_level.length
+		for (var i = 0; i < l; i ++) {
+			if (self.selected_level[i].enabled === true) {
+				self.SetCrosspoint(self.selected_source, self.selected_dest, self.selected_level[i].id)
+			}
 		}
 	}
 
@@ -681,8 +727,9 @@ instance.prototype.action = function (action) {
 
 	if (action.action === 'clear') {
 		if (opt.clear === 'all' || opt.clear === 'level') {
-			self.selected_level = []
-			self.setVariable('Level', self.selected_level)
+			for (var i = 1; i <= self.config.max_levels; i++) {
+				self.selected_level.push({ id: i, enabled: true })
+			}
 			self.checkFeedbacks('selected_level')
 			console.log('clear levels')
 		}
@@ -705,6 +752,21 @@ instance.prototype.action = function (action) {
 	if (action.action === 'get_names') {
 		self.readNames()
 	}
+}
+
+
+
+instance.prototype.processLevelsSelection = function (selection, state) {
+	var self = this
+	
+	console.log(selection)
+	selection.forEach((level) => {
+		self.selected_level[level - 1].enabled = state
+	})
+
+	console.log(self.selected_level)
+	self.checkFeedbacks('selected_level')
+	
 }
 
 instance.prototype.readNames = function () {

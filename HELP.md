@@ -10,17 +10,18 @@ These settings must be entered before the module can be used.
 - **IP Address** of the router or controller 
 - **Port** of the router of controller 
 - **Matrix** this will probably be 1 in most systems
-- **Levels** this number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface.
+- **Levels** this number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
 
 ## Commands
-There are multiple ways of making crosspoint buttons to cater for different applications.
+There are multiple ways of making crosspoint buttons to cater for different applications. For basic operation where one button makes one pre-defined route only **Set Crosspoint** is required.
 
-- **Select Levels:** Preset the levels for the next route
-- **Select Destination:** Preset the destination for the next route
-- **Select Source:** Preset the source for the next take
+- **Select Levels:** Add the level(s) in the action to the level selection for the next take
+- **DeSelect Levels:** Remove the level(s) in the action from the level selection for the next take
+- **Select Destination:** Preset the destination for the next route take
+- **Select Source:** Preset the source for the next route take
 - **Route Source to selected Levels and Destination:** Use the preset levels and destination with the source from this action and make the route
 - **Take:** Make the crosspoint from preset levels, source and destination
-- **Clear:** Forget any preset levels, destination or source
+- **Clear:** Forget any preset levels, destination or source. Enables all levels.
 - **Set Crosspoint:** Specify levels, source and destination in the action and make the route
 
 ### Names
