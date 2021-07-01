@@ -726,6 +726,7 @@ instance.prototype.action = function (action) {
 
 	if (action.action === 'clear') {
 		if (opt.clear === 'all' || opt.clear === 'level') {
+			self.selected_level = []
 			for (var i = 1; i <= self.config.max_levels; i++) {
 				self.selected_level.push({ id: i, enabled: true })
 			}
