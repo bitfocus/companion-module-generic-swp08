@@ -46,3 +46,8 @@ Some dynamic information is stored in variables which you can access through the
 ## Version 1.0.0
 
 First Release
+
+## Version 1.0.1
+
+Reworked levels to be more flexible
+Added Route Source name action

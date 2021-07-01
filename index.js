@@ -504,6 +504,20 @@ instance.prototype.actions = function () {
 				},
 			],
 		},
+		
+		toggle_level: {
+			label: 'Toggle Levels',
+			options: [
+				{
+					type: 'multiselect',
+					label: 'Levels',
+					id: 'level',
+					default: [1],
+					choices: self.levels,
+					minSelection: 1,
+				},
+			],
+		},
 
 		select_dest: {
 			label: 'Select Destination',
@@ -681,6 +695,11 @@ instance.prototype.action = function (action) {
 		self.processLevelsSelection(opt.level, false)
 		return
 	}
+	
+	if (action.action === 'toggle_level') {
+		self.processLevelsSelection(opt.level, 'toggle')
+		return
+	}
 
 	if (action.action === 'select_dest' || action.action === 'select_dest_name') {
 		self.selected_dest = parseInt(opt.dest)
@@ -759,7 +778,11 @@ instance.prototype.processLevelsSelection = function (selection, state) {
 
 	console.log(selection)
 	selection.forEach((level) => {
-		self.selected_level[level - 1].enabled = state
+		if (state === 'toggle') {
+			self.selected_level[level - 1].enabled = !self.selected_level[level - 1].enabled
+		} else {
+			self.selected_level[level - 1].enabled = state
+		}
 	})
 
 	console.log(self.selected_level)
