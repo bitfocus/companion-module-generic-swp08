@@ -75,7 +75,7 @@ instance.prototype.setupVariables = function () {
 		self.levels.push({ id: i, label: 'Level: ' + i })
 		self.selected_level.push({ id: i, enabled: true })
 	}
-	
+
 	console.log(self.levels)
 	console.log(self.selected_level)
 
@@ -424,12 +424,12 @@ instance.prototype.feedback = function (feedback, bank) {
 			// console.log(feedback.options.level)
 			var l = feedback.options.level.length
 			var k = self.selected_level.length
-			
-			for (var i = 0; i < l; i ++) {
+
+			for (var i = 0; i < l; i++) {
 				// is this level enabled?
 				console.log('tesing ' + feedback.options.level[i])
 				var feedback_test = feedback.options.level[i]
-				for(var j = 0; j < k; j ++) {
+				for (var j = 0; j < k; j++) {
 					console.log('id: ' + self.selected_level[j].id)
 					if (self.selected_level[j].id == feedback_test) {
 						if (self.selected_level[j].enabled === true) {
@@ -438,7 +438,6 @@ instance.prototype.feedback = function (feedback, bank) {
 						} else {
 							return false
 						}
-						
 					}
 				}
 			}
@@ -491,7 +490,7 @@ instance.prototype.actions = function () {
 				},
 			],
 		},
-		
+
 		deselect_level: {
 			label: 'De-Select Levels',
 			options: [
@@ -570,7 +569,7 @@ instance.prototype.actions = function () {
 				},
 			],
 		},
-		
+
 		route_source_name: {
 			label: 'Route Source name to selected Levels and Destination',
 			options: [
@@ -677,7 +676,7 @@ instance.prototype.action = function (action) {
 		self.processLevelsSelection(opt.level, true)
 		return
 	}
-	
+
 	if (action.action === 'deselect_level') {
 		self.processLevelsSelection(opt.level, false)
 		return
@@ -698,11 +697,11 @@ instance.prototype.action = function (action) {
 		self.checkFeedbacks('selected_source')
 		return
 	}
-	
+
 	if (action.action === 'route_source' || action.action === 'route_source_name') {
 		console.log(self.selected_level)
 		var l = self.selected_level.length
-		for (var i = 0; i < l; i ++) {
+		for (var i = 0; i < l; i++) {
 			if (self.selected_level[i].enabled === true) {
 				self.SetCrosspoint(opt.source, self.selected_dest, self.selected_level[i].id)
 			}
@@ -712,7 +711,7 @@ instance.prototype.action = function (action) {
 	if (action.action === 'take') {
 		console.log(self.selected_level)
 		var l = self.selected_level.length
-		for (var i = 0; i < l; i ++) {
+		for (var i = 0; i < l; i++) {
 			if (self.selected_level[i].enabled === true) {
 				self.SetCrosspoint(self.selected_source, self.selected_dest, self.selected_level[i].id)
 			}
@@ -754,11 +753,9 @@ instance.prototype.action = function (action) {
 	}
 }
 
-
-
 instance.prototype.processLevelsSelection = function (selection, state) {
 	var self = this
-	
+
 	console.log(selection)
 	selection.forEach((level) => {
 		self.selected_level[level - 1].enabled = state
@@ -766,7 +763,6 @@ instance.prototype.processLevelsSelection = function (selection, state) {
 
 	console.log(self.selected_level)
 	self.checkFeedbacks('selected_level')
-	
 }
 
 instance.prototype.readNames = function () {
