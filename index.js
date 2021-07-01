@@ -504,7 +504,7 @@ instance.prototype.actions = function () {
 				},
 			],
 		},
-		
+
 		toggle_level: {
 			label: 'Toggle Levels',
 			options: [
@@ -695,7 +695,7 @@ instance.prototype.action = function (action) {
 		self.processLevelsSelection(opt.level, false)
 		return
 	}
-	
+
 	if (action.action === 'toggle_level') {
 		self.processLevelsSelection(opt.level, 'toggle')
 		return
