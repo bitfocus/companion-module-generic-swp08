@@ -83,7 +83,20 @@ instance.prototype.setupVariables = function () {
 	self.source_names = []
 	self.dest_names = []
 
-	self.setVariableDefinitions([
+	self.updateVariableDefinitions()
+
+	self.setVariable('Sources', 0)
+	self.setVariable('Destinations', 0)
+
+	self.setVariable('Destination', self.selected_dest)
+	self.setVariable('Source', self.selected_source)
+}
+
+instance.prototype.updateVariableDefinitions = function() {
+	var self = this
+	const coreVariables = []
+
+	coreVariables.push(
 		{
 			label: 'Number of source labels returned by router',
 			name: 'Sources',
@@ -100,13 +113,28 @@ instance.prototype.setupVariables = function () {
 			label: 'Selected source',
 			name: 'Source',
 		},
-	])
-
-	self.setVariable('Sources', 0)
-	self.setVariable('Destinations', 0)
-
-	self.setVariable('Destination', self.selected_dest)
-	self.setVariable('Source', self.selected_source)
+	)
+	
+	for (var i = 1; i <= Object.keys(self.source_names).length; i ++) {
+		coreVariables.push(
+			{
+				label: 'Source ' + i.toString(),
+				name: 'Source_' + i.toString(),
+			}
+		)
+	}
+	
+	for (var i = 1; i <= Object.keys(self.dest_names).length; i ++) {
+		coreVariables.push(
+			{
+				label: 'Destination ' + i.toString(),
+				name: 'Destination_' + i.toString(),
+			}
+		)
+	}
+	
+	self.setVariableDefinitions(coreVariables)
+	console.log(coreVariables)
 }
 
 instance.prototype.init_tcp = function () {
@@ -222,6 +250,9 @@ instance.prototype.init_tcp = function () {
 										s = s + 8
 										l = l + 1
 										label_number = label_number + 1
+										
+										self.SourceVariables = []
+										self.DestVariables = []
 
 										if (data[2] == 0x6a) {
 											// sources
@@ -229,6 +260,8 @@ instance.prototype.init_tcp = function () {
 												id: label_number,
 												label: label_number.toString() + ': ' + label.trim(),
 											})
+											
+											// self.setVariable('Source ' +  label_number.toString(), label.trim())
 										} else if (data[2] == 0x6b) {
 											// destinations
 											self.dest_names.splice(label_number - 1, 0, {
@@ -244,6 +277,10 @@ instance.prototype.init_tcp = function () {
 									self.setVariable('Sources', Object.keys(self.source_names).length)
 									self.setVariable('Destinations', Object.keys(self.dest_names).length)
 
+									// need to find a way of only calling these functions on the last part of the labels
+									self.updateVariableDefinitions()
+									self.updateVariableLabels()
+									
 									console.log(self.source_names)
 									console.log(self.dest_names)
 
@@ -270,6 +307,18 @@ instance.prototype.init_tcp = function () {
 	}
 }
 
+instance.prototype.updateVariableLabels = function () {
+	var self = this
+
+	for (var i = 0; i < Object.keys(self.source_names).length; i++) {
+		self.setVariable('Source_' + self.source_names[i].id, self.source_names[i].label)
+	}
+
+	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
+		self.setVariable('Destination_' + self.dest_names[i].id, self.dest_names[i].label)
+	}
+
+}
 instance.prototype.crosspointConnected = function (data) {
 	var self = this
 
@@ -427,10 +476,10 @@ instance.prototype.feedback = function (feedback, bank) {
 
 			for (var i = 0; i < l; i++) {
 				// is this level enabled?
-				console.log('tesing ' + feedback.options.level[i])
+				// console.log('tesing ' + feedback.options.level[i])
 				var feedback_test = feedback.options.level[i]
 				for (var j = 0; j < k; j++) {
-					console.log('id: ' + self.selected_level[j].id)
+					// console.log('id: ' + self.selected_level[j].id)
 					if (self.selected_level[j].id == feedback_test) {
 						if (self.selected_level[j].enabled === true) {
 							// matched

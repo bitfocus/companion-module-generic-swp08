@@ -42,6 +42,8 @@ Some dynamic information is stored in variables which you can access through the
 - **Number of Destination names** reported by router
 - **Selected Destination** set by actions
 - **Selected Source** set by actions
+- **Source_?** a label for each source as defined in the the router
+- **Destination_?** a label for each destination as defined in the router
 
 ## Version 1.0.0
 
