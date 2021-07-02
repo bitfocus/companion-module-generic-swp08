@@ -17,6 +17,7 @@ There are multiple ways of making crosspoint buttons to cater for different appl
 
 - **Select Levels:** Add the level(s) in the action to the level selection for the next take
 - **DeSelect Levels:** Remove the level(s) in the action from the level selection for the next take
+- **Toggle Levels:** For each level in the action set the state to the opposite of the current state
 - **Select Destination:** Preset the destination for the next route take
 - **Select Source:** Preset the source for the next route take
 - **Route Source to selected Levels and Destination:** Use the preset levels and destination with the source from this action and make the route
@@ -39,7 +40,6 @@ Some dynamic information is stored in variables which you can access through the
 
 - **Number of Source names** reported by router
 - **Number of Destination names** reported by router
-- **Selected Levels** set by actions
 - **Selected Destination** set by actions
 - **Selected Source** set by actions
 
@@ -51,3 +51,4 @@ First Release
 
 Reworked levels to be more flexible
 Added Route Source name action
+Added Toggle Level action
