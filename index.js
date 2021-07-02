@@ -92,7 +92,7 @@ instance.prototype.setupVariables = function () {
 	self.setVariable('Source', self.selected_source)
 }
 
-instance.prototype.updateVariableDefinitions = function() {
+instance.prototype.updateVariableDefinitions = function () {
 	var self = this
 	const coreVariables = []
 
@@ -112,27 +112,23 @@ instance.prototype.updateVariableDefinitions = function() {
 		{
 			label: 'Selected source',
 			name: 'Source',
-		},
+		}
 	)
-	
-	for (var i = 1; i <= Object.keys(self.source_names).length; i ++) {
-		coreVariables.push(
-			{
-				label: 'Source ' + i.toString(),
-				name: 'Source_' + i.toString(),
-			}
-		)
+
+	for (var i = 1; i <= Object.keys(self.source_names).length; i++) {
+		coreVariables.push({
+			label: 'Source ' + i.toString(),
+			name: 'Source_' + i.toString(),
+		})
 	}
-	
-	for (var i = 1; i <= Object.keys(self.dest_names).length; i ++) {
-		coreVariables.push(
-			{
-				label: 'Destination ' + i.toString(),
-				name: 'Destination_' + i.toString(),
-			}
-		)
+
+	for (var i = 1; i <= Object.keys(self.dest_names).length; i++) {
+		coreVariables.push({
+			label: 'Destination ' + i.toString(),
+			name: 'Destination_' + i.toString(),
+		})
 	}
-	
+
 	self.setVariableDefinitions(coreVariables)
 	console.log(coreVariables)
 }
@@ -257,7 +253,7 @@ instance.prototype.init_tcp = function () {
 												id: label_number,
 												label: label_number.toString() + ': ' + label.trim(),
 											})
-											
+
 											// self.setVariable('Source ' +  label_number.toString(), label.trim())
 										} else if (data[2] == 0x6b) {
 											// destinations
@@ -277,7 +273,7 @@ instance.prototype.init_tcp = function () {
 									// need to find a way of only calling these functions on the last part of the labels
 									self.updateVariableDefinitions()
 									self.updateVariableLabels()
-									
+
 									console.log(self.source_names)
 									console.log(self.dest_names)
 
@@ -314,7 +310,6 @@ instance.prototype.updateVariableLabels = function () {
 	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
 		self.setVariable('Destination_' + self.dest_names[i].id, self.dest_names[i].label)
 	}
-
 }
 instance.prototype.crosspointConnected = function (data) {
 	var self = this
