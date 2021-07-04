@@ -301,7 +301,6 @@ instance.prototype.processLabels = function (data) {
 
 	// update dropdown lists
 	self.actions()
-
 }
 
 instance.prototype.updateVariableLabels = function () {
