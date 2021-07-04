@@ -142,8 +142,6 @@ instance.prototype.init_tcp = function () {
 		delete self.socket
 	}
 
-	self.has_data = false
-
 	if (self.config.host) {
 		self.socket = new tcp(self.config.host, self.config.port)
 
@@ -212,74 +210,7 @@ instance.prototype.init_tcp = function () {
 								case 0x6a:
 								case 0x6b:
 									// Names Reply
-									var s = 0
-
-									// Guessed what's happening here
-									var part_number = (data[6] & 0xf0) >> 4
-									var label_number = data[6]
-									var labels_in_part = data[7]
-
-									console.log('part number: ' + part_number)
-									console.log('labels in part: ' + labels_in_part)
-
-									// Need to see the actual spec to write this better
-									if (part_number == 0) {
-										s = 9
-									} else if (part_number == 1 && labels_in_part == 16) {
-										s = 10
-									} else if (part_number > 0 && labels_in_part == 16) {
-										s = 9
-									} else if (part_number > 0 && labels_in_part < 16) {
-										s = 8
-									}
-
-									console.log('starting at: ' + s)
-
-									var l = 0
-
-									while (l < labels_in_part) {
-										var label = ''
-										for (var j = 0; j < 8; j++) {
-											label = label + String.fromCharCode(data[s + j])
-										}
-
-										s = s + 8
-										l = l + 1
-										label_number = label_number + 1
-
-										if (data[2] == 0x6a) {
-											// sources
-											self.source_names.splice(label_number - 1, 0, {
-												id: label_number,
-												label: label_number.toString() + ': ' + label.trim(),
-											})
-
-											// self.setVariable('Source ' +  label_number.toString(), label.trim())
-										} else if (data[2] == 0x6b) {
-											// destinations
-											self.dest_names.splice(label_number - 1, 0, {
-												id: label_number,
-												label: label_number.toString() + ': ' + label.trim(),
-											})
-										}
-
-										// console.log('label ' + self.padLeft(label_number,2) + ' |' + label + '|')
-										// self.log('debug','label ' + self.padLeft(label_number,2) + ' |' + label + '|')
-									}
-
-									self.setVariable('Sources', Object.keys(self.source_names).length)
-									self.setVariable('Destinations', Object.keys(self.dest_names).length)
-
-									// need to find a way of only calling these functions on the last part of the labels
-									self.updateVariableDefinitions()
-									self.updateVariableLabels()
-
-									console.log(self.source_names)
-									console.log(self.dest_names)
-
-									// update dropdown lists
-									self.actions()
-
+									self.processLabels(data)
 									break
 
 								default:
@@ -298,6 +229,79 @@ instance.prototype.init_tcp = function () {
 			}
 		})
 	}
+}
+
+instance.prototype.processLabels = function (data) {
+	var self = this
+
+	var s = 0
+
+	// Guessed what's happening here
+	var part_number = (data[6] & 0xf0) >> 4
+	var label_number = data[6]
+	var labels_in_part = data[7]
+
+	console.log('part number: ' + part_number)
+	console.log('labels in part: ' + labels_in_part)
+
+	// Need to see the actual spec to write this better
+	if (part_number == 0) {
+		s = 9
+	} else if (part_number == 1 && labels_in_part == 16) {
+		s = 10
+	} else if (part_number > 0 && labels_in_part == 16) {
+		s = 9
+	} else if (part_number > 0 && labels_in_part < 16) {
+		s = 8
+	}
+
+	console.log('starting at: ' + s)
+
+	var l = 0
+
+	while (l < labels_in_part) {
+		var label = ''
+		for (var j = 0; j < 8; j++) {
+			label = label + String.fromCharCode(data[s + j])
+		}
+
+		s = s + 8
+		l = l + 1
+		label_number = label_number + 1
+
+		if (data[2] == 0x6a) {
+			// sources
+			self.source_names.splice(label_number - 1, 0, {
+				id: label_number,
+				label: label_number.toString() + ': ' + label.trim(),
+			})
+
+			// self.setVariable('Source ' +  label_number.toString(), label.trim())
+		} else if (data[2] == 0x6b) {
+			// destinations
+			self.dest_names.splice(label_number - 1, 0, {
+				id: label_number,
+				label: label_number.toString() + ': ' + label.trim(),
+			})
+		}
+
+		// console.log('label ' + self.padLeft(label_number,2) + ' |' + label + '|')
+		// self.log('debug','label ' + self.padLeft(label_number,2) + ' |' + label + '|')
+	}
+
+	self.setVariable('Sources', Object.keys(self.source_names).length)
+	self.setVariable('Destinations', Object.keys(self.dest_names).length)
+
+	// need to find a way of only calling these functions on the last part of the labels
+	self.updateVariableDefinitions()
+	self.updateVariableLabels()
+
+	console.log(self.source_names)
+	console.log(self.dest_names)
+
+	// update dropdown lists
+	self.actions()
+
 }
 
 instance.prototype.updateVariableLabels = function () {
