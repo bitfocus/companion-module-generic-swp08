@@ -327,11 +327,12 @@ instance.prototype.crosspointConnected = function (data) {
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
 
-	//var [level] = {[dest]: [source]}
+	var route = { level:[level], dest:[dest], source:[source] }
+	console.log(route)
 	//self.routeTable[level] = {}
-	//self.routeTable[level].push(obj)
+	//self.routeTable[level] = 
 
-	console.log(self.routeTable)
+	//console.log(self.routeTable)
 }
 
 instance.prototype.config_fields = function () {
@@ -660,6 +661,12 @@ instance.prototype.actions = function () {
 						{ id: 'source', label: 'Source' },
 					],
 				},
+				{
+					type: 'checkbox',
+					label: 'Enable all levels on \'Clear All\' or \'Clear Levels\'',
+					id: 'clear_enable_levels',
+					default: true
+				}
 			],
 		},
 
@@ -791,10 +798,11 @@ instance.prototype.action = function (action) {
 		if (opt.clear === 'all' || opt.clear === 'level') {
 			self.selected_level = []
 			for (var i = 1; i <= self.config.max_levels; i++) {
-				self.selected_level.push({ id: i, enabled: true })
+				self.selected_level.push({ id: i, enabled: opt.clear_enable_levels })
 			}
 			self.checkFeedbacks('selected_level')
 			console.log('clear levels')
+			console.log(self.selected_level)
 		}
 
 		if (opt.clear === 'all' || opt.clear === 'dest') {
