@@ -307,11 +307,11 @@ instance.prototype.updateVariableLabels = function () {
 	var self = this
 
 	for (var i = 0; i < Object.keys(self.source_names).length; i++) {
-		self.setVariable('Source_' + self.source_names[i].id, self.source_names[i].label)
+		self.setVariable('Source_' + self.source_names[i].id, self.stripNumber(self.source_names[i].label))
 	}
 
 	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
-		self.setVariable('Destination_' + self.dest_names[i].id, self.dest_names[i].label)
+		self.setVariable('Destination_' + self.dest_names[i].id, self.stripNumber(self.dest_names[i].label))
 	}
 }
 instance.prototype.crosspointConnected = function (data) {
@@ -962,6 +962,14 @@ instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
 	self.sendMessage(action)
 }
 
+instance.prototype.stripNumber = function (str) {
+	var n = str.indexOf(':')
+	if (n > 0) {
+		return str.slice(n + 2)
+	} else {
+		return str
+	}
+}
 instance.prototype.padLeft = function (nr, n, str) {
 	return Array(n - String(nr).length + 1).join(str || '0') + nr
 }
