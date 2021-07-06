@@ -51,8 +51,9 @@ Some dynamic information is stored in variables which you can access through the
 
 ## Version 1.0.1
 - Reworked levels to be more flexible
-- Added Route Source name action
-- Added Toggle Level action
-- Added Variables for source and destination labels
-- Added option to enable levels on clear
-- Added feedback Selected Level and Destination
+- Added route source by name action
+- Added toggle level action
+- Added variables for source and destination labels
+- Added option to re-enable levels on clear
+- Added feedback for selected level and destination
+- Fixed packaging of bytes sent to router
