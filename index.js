@@ -947,7 +947,7 @@ instance.prototype.sendMessage = function (message) {
 			return
 		}
 	}
-	
+
 	// replace byte value 10 (DLE) in data with 1010
 	var packed = ''
 	for (var j = 0; j < message.length; j = j + 2) {
@@ -1020,7 +1020,7 @@ instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
 
 	// message
 	var action = COM + matrix_level + multiplier + dest + source + count + checksum
-	
+
 	self.sendMessage(action)
 }
 
