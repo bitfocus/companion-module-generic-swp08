@@ -12,7 +12,7 @@ These settings must be entered before the module can be used.
 - **Matrix** this will probably be 1 in most systems
 - **Levels** this number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
 
-## Commands
+## Action Commands
 There are multiple ways of making crosspoint buttons to cater for different applications. For basic operation where one button makes one pre-defined route only **Set Crosspoint** is required.
 
 - **Select Levels:** Add the level(s) in the action to the level selection for the next take
@@ -26,25 +26,25 @@ There are multiple ways of making crosspoint buttons to cater for different appl
 - **Set Crosspoint:** Specify levels, source and destination in the action and make the route
 
 ### Names
-There are additional commands which get and use the names stored in the router controller. *These commands are experimental and have been created without access to the interface specification so could break!*
+There are additional commands which retrieve and use the names stored in the router controller. *These commands are experimental and have been created without access to the interface specification so could break!*
 
 ## Feedbacks
-Button background colours can be changed to show current status.
+Button background colours can be changed to show current selection status.
 
 - **Selected Levels**
+- **Selected Levels and Destination**
 - **Selected Destination**
-- **Selected Level and Destination**
 - **Selected Source**
 
 ## Variables
-Some dynamic information is stored in variables which you can access through the companion user interface.
+Some dynamic information is stored in variables which you can access through the Companion user interface.
 
 - **Number of Source names** reported by router
 - **Number of Destination names** reported by router
 - **Selected Destination** set by actions
 - **Selected Source** set by actions
-- **Source_?** a label for each source as defined in the the router
-- **Destination_?** a label for each destination as defined in the router
+- **Source_?** the name of each source as defined in the the router
+- **Destination_?** the name of each destination as defined in the router
 
 ## Version 1.0.0
 - First Release
