@@ -419,6 +419,33 @@ instance.prototype.setupFeedbacks = function (system) {
 		],
 	}
 
+	feedbacks['selected_level_dest'] = {
+		type: 'boolean',
+		label: 'Selected Levels and Destination',
+		description: 'Change colour of button on selected levels and destination',
+		style: {
+			color: self.rgb(0, 0, 0),
+			bgcolor: self.rgb(255, 102, 255),
+		},
+		options: [
+			{
+				type: 'multiselect',
+				label: 'Levels',
+				id: 'level',
+				default: [1],
+				choices: self.levels,
+				minSelection: 1,
+			},
+			{
+				type: 'number',
+				label: 'Destination',
+				id: 'dest',
+				default: 1,
+				min: 1,
+			},
+		],
+	}
+
 	feedbacks['selected_dest'] = {
 		type: 'boolean',
 		label: 'Selected Destination',
@@ -465,29 +492,51 @@ instance.prototype.feedback = function (feedback, bank) {
 
 	switch (feedback.type) {
 		case 'selected_level': {
-			// console.log('feedback options level')
-			// console.log(feedback.options.level)
 			var l = feedback.options.level.length
 			var k = self.selected_level.length
 
 			for (var i = 0; i < l; i++) {
-				// is this level enabled?
-				// console.log('tesing ' + feedback.options.level[i])
 				var feedback_test = feedback.options.level[i]
 				for (var j = 0; j < k; j++) {
-					// console.log('id: ' + self.selected_level[j].id)
 					if (self.selected_level[j].id == feedback_test) {
 						if (self.selected_level[j].enabled === true) {
 							// matched
-							// console.log('matched ' + i + ' ' + j)
 						} else {
 							return false
 						}
 					}
 				}
 			}
-			// console.log('all tests passed')
 			return true
+			break
+		}
+
+		case 'selected_level_dest': {
+			console.log('selected_level_dest feedback')
+			if (self.selected_dest === feedback.options.dest) {
+				console.log('dest match ' + feedback.options.dest)
+				var l = feedback.options.level.length
+				var k = self.selected_level.length
+	
+				for (var i = 0; i < l; i++) {
+					var feedback_test = feedback.options.level[i]
+					for (var j = 0; j < k; j++) {
+						if (self.selected_level[j].id == feedback_test) {
+							if (self.selected_level[j].enabled === true) {
+								// matched
+							} else {
+								console.log('level does not match ' + feedback.options.level)
+								return false
+							}
+						}
+					}
+				}
+				console.log('level and dest match ' + feedback.options.level)
+				return true
+			} else {
+				console.log('dest does not match ' + feedback.options.dest)
+				return false
+			}
 			break
 		}
 
@@ -757,6 +806,7 @@ instance.prototype.action = function (action) {
 		console.log('set destination ' + self.selected_dest)
 		self.setVariable('Destination', self.selected_dest)
 		self.checkFeedbacks('selected_dest')
+		self.checkFeedbacks('selected_level_dest')
 		return
 	}
 
@@ -839,6 +889,7 @@ instance.prototype.processLevelsSelection = function (selection, state) {
 
 	console.log(self.selected_level)
 	self.checkFeedbacks('selected_level')
+	self.checkFeedbacks('selected_level_dest')
 }
 
 instance.prototype.readNames = function () {
