@@ -947,10 +947,21 @@ instance.prototype.sendMessage = function (message) {
 			return
 		}
 	}
+	
+	// replace byte value 10 (DLE) in data with 1010
+	var packed = ''
+	for (var j = 0; j < message.length; j = j + 2) {
+		var b = message.substr(j, 2)
+		if (b === '10') {
+			packed = packed + '1010'
+		} else {
+			packed = packed + b
+		}
+	}
 
-	cmd = DLE + STX + message + DLE + ETX
+	cmd = DLE + STX + packed + DLE + ETX
 
-	// self.log('debug','Sending: ' + cmd)
+	// console.log('Sending: ' + cmd)
 	console.log(self.hexStringToBuffer(cmd))
 
 	if (cmd !== undefined) {
@@ -1009,7 +1020,7 @@ instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
 
 	// message
 	var action = COM + matrix_level + multiplier + dest + source + count + checksum
-
+	
 	self.sendMessage(action)
 }
 

@@ -22,7 +22,7 @@ There are multiple ways of making crosspoint buttons to cater for different appl
 - **Select Source:** Preset the source for the next route take
 - **Route Source to selected Levels and Destination:** Use the preset levels and destination with the source from this action and make the route
 - **Take:** Make the crosspoint from preset levels, source and destination
-- **Clear:** Forget any preset levels, destination or source. Enables all levels.
+- **Clear:** Forget any preset levels, destination or source. Optionally re-enable all levels.
 - **Set Crosspoint:** Specify levels, source and destination in the action and make the route
 
 ### Names
@@ -33,6 +33,7 @@ Button background colours can be changed to show current status.
 
 - **Selected Levels**
 - **Selected Destination**
+- **Selected Level and Destination**
 - **Selected Source**
 
 ## Variables
@@ -46,11 +47,12 @@ Some dynamic information is stored in variables which you can access through the
 - **Destination_?** a label for each destination as defined in the router
 
 ## Version 1.0.0
-
-First Release
+- First Release
 
 ## Version 1.0.1
-
-Reworked levels to be more flexible
-Added Route Source name action
-Added Toggle Level action
+- Reworked levels to be more flexible
+- Added Route Source name action
+- Added Toggle Level action
+- Added Variables for source and destination labels
+- Added option to enable levels on clear
+- Added feedback Selected Level and Destination
