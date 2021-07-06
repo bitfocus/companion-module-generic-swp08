@@ -517,7 +517,7 @@ instance.prototype.feedback = function (feedback, bank) {
 				console.log('dest match ' + feedback.options.dest)
 				var l = feedback.options.level.length
 				var k = self.selected_level.length
-	
+
 				for (var i = 0; i < l; i++) {
 					var feedback_test = feedback.options.level[i]
 					for (var j = 0; j < k; j++) {
