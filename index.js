@@ -48,6 +48,7 @@ instance.prototype.init = function () {
 	self.actions()
 
 	self.checkFeedbacks('selected_level')
+	self.checkFeedbacks('selected_level_dest')
 	self.checkFeedbacks('selected_dest')
 	self.checkFeedbacks('selected_source')
 
@@ -512,9 +513,7 @@ instance.prototype.feedback = function (feedback, bank) {
 		}
 
 		case 'selected_level_dest': {
-			console.log('selected_level_dest feedback')
 			if (self.selected_dest === feedback.options.dest) {
-				console.log('dest match ' + feedback.options.dest)
 				var l = feedback.options.level.length
 				var k = self.selected_level.length
 
@@ -525,16 +524,13 @@ instance.prototype.feedback = function (feedback, bank) {
 							if (self.selected_level[j].enabled === true) {
 								// matched
 							} else {
-								console.log('level does not match ' + feedback.options.level)
 								return false
 							}
 						}
 					}
 				}
-				console.log('level and dest match ' + feedback.options.level)
 				return true
 			} else {
-				console.log('dest does not match ' + feedback.options.dest)
 				return false
 			}
 			break
@@ -851,6 +847,7 @@ instance.prototype.action = function (action) {
 				self.selected_level.push({ id: i, enabled: opt.clear_enable_levels })
 			}
 			self.checkFeedbacks('selected_level')
+			self.checkFeedbacks('selected_level_dest')
 			console.log('clear levels')
 			console.log(self.selected_level)
 		}
@@ -859,6 +856,7 @@ instance.prototype.action = function (action) {
 			self.selected_dest = 0
 			self.setVariable('Destination', self.selected_dest)
 			self.checkFeedbacks('selected_dest')
+			self.checkFeedbacks('selected_level_dest')
 			console.log('clear dest')
 		}
 
