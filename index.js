@@ -159,7 +159,6 @@ instance.prototype.updateVariableDefinitions = function () {
 
 	console.log(labelDump)
 	self.setVariables(labelDump)
-
 }
 
 instance.prototype.init_tcp = function () {
@@ -207,43 +206,43 @@ instance.prototype.init_tcp = function () {
 			var message = []
 
 			if (data.length > 0) {
-				for (var j = 0; j < data.length; j ++) {
+				for (var j = 0; j < data.length; j++) {
 					if (data[j] == 0x10) {
-						switch (data[j+1]) {
-						case 0x02:
-							console.log('Received SOM')
-							j ++
-							continue
-						break
+						switch (data[j + 1]) {
+							case 0x02:
+								console.log('Received SOM')
+								j++
+								continue
+								break
 
-						case 0x03:
-							console.log('Received EOM')
-							j ++
-							continue
-						break
+							case 0x03:
+								console.log('Received EOM')
+								j++
+								continue
+								break
 
-						case 0x06:
-							console.log('Received ACK')
-							j ++
-							continue
-						break
+							case 0x06:
+								console.log('Received ACK')
+								j++
+								continue
+								break
 
-						case 0x10:
-							// remove repeated byte 0x10
-							message.push(data[j])
-							j ++
-							continue
-						break
+							case 0x10:
+								// remove repeated byte 0x10
+								message.push(data[j])
+								j++
+								continue
+								break
 
-						case 0x15:
-							console.log('Received NAK')
-							j ++
-							continue
-						break
+							case 0x15:
+								console.log('Received NAK')
+								j++
+								continue
+								break
 
-						default:
-							message.push(data[j])
-							continue
+							default:
+								message.push(data[j])
+								continue
 						}
 					}
 					message.push(data[j])
@@ -265,27 +264,27 @@ instance.prototype.init_tcp = function () {
 						// Protocol Implementation Response
 						var requests = message[1]
 						var responses = message[2]
-	
+
 						self.commands = []
 
 						for (var j = 3; j < message.length - 2; j++) {
 							self.commands.push(message[j])
 						}
-	
+
 						console.log('This router implements: ' + self.commands)
-						
+
 						// request names
 						if (self.config.read_names_on_connect) {
 							self.readNames()
 						}
 						break
-	
+
 					case 0x6a:
 					case 0x6b:
 						// Names Reply
 						self.processLabels(message)
 						break
-	
+
 					default:
 						self.log('warn', 'Unknown response code ' + message[0])
 						console.log('Unknown response code ' + message[0])
@@ -305,9 +304,9 @@ instance.prototype.processLabels = function (data) {
 
 	var char_length = char_length_table[data[2]]
 	var multiplier = data[3]
-	var label_number = (256 * multiplier) + data[4]
+	var label_number = 256 * multiplier + data[4]
 	var labels_in_part = data[5]
-	
+
 	// self.log('debug','label decode ' + data[0] + ' from: ' + label_number + ' count: ' + labels_in_part)
 
 	console.log('label chars:' + char_length)
@@ -330,7 +329,6 @@ instance.prototype.processLabels = function (data) {
 				id: label_number,
 				label: label_number.toString() + ': ' + label.trim(),
 			})
-
 		} else if (data[0] == 0x6b) {
 			// destinations
 			self.dest_names.splice(label_number - 1, 0, {
@@ -368,18 +366,21 @@ instance.prototype.crosspointConnected = function (data) {
 
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
-	
+
 	if (dest == self.selected_dest) {
 		// update variables for selected dest source
 		self.setVariable('Sel_Dest_Source_Level_' + level.toString(), source)
 		if (self.source_names.length > 0) {
 			// only if names have been retrieved
-			self.setVariable('Sel_Dest_Source_Name_Level_' + level.toString(), self.stripNumber(self.source_names[source - 1].label))
+			self.setVariable(
+				'Sel_Dest_Source_Name_Level_' + level.toString(),
+				self.stripNumber(self.source_names[source - 1].label)
+			)
 		}
 	}
 
 	// store route data
-	for (var i = 0; i < self.routeTable.length; i ++) {
+	for (var i = 0; i < self.routeTable.length; i++) {
 		if (self.routeTable[i].level === level && self.routeTable[i].dest === dest) {
 			// update existing
 			self.routeTable[i].source = source
@@ -452,10 +453,10 @@ instance.prototype.config_fields = function () {
 			width: 6,
 			default: '01',
 			choices: [
-				{ id: '00', label: '4 characters'},
-				{ id: '01', label: '8 characters'},
-				{ id: '02', label: '12 characters'},
-			]
+				{ id: '00', label: '4 characters' },
+				{ id: '01', label: '8 characters' },
+				{ id: '02', label: '12 characters' },
+			],
 		},
 	]
 }
