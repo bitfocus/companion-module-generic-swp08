@@ -9,24 +9,24 @@ These settings must be entered before the module can be used.
 
 - **IP Address** of the router or controller 
 - **Port** of the router of controller 
-- **Matrix** this will probably be 1 in most systems
-- **Levels** this number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
+- **Matrix** This will probably be 1 in most systems
+- **Levels** This number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
+- **Request Names** When connection is made to the router ask for the names. Not supported by all routers.
+- **Name Length** Ask the router to return names of this length. Not supported by all routers.
 
 ## Action Commands
 There are multiple ways of making crosspoint buttons to cater for different applications. For basic operation where one button makes one pre-defined route only **Set Crosspoint** is required.
 
-- **Select Levels:** Add the level(s) in the action to the level selection for the next take
-- **DeSelect Levels:** Remove the level(s) in the action from the level selection for the next take
-- **Toggle Levels:** For each level in the action set the state to the opposite of the current state
-- **Select Destination:** Preset the destination for the next route take
-- **Select Source:** Preset the source for the next route take
-- **Route Source to selected Levels and Destination:** Use the preset levels and destination with the source from this action and make the route
-- **Take:** Make the crosspoint from preset levels, source and destination
-- **Clear:** Forget any preset levels, destination or source. Optionally re-enable all levels.
-- **Set Crosspoint:** Specify levels, source and destination in the action and make the route
-
-### Names
-There are additional commands which retrieve and use the names stored in the router controller. *These commands are experimental and have been created without access to the interface specification so could break!*
+- **Select Levels** Add the level(s) in the action to the level selection for the next take
+- **DeSelect Levels** Remove the level(s) in the action from the level selection for the next take
+- **Toggle Levels** For each level in the action set the state to the opposite of the current state
+- **Select Destination** and **Select Destination name** Preset the destination for the next route take
+- **Select Source** and **Select Source name** Preset the source for the next route take
+- **Route Source to selected Levels and Destination** and **Route Source name to selected Levels and Destination** Use the preset levels and destination with the source from this action and make the route
+- **Take** Make the crosspoint from preset levels, source and destination
+- **Clear** Forget any preset levels, destination or source. Optionally re-enable all levels.
+- **Set Crosspoint** Specify levels, source and destination in the action and make the route
+- **Refresh Source and Destination names** Ask the router for the current set of names and update
 
 ## Feedbacks
 Button background colours can be changed to show current selection status.
@@ -43,8 +43,9 @@ Some dynamic information is stored in variables which you can access through the
 - **Number of Destination names** reported by router
 - **Selected Destination** set by actions
 - **Selected Source** set by actions
-- **Source_?** the name of each source as defined in the the router
-- **Destination_?** the name of each destination as defined in the router
+- **Selected Destination Source** and **Selected Destination Source Name** When a destination is selected the variable updates by interrogating the router. If multiple levels are defined then there is a variable for each level.
+- **Source_?** The name of each source as defined in the the router
+- **Destination_?** The name of each destination as defined in the router
 
 ## Version 1.0.0
 - First Release
@@ -57,3 +58,10 @@ Some dynamic information is stored in variables which you can access through the
 - Added option to re-enable levels on clear
 - Added feedback for selected level and destination
 - Fixed packaging of bytes sent to router
+
+## Version 1.0.2
+- Reworked incoming data processing
+- Reworked name decoding to support larger routers
+- Added module config option for name length
+- Added module config option to request names on connection
+- Added variables for selected destination source

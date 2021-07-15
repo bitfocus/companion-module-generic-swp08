@@ -66,7 +66,7 @@ instance.prototype.setupVariables = function () {
 	self.selected_dest = 0
 	self.selected_source = 0
 
-	self.routeTable = {}
+	self.routeTable = []
 
 	self.levels = []
 
@@ -89,21 +89,21 @@ instance.prototype.setupVariables = function () {
 	self.setVariable('Sources', 0)
 	self.setVariable('Destinations', 0)
 
-	self.setVariable('Destination', self.selected_dest)
 	self.setVariable('Source', self.selected_source)
+	self.setVariable('Destination', self.selected_dest)
 }
 
 instance.prototype.updateVariableDefinitions = function () {
 	var self = this
-	const coreVariables = []
+	var coreVariables = []
 
 	coreVariables.push(
 		{
-			label: 'Number of source labels returned by router',
+			label: 'Number of source names returned by router',
 			name: 'Sources',
 		},
 		{
-			label: 'Number of destination labels returned by router',
+			label: 'Number of destination names returned by router',
 			name: 'Destinations',
 		},
 		{
@@ -115,6 +115,17 @@ instance.prototype.updateVariableDefinitions = function () {
 			name: 'Source',
 		}
 	)
+
+	for (var i = 1; i <= self.config.max_levels; i++) {
+		coreVariables.push({
+			label: 'Selected destination source for level ' + i.toString(),
+			name: 'Sel_Dest_Source_Level_' + i.toString(),
+		})
+		coreVariables.push({
+			label: 'Selected destination source name for level ' + i.toString(),
+			name: 'Sel_Dest_Source_Name_Level_' + i.toString(),
+		})
+	}
 
 	for (var i = 1; i <= Object.keys(self.source_names).length; i++) {
 		coreVariables.push({
@@ -131,7 +142,24 @@ instance.prototype.updateVariableDefinitions = function () {
 	}
 
 	self.setVariableDefinitions(coreVariables)
-	console.log(coreVariables)
+
+	var labelDump = {}
+
+	for (var i = 0; i < Object.keys(self.source_names).length; i++) {
+		var variableName = 'Source_' + self.source_names[i].id
+		var variableValue = self.stripNumber(self.source_names[i].label)
+		labelDump[variableName] = variableValue
+	}
+
+	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
+		var variableName = 'Destination_' + self.dest_names[i].id
+		var variableValue = self.stripNumber(self.dest_names[i].label)
+		labelDump[variableName] = variableValue
+	}
+
+	console.log(labelDump)
+	self.setVariables(labelDump)
+
 }
 
 instance.prototype.init_tcp = function () {
@@ -163,7 +191,7 @@ instance.prototype.init_tcp = function () {
 
 		self.socket.on('data', function (chunk) {
 			if (Buffer.compare(chunk, receivebuffer) != 0) {
-				console.log('Received: ' + chunk.length + ' bytes ', chunk)
+				console.log('Received: ' + chunk.length + ' bytes ', chunk.toString('hex').match(/../g).join(' '))
 				// send ACK
 				self.sendAck()
 				// Decode
@@ -176,56 +204,92 @@ instance.prototype.init_tcp = function () {
 		})
 
 		self.socket.on('decode', function (data) {
+			var message = []
+
 			if (data.length > 0) {
-				if (data[0] == 0x10) {
-					switch (data[1]) {
-						case 0x06:
-							// ACK
-							console.log('Received ACK')
-							break
+				for (var j = 0; j < data.length; j ++) {
+					if (data[j] == 0x10) {
+						switch (data[j+1]) {
 						case 0x02:
-							// STX
-							console.log('Command id: ' + data[2])
-							switch (data[2]) {
-								// Command
-								case 0x03:
-								case 0x04:
-									// Crosspoint Tally, Crosspoint Connected
-									self.crosspointConnected(data)
-									break
+							console.log('Received SOM')
+							j ++
+							continue
+						break
 
-								case 0x62:
-									// Protocol Implementation Response
-									var requests = data[3]
-									var responses = data[4]
+						case 0x03:
+							console.log('Received EOM')
+							j ++
+							continue
+						break
 
-									self.commands = []
+						case 0x06:
+							console.log('Received ACK')
+							j ++
+							continue
+						break
 
-									for (var j = 5; j < data.length - 4; j++) {
-										self.commands.push(data[j])
-									}
+						case 0x10:
+							// remove repeated byte 0x10
+							message.push(data[j])
+							j ++
+							continue
+						break
 
-									console.log('This router implements: ' + self.commands)
-									break
-
-								case 0x6a:
-								case 0x6b:
-									// Names Reply
-									self.processLabels(data)
-									break
-
-								default:
-									self.log('debug', 'Unknown response code ' + data[2])
-									break
-							}
-							break
 						case 0x15:
-							// NAK
-							console.log('NAK')
-							break
+							console.log('Received NAK')
+							j ++
+							continue
+						break
+
 						default:
-							console.log(data)
+							message.push(data[j])
+							continue
+						}
 					}
+					message.push(data[j])
+				}
+			}
+
+			if (message.length > 2) {
+				console.log('message extracted: ' + message)
+				console.log('Command id: ' + message[0])
+				switch (message[0]) {
+					// Command
+					case 0x03:
+					case 0x04:
+						// Crosspoint Tally, Crosspoint Connected
+						self.crosspointConnected(message)
+						break
+
+					case 0x62:
+						// Protocol Implementation Response
+						var requests = message[1]
+						var responses = message[2]
+	
+						self.commands = []
+
+						for (var j = 3; j < message.length - 2; j++) {
+							self.commands.push(message[j])
+						}
+	
+						console.log('This router implements: ' + self.commands)
+						
+						// request names
+						if (self.config.read_names_on_connect) {
+							self.readNames()
+						}
+						break
+	
+					case 0x6a:
+					case 0x6b:
+						// Names Reply
+						self.processLabels(message)
+						break
+	
+					default:
+						self.log('warn', 'Unknown response code ' + message[0])
+						console.log('Unknown response code ' + message[0])
+						break
 				}
 			}
 		})
@@ -235,50 +299,39 @@ instance.prototype.init_tcp = function () {
 instance.prototype.processLabels = function (data) {
 	var self = this
 
-	var s = 0
-
-	// Guessed what's happening here
-	var part_number = (data[6] & 0xf0) >> 4
-	var label_number = data[6]
-	var labels_in_part = data[7]
-
-	console.log('part number: ' + part_number)
-	console.log('labels in part: ' + labels_in_part)
-
-	// Need to see the actual spec to write this better
-	if (part_number == 0) {
-		s = 9
-	} else if (part_number == 1 && labels_in_part == 16) {
-		s = 10
-	} else if (part_number > 0 && labels_in_part == 16) {
-		s = 9
-	} else if (part_number > 0 && labels_in_part < 16) {
-		s = 8
-	}
-
-	console.log('starting at: ' + s)
-
+	var s = 6
 	var l = 0
+	var char_length_table = [4, 8, 12]
+
+	var char_length = char_length_table[data[2]]
+	var multiplier = data[3]
+	var label_number = (256 * multiplier) + data[4]
+	var labels_in_part = data[5]
+	
+	// self.log('debug','label decode ' + data[0] + ' from: ' + label_number + ' count: ' + labels_in_part)
+
+	console.log('label chars:' + char_length)
+	console.log('label number:' + label_number)
+	console.log('labels in part: ' + labels_in_part)
 
 	while (l < labels_in_part) {
 		var label = ''
-		for (var j = 0; j < 8; j++) {
+		for (var j = 0; j < char_length; j++) {
 			label = label + String.fromCharCode(data[s + j])
 		}
 
-		s = s + 8
+		s = s + char_length
 		l = l + 1
 		label_number = label_number + 1
 
-		if (data[2] == 0x6a) {
+		if (data[0] == 0x6a) {
 			// sources
 			self.source_names.splice(label_number - 1, 0, {
 				id: label_number,
 				label: label_number.toString() + ': ' + label.trim(),
 			})
 
-			// self.setVariable('Source ' +  label_number.toString(), label.trim())
-		} else if (data[2] == 0x6b) {
+		} else if (data[0] == 0x6b) {
 			// destinations
 			self.dest_names.splice(label_number - 1, 0, {
 				id: label_number,
@@ -295,7 +348,6 @@ instance.prototype.processLabels = function (data) {
 
 	// need to find a way of only calling these functions on the last part of the labels
 	self.updateVariableDefinitions()
-	self.updateVariableLabels()
 
 	console.log(self.source_names)
 	console.log(self.dest_names)
@@ -304,36 +356,42 @@ instance.prototype.processLabels = function (data) {
 	self.actions()
 }
 
-instance.prototype.updateVariableLabels = function () {
-	var self = this
-
-	for (var i = 0; i < Object.keys(self.source_names).length; i++) {
-		self.setVariable('Source_' + self.source_names[i].id, self.stripNumber(self.source_names[i].label))
-	}
-
-	for (var i = 0; i < Object.keys(self.dest_names).length; i++) {
-		self.setVariable('Destination_' + self.dest_names[i].id, self.stripNumber(self.dest_names[i].label))
-	}
-}
 instance.prototype.crosspointConnected = function (data) {
 	var self = this
 
-	var matrix = ((data[3] & 0xf0) >> 4) + 1
-	var level = (data[3] & 0x0f) + 1
-	var destDiv = (data[4] & 0x70) >> 4
-	var sourceDiv = data[4] & 0x7
-	var dest = 128 * destDiv + data[5] + 1
-	var source = 128 * sourceDiv + data[6] + 1
+	var matrix = ((data[1] & 0xf0) >> 4) + 1
+	var level = (data[1] & 0x0f) + 1
+	var destDiv = (data[2] & 0x70) >> 4
+	var sourceDiv = data[2] & 0x7
+	var dest = 128 * destDiv + data[3] + 1
+	var source = 128 * sourceDiv + data[4] + 1
 
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
+	
+	if (dest == self.selected_dest) {
+		// update variables for selected dest source
+		self.setVariable('Sel_Dest_Source_Level_' + level.toString(), source)
+		if (self.source_names.length > 0) {
+			// only if names have been retrieved
+			self.setVariable('Sel_Dest_Source_Name_Level_' + level.toString(), self.stripNumber(self.source_names[source - 1].label))
+		}
+	}
 
-	var route = { level: [level], dest: [dest], source: [source] }
-	console.log(route)
-	//self.routeTable[level] = {}
-	//self.routeTable[level] =
+	// store route data
+	for (var i = 0; i < self.routeTable.length; i ++) {
+		if (self.routeTable[i].level === level && self.routeTable[i].dest === dest) {
+			// update existing
+			self.routeTable[i].source = source
+			console.log(self.routeTable)
+			return
+		}
+	}
 
-	//console.log(self.routeTable)
+	// add new
+	var new_route = { level: level, dest: dest, source: source }
+	self.routeTable.push(new_route)
+	console.log(self.routeTable)
 }
 
 instance.prototype.config_fields = function () {
@@ -345,7 +403,7 @@ instance.prototype.config_fields = function () {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'This module will allow you to control broadcast routers which implement the SW-P-08 protocol.',
+			value: 'This module will allow you to control broadcast routers which implement the SW-P-08 standard protocol.',
 		},
 		{
 			type: 'textinput',
@@ -380,11 +438,30 @@ instance.prototype.config_fields = function () {
 			min: 1,
 			max: 16,
 		},
+		{
+			type: 'checkbox',
+			label: 'Request names from router on connection',
+			id: 'read_names_on_connect',
+			width: 6,
+			default: false,
+		},
+		{
+			type: 'dropdown',
+			label: 'Request name length (ignored by some routers)',
+			id: 'name_chars',
+			width: 6,
+			default: '01',
+			choices: [
+				{ id: '00', label: '4 characters'},
+				{ id: '01', label: '8 characters'},
+				{ id: '02', label: '12 characters'},
+			]
+		},
 	]
 }
 
-// When module gets deleted
 instance.prototype.destroy = function () {
+	// When module gets deleted
 	var self = this
 
 	if (self.socket !== undefined) {
@@ -799,6 +876,7 @@ instance.prototype.action = function (action) {
 
 	if (action.action === 'select_dest' || action.action === 'select_dest_name') {
 		self.selected_dest = parseInt(opt.dest)
+		self.getCrosspoints(opt.dest)
 		console.log('set destination ' + self.selected_dest)
 		self.setVariable('Destination', self.selected_dest)
 		self.checkFeedbacks('selected_dest')
@@ -899,11 +977,14 @@ instance.prototype.readNames = function () {
 	self.setVariable('Sources', 0)
 	self.setVariable('Destinations', 0)
 
+	get_source = '64' + self.config.name_chars + '02'
+	get_dest = '66' + self.config.name_chars + '02'
+
 	// get source names
-	self.sendMessage('64019B')
+	self.sendMessage(get_source + self.checksum8(get_source))
 
 	// get dest names
-	self.sendMessage('660199')
+	self.sendMessage(get_dest + self.checksum8(get_dest))
 }
 
 instance.prototype.sendAck = function () {
@@ -959,8 +1040,7 @@ instance.prototype.sendMessage = function (message) {
 
 	cmd = DLE + STX + packed + DLE + ETX
 
-	// console.log('Sending: ' + cmd)
-	console.log(self.hexStringToBuffer(cmd))
+	console.log('Sending >> ' + cmd)
 
 	if (cmd !== undefined) {
 		if (self.socket !== undefined && self.socket.connected) {
@@ -1020,6 +1100,41 @@ instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
 	var action = COM + matrix_level + multiplier + dest + source + count + checksum
 
 	self.sendMessage(action)
+}
+
+instance.prototype.getCrosspoints = function (destN) {
+	var self = this
+
+	console.log('GetCrosspoint ' + destN)
+
+	if (destN <= 0 || destN > 1024) {
+		self.log('warn', 'Unable to get crosspoint destination ' + destN)
+		return
+	}
+
+	const COM = '01'
+	// Byte count
+	var count = '04'
+
+	// Matrix and Level
+	var matrix = (self.config.matrix - 1) << 4
+
+	// Multiplier if dest > 128
+	var destDIV = Math.floor((destN - 1) / 128)
+	var multiplier = self.padLeft((destDIV << 4).toString(16), 2)
+
+	// Destination MOD 128
+	var dest = self.padLeft(((destN - 1) % 128).toString(16), 2)
+
+	// check all levels
+	for (var i = 0; i <= self.config.max_levels - 1; i++) {
+		var matrix_level = self.padLeft((matrix | i).toString(16), 2)
+		// checksum
+		var checksum = self.checksum8(COM + matrix_level + multiplier + dest + count)
+		// message
+		var action = COM + matrix_level + multiplier + dest + count + checksum
+		self.sendMessage(action)
+	}
 }
 
 instance.prototype.stripNumber = function (str) {
