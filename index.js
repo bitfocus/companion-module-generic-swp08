@@ -184,7 +184,7 @@ instance.prototype.init_tcp = function () {
 
 		self.socket.on('connect', function () {
 			debug('Connected')
-			
+
 			if (self.config.supported_commands_on_connect === true) {
 				// request protocol implementation
 				self.sendMessage('61019E')
@@ -290,7 +290,7 @@ instance.prototype.init_tcp = function () {
 
 					default:
 						self.log('warn', 'Unknown response code ' + message[0])
-						self.log('debug',message.toString('hex').match(/../g).join(' '))
+						self.log('debug', message.toString('hex').match(/../g).join(' '))
 						console.log('Unknown response code ' + message[0])
 						break
 				}
