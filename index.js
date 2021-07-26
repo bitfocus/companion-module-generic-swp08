@@ -184,8 +184,11 @@ instance.prototype.init_tcp = function () {
 
 		self.socket.on('connect', function () {
 			debug('Connected')
-			// request protocol implementation
-			self.sendMessage('61019E')
+			
+			if (self.config.supported_commands_on_connect === true) {
+				// request protocol implementation
+				self.sendMessage('61019E')
+			}
 		})
 
 		self.socket.on('data', function (chunk) {
@@ -287,6 +290,7 @@ instance.prototype.init_tcp = function () {
 
 					default:
 						self.log('warn', 'Unknown response code ' + message[0])
+						self.log('debug',message.toString('hex').match(/../g).join(' '))
 						console.log('Unknown response code ' + message[0])
 						break
 				}
@@ -438,6 +442,13 @@ instance.prototype.config_fields = function () {
 			default: 3,
 			min: 1,
 			max: 16,
+		},
+		{
+			type: 'checkbox',
+			label: 'Request supported commands on connection',
+			id: 'supported_commands_on_connect',
+			width: 6,
+			default: true,
 		},
 		{
 			type: 'checkbox',
@@ -1014,17 +1025,19 @@ instance.prototype.sendMessage = function (message) {
 	// check that the command is implemented in the router
 	var cmdCode = parseInt(message.substring(0, 2), 16)
 
-	if (cmdCode !== 97) {
-		if (self.commands.length > 0) {
-			if (self.commands.indexOf(cmdCode) !== -1) {
-				// all good
+	if (self.config.supported_commands_on_connect === true) {
+		if (cmdCode !== 97) {
+			if (self.commands.length > 0) {
+				if (self.commands.indexOf(cmdCode) !== -1) {
+					// all good
+				} else {
+					self.log('warn', 'Command code ' + cmdCode + ' is not implemented by this hardware')
+					return
+				}
 			} else {
-				self.log('warn', 'Command code ' + cmdCode + ' is not implemented by this hardware')
+				self.log('warn', 'Unable to verify list of implemented commands')
 				return
 			}
-		} else {
-			self.log('warn', 'Unable to verify list of implemented commands')
-			return
 		}
 	}
 
