@@ -1,6 +1,6 @@
 # Generic Remote Control Protocol SW-P-08
 
-The SW-P-08 protocol is implemented by many broadcast routers and control systems. You may need to enable this protocol on your router control system. Currently only the 'standard' set of SW-P-08 commands are supported which means a maximum of 16 levels, 1024 sources and 1024 destinations can be controlled. 
+The SW-P-08 protocol is implemented by many broadcast routers and control systems. You may need to enable this protocol on your router control system. Currently only the 'standard' set of SW-P-08 commands are supported which means a maximum of 16 levels, 1024 sources and 1024 destinations can be controlled.
 
 [Please log suggestions and issues on github.](https://github.com/bitfocus/companion-module-generic-swp08/issues)
 
@@ -11,6 +11,7 @@ These settings must be entered before the module can be used.
 - **Port** of the router of controller 
 - **Matrix** This will probably be 1 in most systems
 - **Levels** This number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
+- **Request Supported Commands** By default Companion will ask the router which SW-P-08 commands and responses it supports. If this check fails then it can be disabled using this option. 
 - **Request Names** When connection is made to the router ask for the names. Not supported by all routers.
 - **Name Length** Ask the router to return names of this length. Not supported by all routers.
 
@@ -65,3 +66,6 @@ Some dynamic information is stored in variables which you can access through the
 - Added module config option for name length
 - Added module config option to request names on connection
 - Added variables for selected destination source
+
+## Version 1.0.3
+- Added module config option to disable the supported commands check

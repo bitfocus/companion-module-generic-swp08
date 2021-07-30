@@ -290,7 +290,7 @@ instance.prototype.init_tcp = function () {
 
 					default:
 						self.log('warn', 'Unknown response code ' + message[0])
-						self.log('debug', message.toString('hex').match(/../g).join(' '))
+						self.log('debug', message.toString())
 						console.log('Unknown response code ' + message[0])
 						break
 				}
