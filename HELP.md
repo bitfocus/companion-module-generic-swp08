@@ -1,6 +1,6 @@
 # Generic Remote Control Protocol SW-P-08
 
-The SW-P-08 protocol is implemented by many broadcast routers and control systems. You may need to enable this protocol on your router control system. Currently only the 'standard' set of SW-P-08 commands are supported which means a maximum of 16 levels, 1024 sources and 1024 destinations can be controlled.
+The SW-P-08 protocol is implemented by many broadcast routers and control systems. You may need to enable this protocol on your router control system. This module supports both up to 256 levels, 65535 sources and 65535 destinations. If your router controller does not support the extended command set then you are limited to 16 levels, 1024 sources and 1024 destinations.
 
 [Please log suggestions and issues on github.](https://github.com/bitfocus/companion-module-generic-swp08/issues)
 
@@ -11,6 +11,7 @@ These settings must be entered before the module can be used.
 - **Port** of the router of controller 
 - **Matrix** This will probably be 1 in most systems
 - **Levels** This number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
+- **Router has more than 1024 sources or destinations** If you have a large router enable this option to ensure all source and destination names are retrieved. If you don't need the names from the router or your router doesn't support names then this option can be ignored.
 - **Request Supported Commands** By default Companion will ask the router which SW-P-08 commands and responses it supports. If this check fails then it can be disabled using this option. 
 - **Request Names** When connection is made to the router ask for the names. Not supported by all routers.
 - **Name Length** Ask the router to return names of this length. Not supported by all routers.
@@ -69,3 +70,9 @@ Some dynamic information is stored in variables which you can access through the
 
 ## Version 1.0.3
 - Added module config option to disable the supported commands check
+
+## Version 1.0.4
+- Added support for more than 16 levels
+- Added support for more then 1024 sources/destinations
+- Tidy up config page layout
+- Add more supported device types to the module properties

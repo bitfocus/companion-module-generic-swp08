@@ -38,8 +38,6 @@ instance.prototype.updateConfig = function (config) {
 instance.prototype.init = function () {
 	var self = this
 
-	console.log('init')
-
 	debug = self.debug
 	log = self.log
 
@@ -77,8 +75,8 @@ instance.prototype.setupVariables = function () {
 		self.selected_level.push({ id: i, enabled: true })
 	}
 
-	console.log(self.levels)
-	console.log(self.selected_level)
+	self.debug(self.levels)
+	self.debug(self.selected_level)
 
 	// Labels
 	self.source_names = []
@@ -157,7 +155,7 @@ instance.prototype.updateVariableDefinitions = function () {
 		labelDump[variableName] = variableValue
 	}
 
-	console.log(labelDump)
+	// console.log(labelDump)
 	self.setVariables(labelDump)
 }
 
@@ -193,7 +191,7 @@ instance.prototype.init_tcp = function () {
 
 		self.socket.on('data', function (chunk) {
 			if (Buffer.compare(chunk, receivebuffer) != 0) {
-				console.log('Received: ' + chunk.length + ' bytes ', chunk.toString('hex').match(/../g).join(' '))
+				// console.log('Received: ' + chunk.length + ' bytes ', chunk.toString('hex').match(/../g).join(' '))
 				// send ACK
 				self.sendAck()
 				// Decode
@@ -263,6 +261,12 @@ instance.prototype.init_tcp = function () {
 						self.crosspointConnected(message)
 						break
 
+					case 0x83:
+					case 0x84:
+						// Extended Crosspoint Connected
+						self.ext_crosspointConnected(message)
+						break
+
 					case 0x62:
 						// Protocol Implementation Response
 						var requests = message[1]
@@ -284,7 +288,19 @@ instance.prototype.init_tcp = function () {
 
 					case 0x6a:
 					case 0x6b:
-						// Names Reply
+						// Standard Names Request Reply
+						self.processLabels(message)
+						break
+
+					case 0xea:
+						// Extended Source Names Reply
+						// Allows for extra Level field in response
+						self.ext_processSourceLabels(message)
+						break
+
+					case 0xeb:
+						// Extended Destination Names Reply
+						// There is no difference in structure to the standard response
 						self.processLabels(message)
 						break
 
@@ -301,17 +317,34 @@ instance.prototype.init_tcp = function () {
 
 instance.prototype.processLabels = function (data) {
 	var self = this
-
-	var s = 6
-	var l = 0
 	var char_length_table = [4, 8, 12]
 
+	// byte1 = matrix (& level for sources)
 	var char_length = char_length_table[data[2]]
-	var multiplier = data[3]
-	var label_number = 256 * multiplier + data[4]
+	var label_number = (256 * data[3]) + data[4]
 	var labels_in_part = data[5]
+	var start = 6
 
-	// self.log('debug','label decode ' + data[0] + ' from: ' + label_number + ' count: ' + labels_in_part)
+	self.extractLabels(data, char_length, label_number, labels_in_part, start)
+}
+
+instance.prototype.ext_processSourceLabels = function (data) {
+	var self = this
+	var char_length_table = [4, 8, 12]
+
+	// byte1 = matrix number
+	// byte2 = level number
+	var char_length = char_length_table[data[3]]
+	var label_number = (256 * data[4]) + data[5]
+	var labels_in_part = data[6]
+	var start = 7
+
+	self.extractLabels(data, char_length, label_number, labels_in_part, start)
+}
+
+instance.prototype.extractLabels = function(data, char_length, label_number, labels_in_part, s) {
+	var self = this
+	var l = 0
 
 	console.log('label chars:' + char_length)
 	console.log('label number:' + label_number)
@@ -327,13 +360,13 @@ instance.prototype.processLabels = function (data) {
 		l = l + 1
 		label_number = label_number + 1
 
-		if (data[0] == 0x6a) {
+		if (data[0] == 0x6a || data[0] == 0xea) {
 			// sources
 			self.source_names.splice(label_number - 1, 0, {
 				id: label_number,
 				label: label_number.toString() + ': ' + label.trim(),
 			})
-		} else if (data[0] == 0x6b) {
+		} else if (data[0] == 0x6b || data[0] == 0xeb) {
 			// destinations
 			self.dest_names.splice(label_number - 1, 0, {
 				id: label_number,
@@ -371,6 +404,29 @@ instance.prototype.crosspointConnected = function (data) {
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
 
+	self.update_crosspoints(source, dest, level)
+}
+
+instance.prototype.ext_crosspointConnected = function (data) {
+	var self = this
+
+	var matrix = data[1] + 1
+	var level = data[2] + 1
+	var destDiv = data[3]
+	var destMod = data[4]
+	var sourceDiv = data[5] 
+	var sourceMod = data[6]
+	var dest = (256 * destDiv) + destMod + 1
+	var source = (265 * sourceDiv) + sourceMod + 1
+
+	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
+	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
+
+	self.update_crosspoints(source, dest, level)
+}
+
+instance.prototype.update_crosspoints = function (source, dest, level) {
+	
 	if (dest == self.selected_dest) {
 		// update variables for selected dest source
 		self.setVariable('Sel_Dest_Source_Level_' + level.toString(), source)
@@ -441,21 +497,49 @@ instance.prototype.config_fields = function () {
 			width: 6,
 			default: 3,
 			min: 1,
-			max: 16,
+			max: 256,
 		},
 		{
 			type: 'checkbox',
-			label: 'Request supported commands on connection',
+			label: 'Enable',
 			id: 'supported_commands_on_connect',
-			width: 6,
+			width: 1,
 			default: true,
 		},
 		{
+			type: 'text',
+			label: 'Request supported commands on connection',
+			id: 'supported_commands_on_connect_txt',
+			value: 'Not supported by all router controllers. Try disabling this feature if you encounter problems',
+			width: 11,
+		},
+		{
 			type: 'checkbox',
-			label: 'Request names from router on connection',
+			label: 'Enable',
 			id: 'read_names_on_connect',
-			width: 6,
+			width: 1,
 			default: false,
+		},
+		{
+			type: 'text',
+			label: 'Request names on connection',
+			id: 'read_names_on_connect_txt',
+			value: 'Not supported by all router controllers',
+			width: 11,
+		},
+		{
+			type: 'checkbox',
+			label: 'Enable',
+			id: 'extended_support',
+			width: 1,
+			default: false,
+		},
+		{
+			type: 'text',
+			label: 'Router has more than 1024 source or destination names',
+			id: 'extended_support_txt',
+			value: 'Use extended command set for name requests. Not supported by all router controllers',
+			width: 11,
 		},
 		{
 			type: 'dropdown',
@@ -707,6 +791,7 @@ instance.prototype.actions = function () {
 					id: 'dest',
 					default: 1,
 					min: 1,
+					max: 65536,
 				},
 			],
 		},
@@ -733,6 +818,7 @@ instance.prototype.actions = function () {
 					id: 'source',
 					default: 1,
 					min: 1,
+					max: 65536,
 				},
 			],
 		},
@@ -759,6 +845,7 @@ instance.prototype.actions = function () {
 					id: 'source',
 					default: 1,
 					min: 1,
+					max: 65536,
 				},
 			],
 		},
@@ -821,6 +908,7 @@ instance.prototype.actions = function () {
 					id: 'source',
 					default: 1,
 					min: 1,
+					max: 65536,
 				},
 				{
 					type: 'number',
@@ -828,6 +916,7 @@ instance.prototype.actions = function () {
 					id: 'dest',
 					default: 1,
 					min: 1,
+					max: 65536,
 				},
 			],
 		},
@@ -989,8 +1078,16 @@ instance.prototype.readNames = function () {
 	self.setVariable('Sources', 0)
 	self.setVariable('Destinations', 0)
 
-	get_source = '64' + self.config.name_chars + '02'
-	get_dest = '66' + self.config.name_chars + '02'
+	if (self.config.extended_support === true) {
+		// extended commands (only gets source names for level 1)
+		var matrix = self.padLeft((self.config.matrix - 1).toString(16), 2)
+		get_source = 'E4' + matrix + '00' + self.config.name_chars + '04'
+		get_dest = 'E6' + matrix + self.config.name_chars + '03'
+	} else {
+		// standard commands
+		get_source = '64' + self.config.name_chars + '02'
+		get_dest = '66' + self.config.name_chars + '02'
+	}
 
 	// get source names
 	self.sendMessage(get_source + self.checksum8(get_source))
@@ -1060,7 +1157,7 @@ instance.prototype.sendMessage = function (message) {
 		if (self.socket !== undefined && self.socket.connected) {
 			self.socket.send(self.hexStringToBuffer(cmd))
 		} else {
-			debug('Socket not connected :(')
+			self.log('warn','Socket not connected')
 		}
 	}
 }
@@ -1071,47 +1168,64 @@ instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
 	self.log('debug', 'Crosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
 	console.log('SetCrosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
 
-	if (sourceN <= 0 || sourceN > 1024) {
+	if (sourceN <= 0 || sourceN > 65536) {
 		self.log('warn', 'Unable to route source ' + sourceN)
 		return
 	}
 
-	if (destN <= 0 || destN > 1024) {
+	if (destN <= 0 || destN > 65536) {
 		self.log('warn', 'Unable to route destination ' + destN)
 		return
 	}
 
-	if (levelN <= 0 || levelN > 16) {
+	if (levelN <= 0 || levelN > 256) {
 		self.log('warn', 'Unable to route level ' + levelN)
 		return
 	}
 
-	const COM = '02'
-
-	// Matrix and Level
-	var matrix = (self.config.matrix - 1) << 4
-	var level = levelN - 1
-	var matrix_level = self.padLeft((matrix | level).toString(16), 2)
-
-	// Multiplier if source or dest > 128
-	var destDIV = Math.floor((destN - 1) / 128)
-	var sourceDIV = Math.floor((sourceN - 1) / 128)
-	var multiplier = self.padLeft(((destDIV << 4) | sourceDIV).toString(16), 2)
-
-	// Destination MOD 128
-	var dest = self.padLeft(((destN - 1) % 128).toString(16), 2)
-
-	// Source MOD 128
-	var source = self.padLeft(((sourceN - 1) % 128).toString(16), 2)
-
-	// Byte count
-	var count = '05'
-
-	// checksum
-	var checksum = self.checksum8(COM + matrix_level + multiplier + dest + source + count)
-
-	// message
-	var action = COM + matrix_level + multiplier + dest + source + count + checksum
+	if (sourceN > 1024 || destN > 1024 || levelN > 16) {
+		// Extended command required
+		const COM = '82'
+		// Matrix
+		var matrix = self.padLeft((self.config.matrix - 1).toString(16), 2)
+		// Level
+		var level = self.padLeft((levelN - 1).toString(16), 2)
+		// Dest DIV 256
+		var destDIV = self.padLeft(Math.floor((destN - 1) / 256).toString(16), 2)
+		// Destination MOD 256
+		var destMOD = self.padLeft(((destN - 1) % 256).toString(16), 2)
+		// Source DIV 256
+		var sourceDIV = self.padLeft(Math.floor((sourceN - 1) / 256).toString(16), 2)
+		// Source MOD 128
+		var sourceMOD = self.padLeft(((sourceN - 1) % 256).toString(16), 2)
+		// Byte count
+		var count = '07'
+		// checksum
+		var checksum = self.checksum8(COM + matrix + level + destDIV + destMOD + sourceDIV + sourceMOD + count)
+		// message
+		var action = COM + matrix + level + destDIV + destMOD + sourceDIV + sourceMOD + count + checksum
+	} else {
+		// Standard Command
+		const COM = '02'
+		// Matrix and Level
+		var matrix = (self.config.matrix - 1) << 4
+		var level = levelN - 1
+		var matrix_level = self.padLeft((matrix | level).toString(16), 2)
+		// Multiplier if source or dest > 128
+		var destDIV = Math.floor((destN - 1) / 128)
+		var sourceDIV = Math.floor((sourceN - 1) / 128)
+		var multiplier = self.padLeft(((destDIV << 4) | sourceDIV).toString(16), 2)
+		// Destination MOD 128
+		var dest = self.padLeft(((destN - 1) % 128).toString(16), 2)
+		// Source MOD 128
+		var source = self.padLeft(((sourceN - 1) % 128).toString(16), 2)
+		// Byte count
+		var count = '05'
+		// checksum
+		var checksum = self.checksum8(COM + matrix_level + multiplier + dest + source + count)
+		// message
+		var action = COM + matrix_level + multiplier + dest + source + count + checksum
+	}
 
 	self.sendMessage(action)
 }
@@ -1121,33 +1235,54 @@ instance.prototype.getCrosspoints = function (destN) {
 
 	console.log('GetCrosspoint ' + destN)
 
-	if (destN <= 0 || destN > 1024) {
+	if (destN <= 0 || destN > 65536) {
 		self.log('warn', 'Unable to get crosspoint destination ' + destN)
 		return
 	}
 
-	const COM = '01'
-	// Byte count
-	var count = '04'
-
-	// Matrix and Level
-	var matrix = (self.config.matrix - 1) << 4
-
-	// Multiplier if dest > 128
-	var destDIV = Math.floor((destN - 1) / 128)
-	var multiplier = self.padLeft((destDIV << 4).toString(16), 2)
-
-	// Destination MOD 128
-	var dest = self.padLeft(((destN - 1) % 128).toString(16), 2)
-
-	// check all levels
-	for (var i = 0; i <= self.config.max_levels - 1; i++) {
-		var matrix_level = self.padLeft((matrix | i).toString(16), 2)
-		// checksum
-		var checksum = self.checksum8(COM + matrix_level + multiplier + dest + count)
-		// message
-		var action = COM + matrix_level + multiplier + dest + count + checksum
-		self.sendMessage(action)
+	if (destN > 1024) {
+		// Extended commands
+		const COM = '81'
+		// Byte count
+		var count = '05'
+		// Matrix
+		var matrix = self.padLeft((self.config.matrix - 1).toString(16), 2)
+		// Dest DIV 256
+		var destDIV = self.padLeft(Math.floor((destN - 1) / 256).toString(16), 2)
+		// Dest Mod 256
+		var destMOD = self.padLeft(((destN - 1) % 256).toString(16), 2)
+		
+		// check all levels
+		for (var i = 0; i <= self.config.max_levels - 1; i++) {
+			var level = self.padLeft(i.toString(16), 2)
+			// checksum
+			var checksum = self.checksum8(COM + matrix + level + destDIV + destMOD + count)
+			// message
+			var action = COM + matrix + level + destDIV + destMOD + count + checksum
+			self.sendMessage(action)
+		}
+	} else {
+		// Standard commands
+		const COM = '01'
+		// Byte count
+		var count = '04'
+		// Matrix and Level
+		var matrix = (self.config.matrix - 1) << 4
+		// Multiplier if dest > 128
+		var destDIV = Math.floor((destN - 1) / 128)
+		var multiplier = self.padLeft((destDIV << 4).toString(16), 2)
+		// Destination MOD 128
+		var dest = self.padLeft(((destN - 1) % 128).toString(16), 2)
+	
+		// check all levels
+		for (var i = 0; i <= self.config.max_levels - 1; i++) {
+			var matrix_level = self.padLeft((matrix | i).toString(16), 2)
+			// checksum
+			var checksum = self.checksum8(COM + matrix_level + multiplier + dest + count)
+			// message
+			var action = COM + matrix_level + multiplier + dest + count + checksum
+			self.sendMessage(action)
+		}
 	}
 }
 
