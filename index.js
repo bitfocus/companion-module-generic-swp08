@@ -321,7 +321,7 @@ instance.prototype.processLabels = function (data) {
 
 	// byte1 = matrix (& level for sources)
 	var char_length = char_length_table[data[2]]
-	var label_number = (256 * data[3]) + data[4]
+	var label_number = 256 * data[3] + data[4]
 	var labels_in_part = data[5]
 	var start = 6
 
@@ -335,14 +335,14 @@ instance.prototype.ext_processSourceLabels = function (data) {
 	// byte1 = matrix number
 	// byte2 = level number
 	var char_length = char_length_table[data[3]]
-	var label_number = (256 * data[4]) + data[5]
+	var label_number = 256 * data[4] + data[5]
 	var labels_in_part = data[6]
 	var start = 7
 
 	self.extractLabels(data, char_length, label_number, labels_in_part, start)
 }
 
-instance.prototype.extractLabels = function(data, char_length, label_number, labels_in_part, s) {
+instance.prototype.extractLabels = function (data, char_length, label_number, labels_in_part, s) {
 	var self = this
 	var l = 0
 
@@ -414,10 +414,10 @@ instance.prototype.ext_crosspointConnected = function (data) {
 	var level = data[2] + 1
 	var destDiv = data[3]
 	var destMod = data[4]
-	var sourceDiv = data[5] 
+	var sourceDiv = data[5]
 	var sourceMod = data[6]
-	var dest = (256 * destDiv) + destMod + 1
-	var source = (265 * sourceDiv) + sourceMod + 1
+	var dest = 256 * destDiv + destMod + 1
+	var source = 265 * sourceDiv + sourceMod + 1
 
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
@@ -426,7 +426,6 @@ instance.prototype.ext_crosspointConnected = function (data) {
 }
 
 instance.prototype.update_crosspoints = function (source, dest, level) {
-	
 	if (dest == self.selected_dest) {
 		// update variables for selected dest source
 		self.setVariable('Sel_Dest_Source_Level_' + level.toString(), source)
@@ -1157,7 +1156,7 @@ instance.prototype.sendMessage = function (message) {
 		if (self.socket !== undefined && self.socket.connected) {
 			self.socket.send(self.hexStringToBuffer(cmd))
 		} else {
-			self.log('warn','Socket not connected')
+			self.log('warn', 'Socket not connected')
 		}
 	}
 }
@@ -1251,7 +1250,7 @@ instance.prototype.getCrosspoints = function (destN) {
 		var destDIV = self.padLeft(Math.floor((destN - 1) / 256).toString(16), 2)
 		// Dest Mod 256
 		var destMOD = self.padLeft(((destN - 1) % 256).toString(16), 2)
-		
+
 		// check all levels
 		for (var i = 0; i <= self.config.max_levels - 1; i++) {
 			var level = self.padLeft(i.toString(16), 2)
@@ -1273,7 +1272,7 @@ instance.prototype.getCrosspoints = function (destN) {
 		var multiplier = self.padLeft((destDIV << 4).toString(16), 2)
 		// Destination MOD 128
 		var dest = self.padLeft(((destN - 1) % 128).toString(16), 2)
-	
+
 		// check all levels
 		for (var i = 0; i <= self.config.max_levels - 1; i++) {
 			var matrix_level = self.padLeft((matrix | i).toString(16), 2)
