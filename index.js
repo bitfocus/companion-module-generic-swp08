@@ -1239,7 +1239,7 @@ instance.prototype.getCrosspoints = function (destN) {
 		return
 	}
 
-	if (destN > 1024) {
+	if (self.config.max_levels > 16 || destN > 1024) {
 		// Extended commands
 		const COM = '81'
 		// Byte count
