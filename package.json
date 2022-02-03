@@ -1,10 +1,27 @@
 {
 	"name": "generic-swp08",
 	"version": "1.0.4",
-	"api_version": "23",
-	"keywords": [ "Router", "Matrix", "Broadcast", "Production" ],
+	"api_version": "1.0.0",
+	"keywords": [
+		"Router",
+		"Matrix",
+		"Broadcast",
+		"Production"
+	],
 	"manufacturer": "Generic",
-	"product": [ "SW-P-08", "SW-P-08 Ross Router", "SW-P-08 Snell Router", "SW-P-08 Grass Valley Router", "SW-P-08 Lawo VSM", "SW-P-08 Calrec Router", "SW-P-08 Evertz Router", "SW-P-08 NVision Router", "SW-P-08 Sony Broadcast Router", "SW-P-08 BNCS", "SW-P-08 DirectOut M.1k2" ],
+	"product": [
+		"SW-P-08",
+		"SW-P-08 Ross Router",
+		"SW-P-08 Snell Router",
+		"SW-P-08 Grass Valley Router",
+		"SW-P-08 Lawo VSM",
+		"SW-P-08 Calrec Router",
+		"SW-P-08 Evertz Router",
+		"SW-P-08 NVision Router",
+		"SW-P-08 Sony Broadcast Router",
+		"SW-P-08 BNCS",
+		"SW-P-08 DirectOut M.1k2"
+	],
 	"shortname": "SW-P-08",
 	"description": "General Remote Control Protocol (SW-P-08)",
 	"main": "index.js",
@@ -15,5 +32,10 @@
 	"license": "MIT",
 	"bugs": {
 		"url": "https://github.com/bitfocus/companion-module-generic-swp08/issues"
+	},
+	"homepage": "https://github.com/bitfocus/companion-module-generic-swp08#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-generic-swp08.git"
 	}
 }
