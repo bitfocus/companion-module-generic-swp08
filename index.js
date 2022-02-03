@@ -426,6 +426,8 @@ instance.prototype.ext_crosspointConnected = function (data) {
 }
 
 instance.prototype.update_crosspoints = function (source, dest, level) {
+	var self = this
+	
 	if (dest == self.selected_dest) {
 		// update variables for selected dest source
 		self.setVariable('Sel_Dest_Source_Level_' + level.toString(), source)
