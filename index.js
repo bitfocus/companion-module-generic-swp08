@@ -412,12 +412,12 @@ instance.prototype.ext_crosspointConnected = function (data) {
 
 	var matrix = data[1] + 1
 	var level = data[2] + 1
-	var destDiv = data[3]
+	var destDiv = data[3] * 256
 	var destMod = data[4]
-	var sourceDiv = data[5]
+	var sourceDiv = data[5] * 256
 	var sourceMod = data[6]
-	var dest = 256 * destDiv + destMod + 1
-	var source = 265 * sourceDiv + sourceMod + 1
+	var dest = destDiv + destMod + 1
+	var source = sourceDiv + sourceMod + 1
 
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	self.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
