@@ -44,6 +44,7 @@ instance.prototype.init = function () {
 	self.setupVariables()
 	self.setupFeedbacks()
 	self.actions()
+	self.initPresets()
 
 	self.checkFeedbacks('selected_level')
 	self.checkFeedbacks('selected_level_dest')
@@ -51,6 +52,17 @@ instance.prototype.init = function () {
 	self.checkFeedbacks('selected_source')
 
 	self.init_tcp()
+}
+
+instance.prototype.destroy = function () {
+	// When module gets deleted
+	var self = this
+
+	if (self.socket !== undefined) {
+		self.socket.destroy()
+	}
+
+	debug('destroy', self.id)
 }
 
 instance.prototype.setupVariables = function () {
@@ -557,17 +569,6 @@ instance.prototype.config_fields = function () {
 	]
 }
 
-instance.prototype.destroy = function () {
-	// When module gets deleted
-	var self = this
-
-	if (self.socket !== undefined) {
-		self.socket.destroy()
-	}
-
-	debug('destroy', self.id)
-}
-
 instance.prototype.setupFeedbacks = function (system) {
 	var self = this
 
@@ -730,9 +731,43 @@ instance.prototype.feedback = function (feedback, bank) {
 	}
 }
 
-instance.prototype.init_presets = function () {
+instance.prototype.initPresets = function () {
 	var self = this
 	var presets = []
+
+	presets.push({
+		category: 'Actions',
+		label: 'Take',
+		bank: {
+			style: 'text',
+			text: 'Take',
+			size: '18',
+			color: 16777215,
+			bgcolor: 0,
+		},
+		actions: [
+			{
+				action: 'take',
+			},
+		],
+	})
+
+	presets.push({
+		category: 'Actions',
+		label: 'Refresh Names',
+		bank: {
+			style: 'text',
+			text: 'Refresh Names',
+			size: '18',
+			color: 16777215,
+			bgcolor: 0,
+		},
+		actions: [
+			{
+				action: 'get_names',
+			},
+		],
+	})
 
 	self.setPresetDefinitions(presets)
 }

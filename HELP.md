@@ -76,3 +76,6 @@ Some dynamic information is stored in variables which you can access through the
 - Added support for more then 1024 sources/destinations
 - Tidy up config page layout
 - Add more supported device types to the module properties
+
+## Version 1.0.5
+- Added presets for some actions
