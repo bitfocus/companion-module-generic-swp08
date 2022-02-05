@@ -1,6 +1,6 @@
 # Generic Remote Control Protocol SW-P-08
 
-The SW-P-08 protocol is implemented by many broadcast routers and control systems. You may need to enable this protocol on your router control system. This module supports up to 256 levels, 65535 sources and 65535 destinations. If your router controller does not support the extended command set then you are limited to 16 levels, 1024 sources and 1024 destinations.
+The SW-P-08 protocol is implemented by many broadcast routers and control systems. You may need to enable this protocol on your router control system. This module supports both up to 256 levels, 65535 sources and 65535 destinations. If your router controller does not support the extended command set then you are limited to 16 levels, 1024 sources and 1024 destinations.
 
 [Please log suggestions and issues on github.](https://github.com/bitfocus/companion-module-generic-swp08/issues)
 
