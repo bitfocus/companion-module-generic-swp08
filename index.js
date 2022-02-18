@@ -752,7 +752,7 @@ instance.prototype.feedback = function (feedback, bank) {
 
 		case 'source_dest_route': {
 			// look for this dest in route table
-			console.log("dest:source feedback " + self.selected_dest + ":" + feedback.options.source)
+			console.log('dest:source feedback ' + self.selected_dest + ':' + feedback.options.source)
 			for (var i = 0; i < self.routeTable.length; i++) {
 				if (self.routeTable[i].dest === self.selected_dest) {
 					if (self.routeTable[i].source === feedback.options.source) {
