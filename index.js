@@ -458,6 +458,7 @@ instance.prototype.update_crosspoints = function (source, dest, level) {
 			// update existing
 			self.routeTable[i].source = source
 			console.log(self.routeTable)
+			self.checkFeedbacks('source_dest_route')
 			return
 		}
 	}
@@ -466,6 +467,7 @@ instance.prototype.update_crosspoints = function (source, dest, level) {
 	var new_route = { level: level, dest: dest, source: source }
 	self.routeTable.push(new_route)
 	console.log(self.routeTable)
+	self.checkFeedbacks('source_dest_route')
 }
 
 instance.prototype.config_fields = function () {
@@ -660,6 +662,25 @@ instance.prototype.setupFeedbacks = function (system) {
 		],
 	}
 
+	feedbacks['source_dest_route'] = {
+		type: 'boolean',
+		label: 'Source Routed to Destination',
+		description: 'Change button colour when source routed to selected destination on any level',
+		style: {
+			color: self.rgb(0, 0, 0),
+			bgcolor: self.rgb(255, 191, 128),
+		},
+		options: [
+			{
+				type: 'number',
+				label: 'Source',
+				id: 'source',
+				default: 1,
+				min: 1,
+			},
+		],
+	}
+
 	self.setFeedbackDefinitions(feedbacks)
 }
 
@@ -726,6 +747,20 @@ instance.prototype.feedback = function (feedback, bank) {
 			} else {
 				return false
 			}
+			break
+		}
+
+		case 'source_dest_route': {
+			// look for this dest in route table
+			console.log("dest:source feedback " + self.selected_dest + ":" + feedback.options.source)
+			for (var i = 0; i < self.routeTable.length; i++) {
+				if (self.routeTable[i].dest === self.selected_dest) {
+					if (self.routeTable[i].source === feedback.options.source) {
+						return true
+					}
+				}
+			}
+			return false
 			break
 		}
 	}

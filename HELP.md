@@ -37,6 +37,7 @@ Button background colours can be changed to show current selection status.
 - **Selected Levels and Destination**
 - **Selected Destination**
 - **Selected Source**
+- **Source routed to selected Destination**
 
 ## Variables
 Some dynamic information is stored in variables which you can access through the Companion user interface.
@@ -79,3 +80,4 @@ Some dynamic information is stored in variables which you can access through the
 
 ## Version 1.0.5
 - Added presets for some actions
+- Added feedback Source routed to selected Destination
