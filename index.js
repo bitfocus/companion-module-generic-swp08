@@ -836,6 +836,7 @@ instance.prototype.initPresets = function () {
 				}
 			]
 		})
+
 		presets.push({
 			category: 'Destinations (by number)',
 			label: 'Destination ' + i,
