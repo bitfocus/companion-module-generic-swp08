@@ -819,22 +819,22 @@ instance.prototype.initPresets = function () {
 				{
 					action: 'select_source',
 					options: {
-						source: i
-					}
+						source: i,
+					},
 				},
 			],
 			feedbacks: [
 				{
 					type: 'selected_source',
 					options: {
-						source: i
+						source: i,
 					},
 					style: {
 						color: self.rgb(0, 0, 0),
 						bgcolor: self.rgb(102, 255, 255),
-					}
-				}
-			]
+					},
+				},
+			],
 		})
 
 		presets.push({
@@ -851,22 +851,22 @@ instance.prototype.initPresets = function () {
 				{
 					action: 'select_dest',
 					options: {
-						dest: i
-					}
+						dest: i,
+					},
 				},
 			],
 			feedbacks: [
 				{
 					type: 'selected_dest',
 					options: {
-						dest: i
+						dest: i,
 					},
 					style: {
 						color: self.rgb(0, 0, 0),
 						bgcolor: self.rgb(102, 255, 102),
-					}
-				}
-			]
+					},
+				},
+			],
 		})
 	}
 
