@@ -777,8 +777,8 @@ instance.prototype.initPresets = function () {
 			style: 'text',
 			text: 'Take',
 			size: '18',
-			color: 16777215,
-			bgcolor: 0,
+			color: self.rgb(255, 255, 255),
+			bgcolor: self.rgb(240, 0, 0),
 		},
 		actions: [
 			{
@@ -794,8 +794,8 @@ instance.prototype.initPresets = function () {
 			style: 'text',
 			text: 'Refresh Names',
 			size: '18',
-			color: 16777215,
-			bgcolor: 0,
+			color: self.rgb(255, 255, 255),
+			bgcolor: self.rgb(0, 0, 0),
 		},
 		actions: [
 			{
@@ -803,6 +803,71 @@ instance.prototype.initPresets = function () {
 			},
 		],
 	})
+
+	for (var i = 1; i <= 32; i++) {
+		presets.push({
+			category: 'Sources (by number)',
+			label: 'Source ' + i,
+			bank: {
+				style: 'text',
+				text: 'S' + i,
+				size: '18',
+				color: self.rgb(255, 255, 255),
+				bgcolor: self.rgb(0, 0, 0),
+			},
+			actions: [
+				{
+					action: 'select_source',
+					options: {
+						source: i
+					}
+				},
+			],
+			feedbacks: [
+				{
+					type: 'selected_source',
+					options: {
+						source: i
+					},
+					style: {
+						color: self.rgb(0, 0, 0),
+						bgcolor: self.rgb(102, 255, 255),
+					}
+				}
+			]
+		})
+		presets.push({
+			category: 'Destinations (by number)',
+			label: 'Destination ' + i,
+			bank: {
+				style: 'text',
+				text: 'D' + i,
+				size: '18',
+				color: self.rgb(255, 255, 255),
+				bgcolor: self.rgb(0, 0, 0),
+			},
+			actions: [
+				{
+					action: 'select_dest',
+					options: {
+						dest: i
+					}
+				},
+			],
+			feedbacks: [
+				{
+					type: 'selected_dest',
+					options: {
+						dest: i
+					},
+					style: {
+						color: self.rgb(0, 0, 0),
+						bgcolor: self.rgb(102, 255, 102),
+					}
+				}
+			]
+		})
+	}
 
 	self.setPresetDefinitions(presets)
 }
