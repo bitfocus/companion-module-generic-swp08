@@ -448,9 +448,10 @@ instance.prototype.update_crosspoints = function (source, dest, level) {
 			try {
 				self.setVariable(
 					'Sel_Dest_Source_Name_Level_' + level.toString(),
-					self.stripNumber(self.source_names[source - 1].label))
+					self.stripNumber(self.source_names[source - 1].label)
+				)
 			} catch (e) {
-				self.log('debug','Unable to set Sel_Dest_Source_Name_Level')
+				self.log('debug', 'Unable to set Sel_Dest_Source_Name_Level')
 			}
 		}
 	}
