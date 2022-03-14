@@ -445,10 +445,13 @@ instance.prototype.update_crosspoints = function (source, dest, level) {
 		self.setVariable('Sel_Dest_Source_Level_' + level.toString(), source)
 		if (self.source_names.length > 0) {
 			// only if names have been retrieved
-			self.setVariable(
-				'Sel_Dest_Source_Name_Level_' + level.toString(),
-				self.stripNumber(self.source_names[source - 1].label)
-			)
+			try {
+				self.setVariable(
+					'Sel_Dest_Source_Name_Level_' + level.toString(),
+					self.stripNumber(self.source_names[source - 1].label))
+			} catch (e) {
+				self.log('debug','Unable to set Sel_Dest_Source_Name_Level')
+			}
 		}
 	}
 
@@ -665,7 +668,7 @@ instance.prototype.setupFeedbacks = function (system) {
 	feedbacks['source_dest_route'] = {
 		type: 'boolean',
 		label: 'Source Routed to Destination',
-		description: 'Change button colour when source routed to selected destination on any level',
+		description: 'Change button colour when this source is routed to selected destination on any level',
 		style: {
 			color: self.rgb(0, 0, 0),
 			bgcolor: self.rgb(255, 191, 128),
