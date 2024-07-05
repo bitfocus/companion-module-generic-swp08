@@ -56,6 +56,7 @@ export function sendMessage(message) {
 	if (cmd !== undefined) {
 		if (this.socket !== undefined && this.socket.connected) {
 			this.socket.send(this.hexStringToBuffer(cmd))
+			this.startKeepAliveTimer()
 		} else {
 			this.log('warn', 'Socket not connected')
 		}
@@ -80,11 +81,12 @@ export async function init_tcp () {
 		this.socket.on('error', function (err) {
 			this.log('error', 'Network error: ' + err.message)
             this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
+			this.stopKeepAliveTimer()
 		})
 
 		this.socket.on('connect', function () {
             this.updateStatus(InstanceStatus.Ok, 'Connected')
-
+			this.startKeepAliveTimer()
 			if (this.config.supported_commands_on_connect === true) {
 				// request protocol implementation
 				this.sendMessage('61019E')
