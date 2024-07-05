@@ -1,4 +1,10 @@
+.vscode/
 node_modules/
 package-lock.json
+/pkg
+/pkg.tgz
+*.zip
+*.log
 .nova/
 temp.js
+DEBUG-*

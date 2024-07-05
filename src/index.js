@@ -4,13 +4,80 @@
 //
 // @author Peter Daniel
 //
+// Updated for Companion v3 July 2024, Phillip Ivan Pietruschka
 
-var tcp = require('../../tcp')
-var instance_skel = require('../../instance_skel')
-var debug
-var log
 
-function instance(system) {
+import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
+import UpgradeScripts from './upgrades.js'
+import UpdateActions from './actions.js'
+import UpdateFeedbacks from'./feedbacks.js'
+import UpdatePresets from './presets.js'
+import {SetupVariables, UpdateVariableDefinitions} from './variables.js'
+import * as config from './config.js'
+import * as crosspoints from './crosspoints.js'
+import * as keepalive from './keepalive.js'
+import * as labels from './labels.js'
+import * as levels from './levels.js'
+import * as names from './names.js'
+import * as tcp from './tcp.js'
+import * as util from './util.js'
+
+
+
+class SW_P_08 extends InstanceBase {
+	constructor(internal) {
+		super(internal)
+		Object.assign(this, { ...config, ...crosspoints, ...keepalive, ...labels, ...levels, ...names, ...tcp, ...util })
+	}
+
+	async init(config){
+
+		this.updateStatus(InstanceStatus.Connecting)
+		this.config = config
+
+		this.updateVariableDefinitions()
+		this.updateFeedbacks()
+		this.updateActions()
+		this.initPresets()
+
+		this.checkFeedbacks('selected_level', 'selected_level_dest','selected_dest','selected_source')
+
+		this.init_tcp()
+	}
+
+	// When module gets deleted
+	async destroy() {
+		this.log('debug', `destroy. ID: ${this.id}`)
+		if (this.socket) {
+			this.socket.destroy()
+		}
+		this.updateStatus(InstanceStatus.Disconnected)
+	}
+
+	updateActions() {
+		UpdateActions(this)
+	}
+
+	updateFeedbacks() {
+		UpdateFeedbacks(this)
+	}
+
+	updatePresets() {
+		UpdatePresets(this)
+	}
+
+	updateVariableDefinitions() {
+		UpdateVariableDefinitions(this)
+	}
+
+	setupVariables() {
+		SetupVariables(this)
+	}
+}
+runEntrypoint(SW_P_08, UpgradeScripts)
+
+
+/* function instance(system) {
 	var self = this
 
 	// super-constructor
@@ -19,9 +86,9 @@ function instance(system) {
 	self.actions()
 
 	return self
-}
+} */
 
-instance.prototype.updateConfig = function (config) {
+/* instance.prototype.updateConfig = function (config) {
 	var self = this
 
 	console.log('update config')
@@ -33,9 +100,9 @@ instance.prototype.updateConfig = function (config) {
 	self.actions()
 
 	self.init_tcp()
-}
+} */
 
-instance.prototype.init = function () {
+/* instance.prototype.init = function () {
 	var self = this
 
 	debug = self.debug
@@ -52,9 +119,9 @@ instance.prototype.init = function () {
 	self.checkFeedbacks('selected_source')
 
 	self.init_tcp()
-}
+} */
 
-instance.prototype.destroy = function () {
+/* instance.prototype.destroy = function () {
 	// When module gets deleted
 	var self = this
 
@@ -63,9 +130,9 @@ instance.prototype.destroy = function () {
 	}
 
 	debug('destroy', self.id)
-}
+} */
 
-instance.prototype.setupVariables = function () {
+/* instance.prototype.setupVariables = function () {
 	var self = this
 
 	// Implemented Commands
@@ -101,9 +168,9 @@ instance.prototype.setupVariables = function () {
 
 	self.setVariable('Source', self.selected_source)
 	self.setVariable('Destination', self.selected_dest)
-}
+} */
 
-instance.prototype.updateVariableDefinitions = function () {
+/* instance.prototype.updateVariableDefinitions = function () {
 	var self = this
 	var coreVariables = []
 
@@ -169,9 +236,9 @@ instance.prototype.updateVariableDefinitions = function () {
 
 	// console.log(labelDump)
 	self.setVariables(labelDump)
-}
+} */
 
-instance.prototype.init_tcp = function () {
+/* instance.prototype.init_tcp = function () {
 	var self = this
 	var receivebuffer = Buffer.from('')
 
@@ -325,8 +392,8 @@ instance.prototype.init_tcp = function () {
 			}
 		})
 	}
-}
-
+} */
+/* 
 instance.prototype.processLabels = function (data) {
 	var self = this
 	var char_length_table = [4, 8, 12]
@@ -401,9 +468,9 @@ instance.prototype.extractLabels = function (data, char_length, label_number, la
 
 	// update dropdown lists
 	self.actions()
-}
+} */
 
-instance.prototype.crosspointConnected = function (data) {
+/* instance.prototype.crosspointConnected = function (data) {
 	var self = this
 
 	var matrix = ((data[1] & 0xf0) >> 4) + 1
@@ -472,9 +539,9 @@ instance.prototype.update_crosspoints = function (source, dest, level) {
 	self.routeTable.push(new_route)
 	console.log(self.routeTable)
 	self.checkFeedbacks('source_dest_route')
-}
+} */
 
-instance.prototype.config_fields = function () {
+/* instance.prototype.config_fields = function () {
 	var self = this
 
 	return [
@@ -573,9 +640,9 @@ instance.prototype.config_fields = function () {
 			],
 		},
 	]
-}
+} */
 
-instance.prototype.setupFeedbacks = function (system) {
+/* instance.prototype.setupFeedbacks = function (system) {
 	var self = this
 
 	// feedback
@@ -768,9 +835,9 @@ instance.prototype.feedback = function (feedback, bank) {
 			break
 		}
 	}
-}
+} */
 
-instance.prototype.initPresets = function () {
+/* instance.prototype.initPresets = function () {
 	var self = this
 	var presets = []
 
@@ -875,9 +942,9 @@ instance.prototype.initPresets = function () {
 	}
 
 	self.setPresetDefinitions(presets)
-}
+} */
 
-instance.prototype.actions = function () {
+/* instance.prototype.actions = function () {
 	var self = this
 
 	self.system.emit('instance_actions', self.id, {
@@ -1191,9 +1258,9 @@ instance.prototype.action = function (action) {
 	if (action.action === 'get_names') {
 		self.readNames()
 	}
-}
+} */
 
-instance.prototype.processLevelsSelection = function (selection, state) {
+/* instance.prototype.processLevelsSelection = function (selection, state) {
 	var self = this
 
 	console.log(selection)
@@ -1208,9 +1275,9 @@ instance.prototype.processLevelsSelection = function (selection, state) {
 	console.log(self.selected_level)
 	self.checkFeedbacks('selected_level')
 	self.checkFeedbacks('selected_level_dest')
-}
+} */
 
-instance.prototype.readNames = function () {
+/* instance.prototype.readNames = function () {
 	var self = this
 
 	// reset
@@ -1236,8 +1303,8 @@ instance.prototype.readNames = function () {
 	// get dest names
 	self.sendMessage(get_dest + self.checksum8(get_dest))
 }
-
-instance.prototype.sendAck = function () {
+ */
+/* instance.prototype.sendAck = function () {
 	var self = this
 
 	console.log('Sending ACK')
@@ -1301,9 +1368,9 @@ instance.prototype.sendMessage = function (message) {
 			self.log('warn', 'Socket not connected')
 		}
 	}
-}
+} */
 
-instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
+/* instance.prototype.SetCrosspoint = function (sourceN, destN, levelN) {
 	var self = this
 
 	self.log('debug', 'Crosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
@@ -1425,8 +1492,8 @@ instance.prototype.getCrosspoints = function (destN) {
 			self.sendMessage(action)
 		}
 	}
-}
-
+} */
+/* 
 instance.prototype.stripNumber = function (str) {
 	var n = str.indexOf(':')
 	if (n > 0) {
@@ -1491,7 +1558,8 @@ instance.prototype.checksum8 = function (N) {
 
 	// console.log('checksum: ' + strResult)
 	return strResult
-}
-
+} */
+/* 
 instance_skel.extendedBy(instance)
 exports = module.exports = instance
+ */
