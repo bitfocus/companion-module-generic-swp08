@@ -31,18 +31,14 @@ class SW_P_08 extends InstanceBase {
 	}
 
 	async init(config){
-
 		this.updateStatus(InstanceStatus.Connecting)
 		this.config = config
-
 		this.updateVariableDefinitions()
 		this.updateFeedbacks()
 		this.updateActions()
 		this.initPresets()
-
-		this.checkFeedbacks('selected_level', 'selected_level_dest','selected_dest','selected_source')
-
 		this.init_tcp()
+		this.checkFeedbacks('selected_level', 'selected_level_dest', 'selected_dest', 'selected_source')
 	}
 
 	// When module gets deleted
