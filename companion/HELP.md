@@ -85,4 +85,3 @@ Some dynamic information is stored in variables which you can access through the
 ## Version 2.0.0
 - Update for Companion 3
 - Add Connection Keep Alive
-- Add Tx Message Buffer

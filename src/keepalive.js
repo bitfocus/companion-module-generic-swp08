@@ -17,5 +17,5 @@ export function stopKeepAliveTimer(){
 }
 
 export function keepAlive(){
-
+    //this.sendMessage('61019E') what message to send here?
 }

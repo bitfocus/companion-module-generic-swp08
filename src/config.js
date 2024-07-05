@@ -1,15 +1,11 @@
 import { Regex } from '@companion-module/base'
 
 export async function configUpdated(config) {
-
 	this.log('debug','update config')
-
 	this.config = config
-
 	this.updateVariableDefinitions()
 	this.updateFeedbacks()
 	this.updateActions()
-
 	this.init_tcp()
     this.checkFeedbacks('selected_level', 'selected_level_dest','selected_dest','selected_source')
 }

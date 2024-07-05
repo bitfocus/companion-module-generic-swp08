@@ -11,9 +11,10 @@ import UpgradeScripts from './upgrades.js'
 import UpdateActions from './actions.js'
 import UpdateFeedbacks from'./feedbacks.js'
 import UpdatePresets from './presets.js'
-import {SetupVariables, UpdateVariableDefinitions} from './variables.js'
+import { SetupVariables, UpdateVariableDefinitions } from './variables.js'
 import * as config from './config.js'
 import * as crosspoints from './crosspoints.js'
+import * as decode from './decode.js'
 import * as keepalive from './keepalive.js'
 import * as labels from './labels.js'
 import * as levels from './levels.js'
@@ -26,7 +27,7 @@ import * as util from './util.js'
 class SW_P_08 extends InstanceBase {
 	constructor(internal) {
 		super(internal)
-		Object.assign(this, { ...config, ...crosspoints, ...keepalive, ...labels, ...levels, ...names, ...tcp, ...util })
+		Object.assign(this, { ...config, ...crosspoints, ...decode, ...keepalive, ...labels, ...levels, ...names, ...tcp, ...util })
 	}
 
 	async init(config){
