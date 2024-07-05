@@ -1,4 +1,4 @@
-import { colours } from './consts.js'
+import { colours, feedbackOptions } from './consts.js'
 
 
 export async function UpdateFeedbacks(self) {
@@ -15,12 +15,8 @@ export async function UpdateFeedbacks(self) {
 		},
 		options: [
 			{
-				type: 'multiselect',
-				label: 'Levels',
-				id: 'level',
-				default: [1],
+				...feedbackOptions.levels,
 				choices: self.levels,
-				minSelection: 1,
 			},
 		],
 		callback: async (feedback) => {
@@ -49,24 +45,14 @@ export async function UpdateFeedbacks(self) {
 		description: 'Change colour of button on selected levels and destination',
 		style: {
 			color: colours.black,
-			bgcolor:colours.purple,
+			bgcolor: colours.purple,
 		},
 		options: [
 			{
-				type: 'multiselect',
-				label: 'Levels',
-				id: 'level',
-				default: [1],
+				...feedbackOptions.levels,
 				choices: self.levels,
-				minSelection: 1,
 			},
-			{
-				type: 'number',
-				label: 'Destination',
-				id: 'dest',
-				default: 1,
-				min: 1,
-			},
+			feedbackOptions.destination,
 		],
 		callback: async (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
@@ -101,13 +87,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.green,
 		},
 		options: [
-			{
-				type: 'number',
-				label: 'Destination',
-				id: 'dest',
-				default: 1,
-				min: 1,
-			},
+			feedbackOptions.destination,
 		],
 		callback: async (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
@@ -127,13 +107,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.cyan,
 		},
 		options: [
-			{
-				type: 'number',
-				label: 'Source',
-				id: 'source',
-				default: 1,
-				min: 1,
-			},
+			feedbackOptions.source,
 		],
 		callback: async (feedback) => {
 			if (self.selected_source === feedback.options.source) {
@@ -153,13 +127,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.orange,
 		},
 		options: [
-			{
-				type: 'number',
-				label: 'Source',
-				id: 'source',
-				default: 1,
-				min: 1,
-			},
+			feedbackOptions.source,
 		],
 		callback: async (feedback) => {
 			// look for this dest in route table

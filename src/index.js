@@ -7,10 +7,10 @@
 // Updated for Companion v3 July 2024, Phillip Ivan Pietruschka
 
 import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
-import UpgradeScripts from './upgrades.js'
-import UpdateActions from './actions.js'
-import UpdateFeedbacks from'./feedbacks.js'
-import UpdatePresets from './presets.js'
+import { UpgradeScripts } from './upgrades.js'
+import { UpdateActions } from './actions.js'
+import { UpdateFeedbacks } from'./feedbacks.js'
+import { UpdatePresets } from './presets.js'
 import { SetupVariables, UpdateVariableDefinitions } from './variables.js'
 import * as config from './config.js'
 import * as crosspoints from './crosspoints.js'

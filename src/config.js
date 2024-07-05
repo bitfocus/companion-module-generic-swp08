@@ -26,7 +26,7 @@ export function getConfigFields() {
 			id: 'host',
 			label: 'Device IP',
 			width: 6,
-			regex: Regex.REGEX_IP,
+			regex: Regex.IP,
 		},
 		{
 			type: 'textinput',
@@ -34,7 +34,7 @@ export function getConfigFields() {
 			label: 'Device Port',
 			width: 6,
 			default: '8910',
-			regex: Regex.REGEX_PORT,
+			regex: Regex.PORT,
 		},
 		{
 			type: 'number',

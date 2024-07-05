@@ -34,7 +34,7 @@ export async function SetupVariables(self) {
 	self.setVariable('Destination', self.selected_dest)
 }
 
-export async function UpdateVariableDefinition(self) {
+export async function UpdateVariableDefinitions(self) {
 	let coreVariables = []
 
 	coreVariables.push(
