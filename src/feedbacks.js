@@ -1,6 +1,5 @@
 import { colours, feedbackOptions } from './consts.js'
 
-
 export async function UpdateFeedbacks(self) {
 	// feedback
 	let feedbacks = {}
@@ -13,12 +12,7 @@ export async function UpdateFeedbacks(self) {
 			color: colours.black,
 			bgcolor: colours.purple,
 		},
-		options: [
-			{
-				...feedbackOptions.levels,
-				choices: self.levels,
-			},
-		],
+		options: [{ ...feedbackOptions.levels, choices: self.levels }],
 		callback: async (feedback) => {
 			let l = feedback.options.level.length
 			let k = self.selected_level.length
@@ -48,10 +42,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.purple,
 		},
 		options: [
-			{
-				...feedbackOptions.levels,
-				choices: self.levels,
-			},
+			{ ...feedbackOptions.levels, choices: self.levels },
 			feedbackOptions.destination,
 		],
 		callback: async (feedback) => {
@@ -86,9 +77,7 @@ export async function UpdateFeedbacks(self) {
 			color: colours.black,
 			bgcolor: colours.green,
 		},
-		options: [
-			feedbackOptions.destination,
-		],
+		options: [ feedbackOptions.destination ],
 		callback: async (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
 				return true
@@ -106,9 +95,7 @@ export async function UpdateFeedbacks(self) {
 			color: colours.black,
 			bgcolor: colours.cyan,
 		},
-		options: [
-			feedbackOptions.source,
-		],
+		options: [ feedbackOptions.source ],
 		callback: async (feedback) => {
 			if (self.selected_source === feedback.options.source) {
 				return true
@@ -126,9 +113,7 @@ export async function UpdateFeedbacks(self) {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
-		options: [
-			feedbackOptions.source,
-		],
+		options: [ feedbackOptions.source ],
 		callback: async (feedback) => {
 			// look for this dest in route table
 			console.log('dest:source feedback ' + self.selected_dest + ':' + feedback.options.source)

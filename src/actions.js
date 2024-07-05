@@ -5,36 +5,21 @@ export async function UpdateActions(self) {
 
 	actionDefinitions['select_level'] = {
 		name: 'Select Levels',
-		options: [
-			{
-				...actionOptions.levels,
-				choices: self.levels,
-			},
-		],
+		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: async ({ options }) => {
 			self.processLevelsSelection(options.level, true)
 		},
 	}
 	actionDefinitions['deselect_level'] = {
 		name: 'De-Select Levels',
-		options: [
-			{
-				...actionOptions.levels,
-				choices: self.levels,
-			},
-		],
+		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: async ({ options }) => {
 			self.processLevelsSelection(options.level, false)
 		},
 	}
 	actionDefinitions['toggle_level'] = {
 		name: 'Toggle Levels',
-		options: [
-			{
-				...actionOptions.levels,
-				choices: self.levels,
-			},
-		],
+		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: async ({ options }) => {
 			self.processLevelsSelection(options.level, 'toggle')
 		},
@@ -151,10 +136,7 @@ export async function UpdateActions(self) {
 	actionDefinitions['set_crosspoint'] = {
 		name: 'Set crosspoint',
 		options: [
-			{
-				...actionOptions.levels,
-				choices: self.levels,
-			},
+			{ ...actionOptions.levels, choices: self.levels },
 			actionOptions.source,
 			actionOptions.destination,
 		],
@@ -167,10 +149,7 @@ export async function UpdateActions(self) {
 	actionDefinitions['set_crosspoint_name'] = {
 		name: 'Set crosspoint by name',
 		options: [
-			{
-				...actionOptions.levels,
-				choices: this.levels,
-			},
+			{ ...actionOptions.levels, choices: this.levels },
 			{ ...actionOptions.sourceName, choices: self.source_names },
 			{ ...actionOptions.destinationName, choices: self.dest_names },
 		],
