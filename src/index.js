@@ -27,17 +27,38 @@ import * as util from './util.js'
 class SW_P_08 extends InstanceBase {
 	constructor(internal) {
 		super(internal)
-		Object.assign(this, { ...config, ...crosspoints, ...decode, ...keepalive, ...labels, ...levels, ...names, ...tcp, ...util })
+		Object.assign(this, {
+			...config,
+			...crosspoints,
+			...decode,
+			...keepalive,
+			...labels,
+			...levels,
+			...names,
+			...tcp,
+			...util,
+		})
 	}
 
-	async init(config){
+	async init(config) {
 		this.updateStatus(InstanceStatus.Connecting)
 		this.config = config
 		this.setupVariables()
-		this.updateVariableDefinitions()
 		this.updateFeedbacks()
 		this.updateActions()
-		this.initPresets()
+		this.updatePresets()
+		this.init_tcp()
+		this.checkFeedbacks('selected_level', 'selected_level_dest', 'selected_dest', 'selected_source')
+	}
+
+	async configUpdated(config) {
+		this.log('debug', 'update config')
+		this.updateStatus(InstanceStatus.Connecting)
+		this.config = config
+		this.setupVariables()
+		this.updateFeedbacks()
+		this.updateActions()
+		this.updatePresets()
 		this.init_tcp()
 		this.checkFeedbacks('selected_level', 'selected_level_dest', 'selected_dest', 'selected_source')
 	}

@@ -4,11 +4,11 @@ import { ACK, DLE, STX, ETX } from './consts.js'
 
 export function sendAck() {
 	this.log('debug','Sending ACK')
-	if (this.socket !== undefined && this.socket.connected) {
+	if (this.socket !== undefined && this.socket.isConnected) {
 		this.socket.send(this.hexStringToBuffer(DLE + ACK))
 		this.startKeepAliveTimer()
 	} else {
-		this.log('warn','Socket not connected :(')
+		this.log('warn', 'Socket not connected :(')
 	}
 }
 
@@ -54,7 +54,7 @@ export function sendMessage(message) {
 	console.log('Sending >> ' + cmd)
 
 	if (cmd !== undefined) {
-		if (this.socket !== undefined && this.socket.connected) {
+		if (this.socket !== undefined && this.socket.isConnected) {
 			this.socket.send(this.hexStringToBuffer(cmd))
 			this.startKeepAliveTimer()
 		} else {
@@ -62,8 +62,8 @@ export function sendMessage(message) {
 		}
 	}
 }
-
-export async function init_tcp () {
+ 
+export function init_tcp() {
 	let receivebuffer = Buffer.from('')
 
 	if (this.socket !== undefined) {
@@ -74,18 +74,18 @@ export async function init_tcp () {
 	if (this.config.host) {
 		this.socket = new TCPHelper(this.config.host, this.config.port)
 
-		this.socket.on('status_change', function (status, message) {
+		this.socket.on('status_change', (status, message) => {
 			this.updateStatus(status, message)
 		})
 
-		this.socket.on('error', function (err) {
+		this.socket.on('error', (err) => {
 			this.log('error', 'Network error: ' + err.message)
-            this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
+			this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
 			this.stopKeepAliveTimer()
 		})
 
-		this.socket.on('connect', function () {
-            this.updateStatus(InstanceStatus.Ok, 'Connected')
+		this.socket.on('connect', () => {
+			this.updateStatus(InstanceStatus.Ok, 'Connected')
 			this.startKeepAliveTimer()
 			if (this.config.supported_commands_on_connect === true) {
 				// request protocol implementation
@@ -93,7 +93,7 @@ export async function init_tcp () {
 			}
 		})
 
-		this.socket.on('data', function (chunk) {
+		this.socket.on('data', (chunk) => {
 			if (Buffer.compare(chunk, receivebuffer) != 0) {
 				// console.log('Received: ' + chunk.length + ' bytes ', chunk.toString('hex').match(/../g).join(' '))
 				// send ACK

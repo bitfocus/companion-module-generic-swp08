@@ -1,5 +1,6 @@
 export async function SetupVariables(self) {
 	// Implemented Commands
+	let varList = []
 	self.commands = []
 
 	// Hold values
@@ -18,8 +19,8 @@ export async function SetupVariables(self) {
 		self.selected_level.push({ id: i, enabled: true })
 	}
 
-	self.debug(self.levels)
-	self.debug(self.selected_level)
+	//console.log(self.levels)
+	//console.log(self.selected_level)
 
 	// Labels
 	self.source_names = []
@@ -27,16 +28,19 @@ export async function SetupVariables(self) {
 
 	self.updateVariableDefinitions()
 
-	self.setVariable('Sources', 0)
-	self.setVariable('Destinations', 0)
+	varList['Sources'] = 0
+	varList['Destinations'] = 0
 
-	self.setVariable('Source', self.selected_source)
-	self.setVariable('Destination', self.selected_dest)
+	varList['Source'] = self.selected_source
+	varList['Destination'] = self.selected_dest
+	self.setVariableValues(varList)
 }
 
 export async function UpdateVariableDefinitions(self) {
 	let coreVariables = []
-
+	const sourceKeys = Object.keys(self.source_names)
+	const destKeys = Object.keys(self.dest_names)
+	
 	coreVariables.push(
 		{
 			name : 'Number of source names returned by router',
@@ -66,31 +70,31 @@ export async function UpdateVariableDefinitions(self) {
 			variableId: 'Sel_Dest_Source_Name_Level_' + i.toString(),
 		})
 	}
-
-	for (let i = 1; i <= Object.keys(self.source_names).length; i++) {
+	
+	for (let i = 1; i <= sourceKeys.length; i++) {
 		coreVariables.push({
-			label: 'Source ' + i.toString(),
+			name: 'Source ' + i.toString(),
 			variableId: 'Source_' + i.toString(),
 		})
 	}
-
-	for (let i = 1; i <= Object.keys(self.dest_names).length; i++) {
+	
+	for (let i = 1; i <= destKeys.length; i++) {
 		coreVariables.push({
-			label: 'Destination ' + i.toString(),
+			name: 'Destination ' + i.toString(),
 			variableId: 'Destination_' + i.toString(),
 		})
 	}
 
 	self.setVariableDefinitions(coreVariables)
 
-	let labelDump = {}
+	let labelDump = []
 
-	for (let i = 0; i < Object.keys(self.source_names).length; i++) {
+	for (let i = 0; i < sourceKeys.length; i++) {
 		//let variableValue = self.stripNumber(self.source_names[i].label) not used
 		labelDump[`Source_${self.source_names[i].id}`] = self.stripNumber(self.source_names[i].label)
 	}
 
-	for (let i = 0; i < Object.keys(self.dest_names).length; i++) {
+	for (let i = 0; i < destKeys.length; i++) {
 		labelDump[`Destination_${self.dest_names[i].id}`] = self.stripNumber(self.dest_names[i].label)
 	}
 

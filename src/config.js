@@ -1,17 +1,4 @@
-import { InstanceStatus, Regex } from '@companion-module/base'
-
-export async function configUpdated(config) {
-	this.log('debug','update config')
-	this.updateStatus(InstanceStatus.Connecting)
-	this.config = config
-	this.setupVariables()
-	this.updateVariableDefinitions()
-	this.updateFeedbacks()
-	this.updateActions()
-	this.initPresets()
-	this.init_tcp()
-    this.checkFeedbacks('selected_level', 'selected_level_dest','selected_dest','selected_source')
-}
+import { Regex } from '@companion-module/base'
 
 export function getConfigFields() {
 	return [

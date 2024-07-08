@@ -1,6 +1,6 @@
+import { hexBytes } from './consts.js'
 
-
-export function processLabels (data) {
+export function processLabels(data) {
 	const char_length_table = [4, 8, 12]
 
 	// byte1 = matrix (& level for sources)
@@ -12,7 +12,7 @@ export function processLabels (data) {
 	this.extractLabels(data, char_length, label_number, labels_in_part, start)
 }
 
-export function ext_processSourceLabels (data) {
+export function ext_processSourceLabels(data) {
 	const char_length_table = [4, 8, 12]
 
 	// byte1 = matrix number
@@ -25,8 +25,7 @@ export function ext_processSourceLabels (data) {
 	this.extractLabels(data, char_length, label_number, labels_in_part, start)
 }
 
-export function extractLabels (data, char_length, label_number, labels_in_part, s) {
-
+export function extractLabels(data, char_length, label_number, labels_in_part, s) {
 	let l = 0
 
 	console.log('label chars:' + char_length)
@@ -43,13 +42,13 @@ export function extractLabels (data, char_length, label_number, labels_in_part, 
 		l = l + 1
 		label_number = label_number + 1
 
-		if (data[0] == 0x6a || data[0] == 0xea) {
+		if (data[0] == hexBytes.cmd.sourceNames || data[0] == hexBytes.cmd.extendedSourceNames) {
 			// sources
 			this.source_names.splice(label_number - 1, 0, {
 				id: label_number,
 				label: label_number.toString() + ': ' + label.trim(),
 			})
-		} else if (data[0] == 0x6b || data[0] == 0xeb) {
+		} else if (data[0] == hexBytes.cmd.destNames || data[0] == hexBytes.cmd.extendedDestNames) {
 			// destinations
 			this.dest_names.splice(label_number - 1, 0, {
 				id: label_number,
