@@ -18,7 +18,8 @@ export function stopKeepAliveTimer(){
 
 export function keepAlive(){
     if (this.socket !== undefined && this.socket.isConnected) {
+        //Send dummy message
 		this.socket.send(this.hexStringToBuffer(DLE + STX + '0000' + DLE + ETX))
-		this.startKeepAliveTimer()
 	}
+    this.startKeepAliveTimer()
 }
