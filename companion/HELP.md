@@ -27,12 +27,14 @@ There are multiple ways of making crosspoint buttons to cater for different appl
 - **Route Source to selected Levels and Destination** and **Route Source name to selected Levels and Destination** Use the preset levels and destination with the source from this action and make the route
 - **Take** Make the crosspoint from preset levels, source and destination
 - **Clear** Forget any preset levels, destination or source. Optionally re-enable all levels.
-- **Set Crosspoint** Specify levels, source and destination in the action and make the route
+- **Set Crosspoint** and **Set Crosspoint by name** specify levels, source and destination in the action and make the route
 - **Refresh Source and Destination names** Ask the router for the current set of names and update
 
 ## Feedbacks
 Button background colours can be changed to show current selection status.
 
+- **Crosspoiint Connected**
+- **Crosspoiint Connected By Name**
 - **Selected Levels**
 - **Selected Levels and Destination**
 - **Selected Destination**
@@ -50,10 +52,16 @@ Some dynamic information is stored in variables which you can access through the
 - **Source_?** The name of each source as defined in the the router
 - **Destination_?** The name of each destination as defined in the router
 
-## Version 1.0.0
+
+## Action Recorder
+While recording, tally and connected messages recieved from the router will create new set crosspoint actions. Allowing for easy creation of salvos.
+
+## Version History
+
+### Version 1.0.0
 - First Release
 
-## Version 1.0.1
+### Version 1.0.1
 - Reworked levels to be more flexible
 - Added route source by name action
 - Added toggle level action
@@ -62,29 +70,29 @@ Some dynamic information is stored in variables which you can access through the
 - Added feedback for selected level and destination
 - Fixed packaging of bytes sent to router
 
-## Version 1.0.2
+### Version 1.0.2
 - Reworked incoming data processing
 - Reworked name decoding to support larger routers
 - Added module config option for name length
 - Added module config option to request names on connection
 - Added variables for selected destination source
 
-## Version 1.0.3
+### Version 1.0.3
 - Added module config option to disable the supported commands check
 
-## Version 1.0.4
+### Version 1.0.4
 - Added support for more than 16 levels
 - Added support for more then 1024 sources/destinations
 - Tidy up config page layout
 - Add more supported device types to the module properties
 
-## Version 1.0.5
+### Version 1.0.5
 - Added presets for some actions
 - Added feedback Source routed to selected Destination
 
-## Version 2.0.0
-- Update for Companion 3
-- Add Connection Keep Alive
+### Version 2.0.0
+- Update for Companion Version 3
+- Add connection keep alive
 - Accept variables for Select Source Name, Select Destination Name, Set Crosspoint by Name
 - Add Crosspoint Connected, Crosspoint Connected By Name feedback
 - Action Recorder support
