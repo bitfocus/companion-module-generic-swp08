@@ -33,6 +33,14 @@ export const feedbackOptions = {
 		min: 1,
 		max: 65536,
 	},
+	destinationName: {
+		type: 'dropdown',
+		label: 'Destination',
+		id: 'dest',
+		default: 1,
+		allowCustom: true,
+		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
+	},
 	source: {
 		type: 'number',
 		label: 'Source',
@@ -40,6 +48,14 @@ export const feedbackOptions = {
 		default: 1,
 		min: 1,
 		max: 65536,
+	},
+	sourceName: {
+		type: 'dropdown',
+		label: 'Source',
+		id: 'source',
+		default: 1,
+		allowCustom: true,
+		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
 	},
 }
 

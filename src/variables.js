@@ -19,9 +19,6 @@ export async function SetupVariables(self) {
 		self.selected_level.push({ id: i, enabled: true })
 	}
 
-	//console.log(self.levels)
-	//console.log(self.selected_level)
-
 	// Labels
 	self.source_names = []
 	self.dest_names = []
@@ -40,7 +37,7 @@ export async function UpdateVariableDefinitions(self) {
 	let coreVariables = []
 	const sourceKeys = Object.keys(self.source_names)
 	const destKeys = Object.keys(self.dest_names)
-	
+
 	coreVariables.push(
 		{
 			name : 'Number of source names returned by router',
@@ -90,7 +87,6 @@ export async function UpdateVariableDefinitions(self) {
 	let labelDump = []
 
 	for (let i = 0; i < sourceKeys.length; i++) {
-		//let variableValue = self.stripNumber(self.source_names[i].label) not used
 		labelDump[`Source_${self.source_names[i].id}`] = self.stripNumber(self.source_names[i].label)
 	}
 
@@ -98,6 +94,5 @@ export async function UpdateVariableDefinitions(self) {
 		labelDump[`Destination_${self.dest_names[i].id}`] = self.stripNumber(self.dest_names[i].label)
 	}
 
-	// console.log(labelDump)
 	self.setVariableValues(labelDump)
 }

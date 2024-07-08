@@ -86,3 +86,4 @@ Some dynamic information is stored in variables which you can access through the
 - Update for Companion 3
 - Add Connection Keep Alive
 - Accept variables for Select Source Name, Select Destination Name, Set Crosspoint by Name
+- Add Crosspoint Connected, Crosspoint Connected By Name feedback

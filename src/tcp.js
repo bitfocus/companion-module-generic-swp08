@@ -13,7 +13,6 @@ export function sendAck() {
 }
 
 export function sendMessage(message) {
-	// minimum length is 1 byte
 	if (message.length < 2) {
 		this.log('warn', 'Empty or invalid message!')
 		return

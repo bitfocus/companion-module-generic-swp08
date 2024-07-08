@@ -56,7 +56,6 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 			})
 		}
 
-		// console.log('label ' + this.padLeft(label_number,2) + ' |' + label + '|')
 		// this.log('debug','label ' + this.padLeft(label_number,2) + ' |' + label + '|')
 	}
 
@@ -65,7 +64,6 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 		Destinations: Object.keys(this.dest_names).length,
 	})
 
-	// need to find a way of only calling these functions on the last part of the labels
 	this.updateVariableDefinitions()
 
 	console.log(this.source_names)
