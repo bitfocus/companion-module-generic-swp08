@@ -52,7 +52,7 @@ export function update_crosspoints(source, dest, level) {
 			// update existing
 			this.routeTable[i].source = source
 			console.log(this.routeTable)
-			this.checkFeedbacks('source_dest_route')
+			//this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
 			return
 		}
 	}
@@ -61,7 +61,7 @@ export function update_crosspoints(source, dest, level) {
 	const new_route = { level: level, dest: dest, source: source }
 	this.routeTable.push(new_route)
 	console.log(this.routeTable)
-	this.checkFeedbacks('source_dest_route')
+	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
 }
 
 export function SetCrosspoint(sourceN, destN, levelN) {
