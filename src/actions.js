@@ -39,8 +39,13 @@ export async function UpdateActions(self) {
 		name: 'Select Destination name',
 		options: [{ ...actionOptions.destinationName, choices: self.dest_names }],
 		callback: async ({ options }) => {
-			self.selected_dest = parseInt(options.dest)
-			self.getCrosspoints(options.dest)
+			const dest = parseInt(await self.parseVaraiblesInString(options.dest))
+			if (isNaN(dest) || dest < 1 || dest > 65536) {
+				self.log('warn', `select_dest_name has been passed an out of range variable ${dest}`)
+				return undefined
+			}
+			self.selected_dest = dest
+			self.getCrosspoints(dest)
 			console.log('set destination ' + self.selected_dest)
 			self.setVariableValues({ Destination: self.selected_dest })
 			self.checkFeedbacks('selected_dest', 'selected_level_dest')
@@ -60,7 +65,12 @@ export async function UpdateActions(self) {
 		name: 'Select Source name',
 		options: [{ ...actionOptions.sourceName, choices: self.source_names }],
 		callback: async ({ options }) => {
-			self.selected_source = parseInt(options.source)
+			const source = parseInt(await self.parseVaraiblesInString(options.source))
+			if (isNaN(source) || source < 1 || source > 65536) {
+				self.log('warn', `select_source_name has been passed an out of range variable ${source}`)
+				return undefined
+			}
+			self.selected_source = source
 			console.log('set source ' + self.selected_source)
 			self.setVariableValues({ Source: self.selected_source })
 			self.checkFeedbacks('selected_source')
@@ -83,11 +93,16 @@ export async function UpdateActions(self) {
 		name: 'Route Source name to selected Levels and Destination',
 		options: [{ ...actionOptions.sourceName, choices: self.source_names }],
 		callback: async ({ options }) => {
+			const source = parseInt(await self.parseVaraiblesInString(options.source))
+			if (isNaN(source) || source < 1 || source > 65536) {
+				self.log('warn', `route_source_name has been passed an out of range variable ${source}`)
+				return undefined
+			}
 			console.log(self.selected_level)
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
-					self.SetCrosspoint(options.source, self.selected_dest, self.selected_level[i].id)
+					self.SetCrosspoint(source, self.selected_dest, self.selected_level[i].id)
 				}
 			}
 		},
@@ -154,8 +169,14 @@ export async function UpdateActions(self) {
 			{ ...actionOptions.destinationName, choices: self.dest_names },
 		],
 		callback: async ({ options }) => {
+			const source = parseInt(await self.parseVaraiblesInString(options.source))
+			const dest = parseInt(await self.parseVaraiblesInString(options.dest))
+			if (isNaN(source) || source < 1 || source > 65536 || isNaN(dest) || dest < 1 || dest > 65536) {
+				self.log('warn', `set_crosspoint_name has been passed an out of range variable - src ${source} : dst ${dest}`)
+				return undefined
+			}
 			for (let level_val of options.level) {
-				self.SetCrosspoint(options.source, options.dest, level_val)
+				self.SetCrosspoint(source, dest, level_val)
 			}
 		},
 	}

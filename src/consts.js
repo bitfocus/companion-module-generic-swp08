@@ -63,6 +63,8 @@ export const actionOptions = {
 		label: 'Destination',
 		id: 'dest',
 		default: 1,
+		allowCustom: true,
+		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
 	},
 	source: {
 		type: 'number',
@@ -77,6 +79,8 @@ export const actionOptions = {
 		label: 'Source',
 		id: 'source',
 		default: 1,
+		allowCustom: true,
+		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
 	},
 	clear: {
 		type: 'dropdown',
