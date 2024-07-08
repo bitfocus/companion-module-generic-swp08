@@ -71,4 +71,5 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 
 	// update dropdown lists
 	this.updateActions()
+	this.updateFeedbacks()
 }

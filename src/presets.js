@@ -3,7 +3,7 @@ import { colours, presetDefaults } from './consts.js'
 export async function UpdatePresets(self) {
 	let presets = []
 
-	presets['take']={
+	presets['take'] = {
 		category: 'Actions',
 		type: 'button',
 		name: 'Take',
@@ -12,11 +12,16 @@ export async function UpdatePresets(self) {
 			text: 'Take',
 			bgcolor: colours.red,
 		},
-		steps: [{
-			down:{
-				action: 'take',
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'take',
+						delay: 0,
+					},
+				],
 			},
-        }],
+		],
 	}
 
 	presets['refresh'] = {
@@ -29,9 +34,12 @@ export async function UpdatePresets(self) {
 		},
 		steps: [
 			{
-				down: {
-					action: 'get_names',
-				},
+				down: [
+					{
+						actionId: 'get_names',
+						delay: 0,
+					},
+				],
 			},
 		],
 	}
@@ -47,17 +55,20 @@ export async function UpdatePresets(self) {
 			},
 			steps: [
 				{
-					down: {
-						action: 'select_source',
-						options: {
-							source: i,
+					down: [
+						{
+							actionId: 'select_source',
+							options: {
+								source: i,
+							},
+							delay: 0,
 						},
-					},
+					],
 				},
 			],
 			feedbacks: [
 				{
-					type: 'selected_source',
+					feedbackId: 'selected_source',
 					options: {
 						source: i,
 					},
@@ -65,6 +76,7 @@ export async function UpdatePresets(self) {
 						color: colours.black,
 						bgcolor: colours.cyan,
 					},
+					isInverted: false,
 				},
 			],
 		}
@@ -79,17 +91,20 @@ export async function UpdatePresets(self) {
 			},
 			steps: [
 				{
-					down: {
-						action: 'select_dest',
-						options: {
-							dest: i,
+					down: [
+						{
+							actionId: 'select_dest',
+							options: {
+								dest: i,
+							},
+							delay: 0,
 						},
-					},
+					],
 				},
 			],
 			feedbacks: [
 				{
-					type: 'selected_dest',
+					feedbackId: 'selected_dest',
 					options: {
 						dest: i,
 					},
@@ -97,6 +112,7 @@ export async function UpdatePresets(self) {
 						color: colours.black,
 						bgcolor: colours.green,
 					},
+					isInverted: false,
 				},
 			],
 		}

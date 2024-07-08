@@ -1,13 +1,13 @@
 import { colours, feedbackOptions } from './consts.js'
 
 export async function UpdateFeedbacks(self) {
-	let feedbacks = {}
+	let feedbackDefinitions = []
 
-	feedbacks['selected_level'] = {
+	feedbackDefinitions['selected_level'] = {
+		name: 'Selected Levels',
 		type: 'boolean',
-		label: 'Selected Levels',
 		description: 'Change colour of button on selected levels',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.purple,
 		},
@@ -32,18 +32,15 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	feedbacks['selected_level_dest'] = {
+	feedbackDefinitions['selected_level_dest'] = {
+		name: 'Selected Levels and Destination',
 		type: 'boolean',
-		label: 'Selected Levels and Destination',
 		description: 'Change colour of button on selected levels and destination',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.purple,
 		},
-		options: [
-			{ ...feedbackOptions.levels, choices: self.levels },
-			feedbackOptions.destination,
-		],
+		options: [{ ...feedbackOptions.levels, choices: self.levels }, feedbackOptions.destination],
 		callback: async (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
 				let l = feedback.options.level.length
@@ -68,15 +65,15 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	feedbacks['selected_dest'] = {
+	feedbackDefinitions['selected_dest'] = {
 		type: 'boolean',
-		label: 'Selected Destination',
+		name: 'Selected Destination',
 		description: 'Change colour of button on selected destination',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.green,
 		},
-		options: [ feedbackOptions.destination ],
+		options: [feedbackOptions.destination],
 		callback: async (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
 				return true
@@ -86,15 +83,15 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	feedbacks['selected_source'] = {
+	feedbackDefinitions['selected_source'] = {
 		type: 'boolean',
-		label: 'Selected Source',
+		name: 'Selected Source',
 		description: 'Change colour of button on selected source',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.cyan,
 		},
-		options: [ feedbackOptions.source ],
+		options: [feedbackOptions.source],
 		callback: async (feedback) => {
 			if (self.selected_source === feedback.options.source) {
 				return true
@@ -104,15 +101,15 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	feedbacks['source_dest_route'] = {
+	feedbackDefinitions['source_dest_route'] = {
 		type: 'boolean',
-		label: 'Source Routed to Destination',
+		name: 'Source Routed to Destination',
 		description: 'Change button colour when this source is routed to selected destination on any level',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
-		options: [ feedbackOptions.source ],
+		options: [feedbackOptions.source],
 		callback: async (feedback) => {
 			// look for this dest in route table
 			console.log('dest:source feedback ' + self.selected_dest + ':' + feedback.options.source)
@@ -127,11 +124,11 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	feedbacks['crosspoint_connected'] = {
+	feedbackDefinitions['crosspoint_connected'] = {
 		type: 'boolean',
-		label: 'Crosspoint Connected',
+		name: 'Crosspoint Connected',
 		description: 'Change button colour when this crosspoint is connected on any level',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
@@ -149,15 +146,24 @@ export async function UpdateFeedbacks(self) {
 			return false
 		},
 	}
-	feedbacks['crosspoint_connected_by_name'] = {
+	feedbackDefinitions['crosspoint_connected_by_name'] = {
 		type: 'boolean',
-		label: 'Crosspoint Connected By Name',
+		name: 'Crosspoint Connected By Name',
 		description: 'Change button colour when this crosspoint is connected on any level',
-		style: {
+		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
-		options: [feedbackOptions.sourceName, feedbackOptions.destinationName],
+		options: [
+			{
+				...feedbackOptions.sourceName,
+				choices: self.source_names,
+			},
+			{
+				...feedbackOptions.destinationName,
+				choices: self.dest_names,
+			},
+		],
 		callback: async (feedback, context) => {
 			const source = parseInt(await context.parseVariablesInString(feedback.options.source))
 			const dest = parseInt(await context.parseVariablesInString(feedback.options.dest))
@@ -181,5 +187,5 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	self.setFeedbackDefinitions(feedbacks)
+	self.setFeedbackDefinitions(feedbackDefinitions)
 }
