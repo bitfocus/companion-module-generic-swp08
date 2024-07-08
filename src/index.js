@@ -33,6 +33,7 @@ class SW_P_08 extends InstanceBase {
 	async init(config){
 		this.updateStatus(InstanceStatus.Connecting)
 		this.config = config
+		this.setupVariables()
 		this.updateVariableDefinitions()
 		this.updateFeedbacks()
 		this.updateActions()

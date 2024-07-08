@@ -4,6 +4,7 @@ export async function configUpdated(config) {
 	this.log('debug','update config')
 	this.updateStatus(InstanceStatus.Connecting)
 	this.config = config
+	this.setupVariables()
 	this.updateVariableDefinitions()
 	this.updateFeedbacks()
 	this.updateActions()
