@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer'
 
 export function stripNumber(str) {
-	let n = str.indexOf(':')
+	const n = str.indexOf(':')
 	if (n > 0) {
 		return str.slice(n + 2)
 	} else {
@@ -27,7 +27,7 @@ export function hexStringToBuffer(str) {
 }
 
 export function getLength(str) {
-	let length = (str.length / 2).toString(16)
+	const length = (str.length / 2).toString(16)
 	return this.padLeft(length, 4)
 }
 

@@ -7,6 +7,7 @@ export function sendAck() {
 	this.log('debug','Sending ACK')
 	if (this.socket !== undefined && this.socket.connected) {
 		this.socket.send(this.hexStringToBuffer('1006'))
+		this.startKeepAliveTimer()
 	} else {
 		this.log('warn','Socket not connected :(')
 	}

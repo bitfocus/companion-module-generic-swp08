@@ -1,26 +1,26 @@
 
 
 export function processLabels (data) {
-	let char_length_table = [4, 8, 12]
+	const char_length_table = [4, 8, 12]
 
 	// byte1 = matrix (& level for sources)
-	let char_length = char_length_table[data[2]]
-	let label_number = 256 * data[3] + data[4]
-	let labels_in_part = data[5]
-	let start = 6
+	const char_length = char_length_table[data[2]]
+	const label_number = 256 * data[3] + data[4]
+	const labels_in_part = data[5]
+	const start = 6
 
 	this.extractLabels(data, char_length, label_number, labels_in_part, start)
 }
 
 export function ext_processSourceLabels (data) {
-	let char_length_table = [4, 8, 12]
+	const char_length_table = [4, 8, 12]
 
 	// byte1 = matrix number
 	// byte2 = level number
-	let char_length = char_length_table[data[3]]
-	let label_number = 256 * data[4] + data[5]
-	let labels_in_part = data[6]
-	let start = 7
+	const char_length = char_length_table[data[3]]
+	const label_number = 256 * data[4] + data[5]
+	const labels_in_part = data[6]
+	const start = 7
 
 	this.extractLabels(data, char_length, label_number, labels_in_part, start)
 }

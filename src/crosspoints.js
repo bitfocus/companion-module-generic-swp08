@@ -1,11 +1,11 @@
 
 export function crosspointConnected (data) {
-	//let matrix = ((data[1] & 0xf0) >> 4) + 1 unused
-	let level = (data[1] & 0x0f) + 1
-	let destDiv = (data[2] & 0x70) >> 4
+	//const matrix = ((data[1] & 0xf0) >> 4) + 1 unused
+	const level = (data[1] & 0x0f) + 1
+	const destDiv = (data[2] & 0x70) >> 4
 	let sourceDiv = data[2] & 0x7
-	let dest = 128 * destDiv + data[3] + 1
-	let source = 128 * sourceDiv + data[4] + 1
+	const dest = 128 * destDiv + data[3] + 1
+	const source = 128 * sourceDiv + data[4] + 1
 
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	this.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
@@ -14,14 +14,14 @@ export function crosspointConnected (data) {
 }
 
 export function ext_crosspointConnected (data) {
-	//let matrix = data[1] + 1
-	let level = data[2] + 1
-	let destDiv = data[3] * 256
-	let destMod = data[4]
-	let sourceDiv = data[5] * 256
-	let sourceMod = data[6]
-	let dest = destDiv + destMod + 1
-	let source = sourceDiv + sourceMod + 1
+	//const matrix = data[1] + 1
+	const level = data[2] + 1
+	const destDiv = data[3] * 256
+	const destMod = data[4]
+	const sourceDiv = data[5] * 256
+	const sourceMod = data[6]
+	const dest = destDiv + destMod + 1
+	const source = sourceDiv + sourceMod + 1
 
 	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
 	this.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
