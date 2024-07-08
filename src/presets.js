@@ -1,17 +1,15 @@
-import { colours } from './consts.js'
+import { colours, presetDefaults } from './consts.js'
 
 export async function UpdatePresets(self) {
 	let presets = []
 
-	presets.push({
+	presets['take']={
 		category: 'Actions',
 		type: 'button',
 		name: 'Take',
 		style: {
-			style: 'text',
+			...presetDefaults.style,
 			text: 'Take',
-			size: '18',
-			color: colours.white,
 			bgcolor: colours.red,
 		},
 		steps: [{
@@ -19,43 +17,41 @@ export async function UpdatePresets(self) {
 				action: 'take',
 			},
         }],
-	})
+	}
 
-	presets.push({
+	presets['refresh'] = {
 		category: 'Actions',
 		type: 'button',
 		name: 'Refresh Names',
 		style: {
-			style: 'text',
+			...presetDefaults.style,
 			text: 'Refresh Names',
-			size: '18',
-			color: colours.white,
-			bgcolor: colours.black,
 		},
-		actions: [
+		steps: [
 			{
-				action: 'get_names',
+				down: {
+					action: 'get_names',
+				},
 			},
 		],
-	})
+	}
 
 	for (let i = 1; i <= 32; i++) {
-		presets.push({
+		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
 			type: 'button',
 			name: 'Source ' + i,
 			style: {
-				style: 'text',
+				...presetDefaults.style,
 				text: 'S' + i,
-				size: '18',
-				color: colours.white,
-				bgcolor: colours.black,
 			},
-			actions: [
+			steps: [
 				{
-					action: 'select_source',
-					options: {
-						source: i,
+					down: {
+						action: 'select_source',
+						options: {
+							source: i,
+						},
 					},
 				},
 			],
@@ -71,24 +67,23 @@ export async function UpdatePresets(self) {
 					},
 				},
 			],
-		})
+		}
 
-		presets.push({
+		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
 			type: 'button',
 			name: 'Destination ' + i,
 			style: {
-				style: 'text',
+				...presetDefaults.style,
 				text: 'D' + i,
-				size: '18',
-				color: colours.white,
-				bgcolor: colours.black,
 			},
-			actions: [
+			steps: [
 				{
-					action: 'select_dest',
-					options: {
-						dest: i,
+					down: {
+						action: 'select_dest',
+						options: {
+							dest: i,
+						},
 					},
 				},
 			],
@@ -104,7 +99,7 @@ export async function UpdatePresets(self) {
 					},
 				},
 			],
-		})
+		}
 	}
 	self.setPresetDefinitions(presets)
 }

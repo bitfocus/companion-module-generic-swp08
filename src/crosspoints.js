@@ -1,5 +1,6 @@
+import { cmd } from './consts.js'
 
-export function crosspointConnected (data) {
+export function crosspointConnected(data) {
 	//const matrix = ((data[1] & 0xf0) >> 4) + 1 unused
 	const level = (data[1] & 0x0f) + 1
 	const destDiv = (data[2] & 0x70) >> 4
@@ -13,7 +14,7 @@ export function crosspointConnected (data) {
 	this.update_crosspoints(source, dest, level)
 }
 
-export function ext_crosspointConnected (data) {
+export function ext_crosspointConnected(data) {
 	//const matrix = data[1] + 1
 	const level = data[2] + 1
 	const destDiv = data[3] * 256
@@ -29,10 +30,10 @@ export function ext_crosspointConnected (data) {
 	this.update_crosspoints(source, dest, level)
 }
 
-export function update_crosspoints (source, dest, level) {
+export function update_crosspoints(source, dest, level) {
 	if (dest == this.selected_dest) {
 		// update variables for selected dest source
-		this.setVariableValues({[`Sel_Dest_Source_Level_${level.toString()}`]: source})
+		this.setVariableValues({ [`Sel_Dest_Source_Level_${level.toString()}`]: source })
 		if (this.source_names.length > 0) {
 			// only if names have been retrieved
 			try {
@@ -63,8 +64,8 @@ export function update_crosspoints (source, dest, level) {
 	this.checkFeedbacks('source_dest_route')
 }
 
-export function SetCrosspoint (sourceN, destN, levelN) {
-    let action
+export function SetCrosspoint(sourceN, destN, levelN) {
+	let action
 	this.log('debug', 'Crosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
 	console.log('SetCrosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
 
@@ -84,7 +85,7 @@ export function SetCrosspoint (sourceN, destN, levelN) {
 	}
 	if (sourceN > 1024 || destN > 1024 || levelN > 16) {
 		// Extended command required
-		const COM = '82'
+		const COM = cmd.extendedConnect
 		// Matrix
 		const matrix = this.padLeft((this.config.matrix - 1).toString(16), 2)
 		// Level
@@ -105,7 +106,7 @@ export function SetCrosspoint (sourceN, destN, levelN) {
 		action = COM + matrix + level + destDIV + destMOD + sourceDIV + sourceMOD + count + checksum
 	} else {
 		// Standard Command
-		const COM = '02'
+		const COM = cmd.connect
 		// Matrix and Level
 		const matrix = (this.config.matrix - 1) << 4
 		const level = levelN - 1
@@ -129,7 +130,7 @@ export function SetCrosspoint (sourceN, destN, levelN) {
 	this.sendMessage(action)
 }
 
-export function getCrosspoints (destN) {
+export function getCrosspoints(destN) {
 	console.log('GetCrosspoint ' + destN)
 
 	if (destN <= 0 || destN > 65536) {
@@ -139,7 +140,7 @@ export function getCrosspoints (destN) {
 
 	if (this.config.max_levels > 16 || destN > 1024) {
 		// Extended commands
-		const COM = '81'
+		const COM = cmd.extendedinterrogate
 		// Byte count
 		const count = '05'
 		// Matrix
@@ -160,7 +161,7 @@ export function getCrosspoints (destN) {
 		}
 	} else {
 		// Standard commands
-		const COM = '01'
+		const COM = cmd.interrogate
 		// Byte count
 		const count = '04'
 		// Matrix and Level

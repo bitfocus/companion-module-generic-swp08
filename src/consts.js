@@ -1,11 +1,12 @@
 import { combineRgb } from '@companion-module/base'
 
 export const msgDelay = 5
+export const keepAliveTimeOut = 30000
 
 export const DLE = '10'
 export const STX = '02'
 export const ETX = '03'
-
+export const ACK = '06'
 export const colours = {
 	white: combineRgb(255, 255, 255),
 	black: combineRgb(0, 0, 0),
@@ -100,4 +101,54 @@ export const actionOptions = {
 		id: 'clear_enable_levels',
 		default: true,
 	},
+}
+export const presetDefaults = {
+	style: {
+		size: '18',
+		show_topbar: 'default',
+		alignment: 'center:center',
+		color: colours.white,
+		bgcolor: colours.black,
+	},
+}
+
+export const cmd = {
+	interrogate: '01',
+	connect: '02',
+	tally: '03',
+	connected: '04',
+	tallyDumpRequest: '21',
+	tallyDumpByteMessage: '22',
+	tallyDumpWordMessage: '23',
+	getSourceName: '64',
+	getDestName: '66',
+	connectOnGoGroupSalvo: '78',
+	goGroupSalvo: '79',
+	connectOnGoGroupSalvoAck: '7A',
+	goDoneGroupSalvoAck: '7B',
+	salvoGroupInterrogate: '7C',
+	groupSalvoTally: '7D',
+	extendedinterrogate: '81',
+	extendedConnect: '82',
+	extendedGetSourceName: 'E4',
+	extendedGetDestName: 'E6',
+}
+
+export const hexBytes = {
+	DLE: 0x10,
+	STX: 0x02,
+	ETX: 0x03,
+	ACK: 0x06,
+	NAK: 0x15,
+	cmd: {
+		tally: 0x03,
+		connected: 0x04,
+		extendedTally: 0x83,
+		extendedConnected: 0x84,
+		protocolImplementation: 0x62,
+		sourceNames: 0x6a,
+		destNames: 0x6b,
+		extendedSourceNames: 0xea,
+		extendedDestNames: 0xeb,
+	}
 }

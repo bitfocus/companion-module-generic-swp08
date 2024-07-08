@@ -1,12 +1,11 @@
 import { InstanceStatus, TCPHelper } from '@companion-module/base'
 import { Buffer } from 'node:buffer'
-import { DLE, STX, ETX } from './consts.js'
-//import { msgDelay } from './consts.js'
+import { ACK, DLE, STX, ETX } from './consts.js'
 
 export function sendAck() {
 	this.log('debug','Sending ACK')
 	if (this.socket !== undefined && this.socket.connected) {
-		this.socket.send(this.hexStringToBuffer('1006'))
+		this.socket.send(this.hexStringToBuffer(DLE + ACK))
 		this.startKeepAliveTimer()
 	} else {
 		this.log('warn','Socket not connected :(')
@@ -43,8 +42,8 @@ export function sendMessage(message) {
 	let packed = ''
 	for (let j = 0; j < message.length; j = j + 2) {
 		let b = message.substr(j, 2)
-		if (b === '10') {
-			packed = packed + '1010'
+		if (b === DLE) {
+			packed = packed + DLE + DLE
 		} else {
 			packed = packed + b
 		}

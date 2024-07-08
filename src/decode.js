@@ -1,37 +1,39 @@
 
+import { hexBytes } from './consts.js'
+
 export function decode (data) {
 	let message = []
 
 	if (data.length > 0) {
 		for (let j = 0; j < data.length; j++) {
-			if (data[j] == 0x10) {
+			if (data[j] == hexBytes.DLE) {
 				switch (data[j + 1]) {
-					case 0x02:
+					case hexBytes.STX:
 						console.log('Received SOM')
 						j++
 						continue
 					//break
 
-					case 0x03:
+					case hexBytes.ETX:
 						console.log('Received EOM')
 						j++
 						continue
 					//break
 
-					case 0x06:
+					case hexBytes.ACK:
 						console.log('Received ACK')
 						j++
 						continue
 					//break
 
-					case 0x10:
+					case hexBytes.DLE:
 						// remove repeated byte 0x10
 						message.push(data[j])
 						j++
 						continue
 					//break
 
-					case 0x15:
+					case hexBytes.NAK:
 						console.log('Received NAK')
 						j++
 						continue
@@ -53,19 +55,19 @@ export function decode (data) {
 		//let responses
 		switch (message[0]) {
 			// Command
-			case 0x03:
-			case 0x04:
+			case hexBytes.cmd.tally:
+			case hexBytes.cmd.connected:
 				// Crosspoint Tally, Crosspoint Connected
 				this.crosspointConnected(message)
 				break
 
-			case 0x83:
-			case 0x84:
+			case hexBytes.cmd.extendedTally:
+			case hexBytes.cmd.extendedConnected:
 				// Extended Crosspoint Connected
 				this.ext_crosspointConnected(message)
 				break
 
-			case 0x62:
+			case hexBytes.cmd.protocolImplementation:
 				// Protocol Implementation Response
 				//requests = message[1]
 				//responses = message[2]
@@ -84,19 +86,19 @@ export function decode (data) {
 				}
 				break
 
-			case 0x6a:
-			case 0x6b:
+			case hexBytes.cmd.sourceNames:
+			case hexBytes.cmd.destNames:
 				// Standard Names Request Reply
 				this.processLabels(message)
 				break
 
-			case 0xea:
+			case hexBytes.cmd.extendedSourceNames:
 				// Extended Source Names Reply
 				// Allows for extra Level field in response
 				this.ext_processSourceLabels(message)
 				break
 
-			case 0xeb:
+			case hexBytes.cmd.extendedDestNames:
 				// Extended Destination Names Reply
 				// There is no difference in structure to the standard response
 				this.processLabels(message)

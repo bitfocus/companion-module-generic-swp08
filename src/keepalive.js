@@ -1,4 +1,4 @@
-const keepAliveTimeOut = 30000
+import { DLE, STX, ETX, keepAliveTimeOut } from './consts.js'
 
 export function startKeepAliveTimer(){
     if (this.keepAliveTimer) {
@@ -17,5 +17,6 @@ export function stopKeepAliveTimer(){
 }
 
 export function keepAlive(){
-    //this.sendMessage('61019E') what message to send here?
+    this.socket.send(this.hexStringToBuffer(DLE + STX + '0000' + DLE + ETX))
+    this.startKeepAliveTimer()
 }
