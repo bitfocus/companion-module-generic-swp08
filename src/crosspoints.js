@@ -62,6 +62,15 @@ export function update_crosspoints(source, dest, level) {
 	this.routeTable.push(new_route)
 	console.log(this.routeTable)
 	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
+	if (this.isRecordingActions) {
+		this.recordAction(
+			{
+				actionId: 'set_crosspoint',
+				options: { level: [level], source: source, dest: dest },
+			},
+			`connect dest ${dest} level ${level}`
+		)
+	}
 }
 
 export function SetCrosspoint(sourceN, destN, levelN) {

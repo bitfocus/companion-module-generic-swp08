@@ -73,6 +73,11 @@ class SW_P_08 extends InstanceBase {
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
+	// Track whether actions are being recorded
+	handleStartStopRecordActions(isRecording) {
+		this.isRecordingActions = isRecording
+	}
+
 	updateActions() {
 		UpdateActions(this)
 	}

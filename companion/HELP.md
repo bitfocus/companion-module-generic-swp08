@@ -87,6 +87,7 @@ Some dynamic information is stored in variables which you can access through the
 - Add Connection Keep Alive
 - Accept variables for Select Source Name, Select Destination Name, Set Crosspoint by Name
 - Add Crosspoint Connected, Crosspoint Connected By Name feedback
+- Action Recorder support
 - Select Source and Destination Presets now generated according to router size (up to 256)
 - Select Source and Destination Presets now with names
 - Select Source presets have 2nd Source Routed to Destination feedback
