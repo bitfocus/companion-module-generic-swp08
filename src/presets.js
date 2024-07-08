@@ -44,7 +44,7 @@ export async function UpdatePresets(self) {
 		],
 	}
 
-	const srcLength = self.source_names.length > 256 ? 256 : self.source_names.length
+	const srcLength = self.source_names.length > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.length
 	for (let i = 1; i <= srcLength; i++) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
@@ -140,7 +140,7 @@ export async function UpdatePresets(self) {
 			],
 		}
 	}
-	const destLength = self.dest_names.length > 256 ? 256 : self.dest_names.length
+	const destLength = self.dest_names.length > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.length
 	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',

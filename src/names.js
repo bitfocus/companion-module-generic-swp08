@@ -9,7 +9,7 @@ export function readNames() {
 	let get_dest
 	if (this.config.extended_support === true) {
 		// extended commands (only gets source names for level 1)
-		var matrix = this.padLeft((this.config.matrix - 1).toString(16), 2)
+		let matrix = this.padLeft((this.config.matrix - 1).toString(16), 2)
 		get_source = cmd.extendedGetSourceName + matrix + '00' + this.config.name_chars + '04'
 		get_dest = cmd.extendedGetDestName + matrix + this.config.name_chars + '03'
 	} else {

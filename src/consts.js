@@ -126,6 +126,8 @@ export const presetDefaults = {
 		color: colours.white,
 		bgcolor: colours.black,
 	},
+	sourceCount: 256,
+	destCount: 256,
 }
 
 export const cmd = {
