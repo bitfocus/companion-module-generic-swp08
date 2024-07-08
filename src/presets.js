@@ -44,7 +44,8 @@ export async function UpdatePresets(self) {
 		],
 	}
 
-	for (let i = 1; i <= 32; i++) {
+	const srcLength = self.source_names.length > 256 ? 256 : self.source_names.length
+	for (let i = 1; i <= srcLength; i++) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
 			type: 'button',
@@ -78,9 +79,69 @@ export async function UpdatePresets(self) {
 					},
 					isInverted: false,
 				},
+				{
+					feedbackId: 'source_dest_route',
+					options: {
+						source: i,
+					},
+					style: {
+						color: colours.black,
+						bgcolor: colours.red,
+					},
+					isInverted: false,
+				},
 			],
 		}
 
+		presets[`source_name_${i}`] = {
+			category: 'Sources (by name)',
+			type: 'button',
+			name: `$(generic-module:Source_${i})`,
+			style: {
+				...presetDefaults.style,
+				text: `$(generic-module:Source_${i})`,
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'select_source',
+							options: {
+								source: i,
+							},
+							delay: 0,
+						},
+					],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'selected_source',
+					options: {
+						source: i,
+					},
+					style: {
+						color: colours.black,
+						bgcolor: colours.cyan,
+					},
+					isInverted: false,
+				},
+				{
+					feedbackId: 'source_dest_route',
+					options: {
+						source: i,
+					},
+					style: {
+						color: colours.black,
+						bgcolor: colours.red,
+					},
+					isInverted: false,
+				},
+			],
+		}
+	}
+	const destLength = self.dest_names.length > 256 ? 256 : self.dest_names.length
+	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
 			type: 'button',
@@ -116,6 +177,43 @@ export async function UpdatePresets(self) {
 				},
 			],
 		}
+
+		presets[`destination_name_${i}`] = {
+			category: 'Destinations (by name)',
+			type: 'button',
+			name: `$(generic-module:Destination_${i})`,
+			style: {
+				...presetDefaults.style,
+				text: `$(generic-module:Destination_${i})`,
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'select_dest',
+							options: {
+								dest: i,
+							},
+							delay: 0,
+						},
+					],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'selected_dest',
+					options: {
+						dest: i,
+					},
+					style: {
+						color: colours.black,
+						bgcolor: colours.green,
+					},
+					isInverted: false,
+				},
+			],
+		}
 	}
+
 	self.setPresetDefinitions(presets)
 }
