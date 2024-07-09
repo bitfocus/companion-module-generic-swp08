@@ -41,18 +41,10 @@ class SW_P_08 extends InstanceBase {
 	}
 
 	async init(config) {
-		this.updateStatus(InstanceStatus.Connecting)
-		this.config = config
-		this.setupVariables()
-		this.updateFeedbacks()
-		this.updateActions()
-		this.updatePresets()
-		this.init_tcp()
-		this.checkFeedbacks('selected_level', 'selected_level_dest', 'selected_dest', 'selected_source')
+		this.configUpdated(config)
 	}
 
 	async configUpdated(config) {
-		this.log('debug', 'update config')
 		this.updateStatus(InstanceStatus.Connecting)
 		this.config = config
 		this.setupVariables()
@@ -60,10 +52,16 @@ class SW_P_08 extends InstanceBase {
 		this.updateActions()
 		this.updatePresets()
 		this.init_tcp()
-		this.checkFeedbacks('selected_level', 'selected_level_dest', 'selected_dest', 'selected_source')
+		this.checkFeedbacks(
+			'selected_level',
+			'selected_level_dest',
+			'selected_dest',
+			'selected_source',
+			'crosspoint_connected',
+			'crosspoint_connected_by_name'
+		)
 	}
 
-	// When module gets deleted
 	async destroy() {
 		this.log('debug', `destroy. ID: ${this.id}`)
 		this.stopKeepAliveTimer()
@@ -73,7 +71,6 @@ class SW_P_08 extends InstanceBase {
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
-	// Track whether actions are being recorded
 	handleStartStopRecordActions(isRecording) {
 		this.isRecordingActions = isRecording
 	}

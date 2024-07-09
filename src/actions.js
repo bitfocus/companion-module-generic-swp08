@@ -6,33 +6,36 @@ export async function UpdateActions(self) {
 	actionDefinitions['select_level'] = {
 		name: 'Select Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			self.processLevelsSelection(options.level, true)
 		},
 	}
 	actionDefinitions['deselect_level'] = {
 		name: 'De-Select Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			self.processLevelsSelection(options.level, false)
 		},
 	}
 	actionDefinitions['toggle_level'] = {
 		name: 'Toggle Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			self.processLevelsSelection(options.level, 'toggle')
 		},
 	}
 	actionDefinitions['select_dest'] = {
 		name: 'Select Destination',
-		options: [ actionOptions.destination ],
-		callback: async ({ options }) => {
+		options: [actionOptions.destination],
+		callback: ({ options }) => {
 			self.selected_dest = parseInt(options.dest)
 			self.getCrosspoints(options.dest)
 			console.log('set destination ' + self.selected_dest)
 			self.setVariableValues({ Destination: self.selected_dest })
-			self.checkFeedbacks('selected_dest', 'selected_level_dest')
+			self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+		},
+		subscribe: (action) => {
+			self.getCrosspoints(action.options.dest)
 		},
 	}
 	actionDefinitions['select_dest_name'] = {
@@ -48,13 +51,21 @@ export async function UpdateActions(self) {
 			self.getCrosspoints(dest)
 			console.log('set destination ' + self.selected_dest)
 			self.setVariableValues({ Destination: self.selected_dest })
-			self.checkFeedbacks('selected_dest', 'selected_level_dest')
+			self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+		},
+		subscribe: async (action) => {
+			const dest = parseInt(await self.parseVariablesInString(action.options.dest))
+			if (isNaN(dest) || dest < 1 || dest > 65536) {
+				self.log('warn', `select_dest_name:Subscribe has been passed an out of range variable - dst ${dest}`)
+				return undefined
+			}
+			self.getCrosspoints(dest)
 		},
 	}
 	actionDefinitions['select_source'] = {
 		name: 'Select Source',
 		options: [ actionOptions.source ],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			self.selected_source = parseInt(options.source)
 			console.log('set source ' + self.selected_source)
 			self.setVariableValues({ Source: self.selected_source })
@@ -79,7 +90,7 @@ export async function UpdateActions(self) {
 	actionDefinitions['route_source'] = {
 		name: 'Route Source to selected Levels and Destination',
 		options: [ actionOptions.source ],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			console.log(self.selected_level)
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
@@ -110,7 +121,7 @@ export async function UpdateActions(self) {
 	actionDefinitions['take'] = {
 		name: 'Take',
 		options: [],
-		callback: async () => {
+		callback: () => {
 			console.log(self.selected_level)
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
@@ -123,13 +134,13 @@ export async function UpdateActions(self) {
 	actionDefinitions['clear'] = {
 		name: 'Clear',
 		options: [ actionOptions.clear, actionOptions.clearEnableLevels ],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			if (options.clear === 'all' || options.clear === 'level') {
 				self.selected_level = []
 				for (let i = 1; i <= self.config.max_levels; i++) {
 					self.selected_level.push({ id: i, enabled: options.clear_enable_levels })
 				}
-				self.checkFeedbacks('selected_level', 'selected_level_dest')
+				self.checkFeedbacks('selected_level', 'selected_level_dest', 'source_dest_route')
 				console.log('clear levels')
 				console.log(self.selected_level)
 			}
@@ -137,7 +148,7 @@ export async function UpdateActions(self) {
 			if (options.clear === 'all' || options.clear === 'dest') {
 				self.selected_dest = 0
 				self.setVariableValues({ Destination: self.selected_dest })
-				self.checkFeedbacks('selected_dest', 'selected_level_dest')
+				self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
 				console.log('clear dest')
 			}
 
@@ -155,7 +166,7 @@ export async function UpdateActions(self) {
 			actionOptions.source,
 			actionOptions.destination,
 		],
-		callback: async ({ options }) => {
+		callback: ({ options }) => {
 			for (let level_val of options.level) {
 				self.SetCrosspoint(options.source, options.dest, level_val)
 			}
@@ -183,7 +194,7 @@ export async function UpdateActions(self) {
 	actionDefinitions['get_names'] = {
 		name: 'Refresh Source and Destination names',
 		options: [],
-		callback: async () => {
+		callback: () => {
 			self.readNames()
 		},
 	}

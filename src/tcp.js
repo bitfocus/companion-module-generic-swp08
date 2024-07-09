@@ -85,11 +85,14 @@ export function init_tcp() {
 
 		this.socket.on('connect', () => {
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
-			this.startKeepAliveTimer()
 			if (this.config.supported_commands_on_connect === true) {
 				// request protocol implementation
 				this.sendMessage('61019E')
 			}
+			this.subscribeActions()
+			this.subscribeFeedbacks()
+			this.startKeepAliveTimer()
+			this.checkFeedbacks()
 		})
 
 		this.socket.on('data', (chunk) => {

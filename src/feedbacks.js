@@ -12,7 +12,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.purple,
 		},
 		options: [{ ...feedbackOptions.levels, choices: self.levels }],
-		callback: async (feedback) => {
+		callback: (feedback) => {
 			let l = feedback.options.level.length
 			let k = self.selected_level.length
 
@@ -41,7 +41,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.purple,
 		},
 		options: [{ ...feedbackOptions.levels, choices: self.levels }, feedbackOptions.destination],
-		callback: async (feedback) => {
+		callback: (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
 				let l = feedback.options.level.length
 				let k = self.selected_level.length
@@ -74,7 +74,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.green,
 		},
 		options: [feedbackOptions.destination],
-		callback: async (feedback) => {
+		callback: (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
 				return true
 			} else {
@@ -92,7 +92,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.cyan,
 		},
 		options: [feedbackOptions.source],
-		callback: async (feedback) => {
+		callback: (feedback) => {
 			if (self.selected_source === feedback.options.source) {
 				return true
 			} else {
@@ -110,7 +110,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.orange,
 		},
 		options: [feedbackOptions.source],
-		callback: async (feedback) => {
+		callback: (feedback) => {
 			// look for this dest in route table
 			console.log('dest:source feedback ' + self.selected_dest + ':' + feedback.options.source)
 			for (let i = 0; i < self.routeTable.length; i++) {
@@ -133,7 +133,7 @@ export async function UpdateFeedbacks(self) {
 			bgcolor: colours.orange,
 		},
 		options: [feedbackOptions.source, feedbackOptions.destination],
-		callback: async (feedback) => {
+		callback: (feedback) => {
 			// look for this dest in route table
 			console.log('dest:source feedback ' + feedback.options.dest + ':' + feedback.options.source)
 			for (let i = 0; i < self.routeTable.length; i++) {
@@ -145,6 +145,9 @@ export async function UpdateFeedbacks(self) {
 			}
 			return false
 		},
+		subscribe: (feedback) => {
+			self.getCrosspoints(feedback.options.dest)
+		}
 	}
 	feedbackDefinitions['crosspoint_connected_by_name'] = {
 		type: 'boolean',
@@ -184,6 +187,17 @@ export async function UpdateFeedbacks(self) {
 				}
 			}
 			return false
+		},
+		subscribe: async (feedback, context) => {
+			const dest = parseInt(await context.parseVariablesInString(feedback.options.dest))
+			if (isNaN(dest) || dest < 1 || dest > 65536) {
+				self.log(
+					'warn',
+					`crosspoint_connected_by_name:Subscribe has been passed an out of range variable - dst ${dest}`
+				)
+				return undefined
+			}
+			self.getCrosspoints(dest)
 		},
 	}
 
