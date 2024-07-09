@@ -83,17 +83,17 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 	this.log('debug', 'Crosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
 	console.log('SetCrosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
 
-	if (sourceN <= 0 || sourceN > 65536) {
+	if (isNaN(sourceN) || sourceN <= 0 || sourceN > 65536) {
 		this.log('warn', 'Unable to route source ' + sourceN)
 		return
 	}
 
-	if (destN <= 0 || destN > 65536) {
+	if (isNaN(destN) || destN <= 0 || destN > 65536) {
 		this.log('warn', 'Unable to route destination ' + destN)
 		return
 	}
 
-	if (levelN <= 0 || levelN > 256) {
+	if (isNaN(levelN) || levelN <= 0 || levelN > 256) {
 		this.log('warn', 'Unable to route level ' + levelN)
 		return
 	}
