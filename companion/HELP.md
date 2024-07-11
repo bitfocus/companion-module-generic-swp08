@@ -33,8 +33,8 @@ There are multiple ways of making crosspoint buttons to cater for different appl
 ## Feedbacks
 Button background colours can be changed to show current selection status.
 
-- **Crosspoiint Connected**
-- **Crosspoiint Connected By Name**
+- **Crosspoint Connected**
+- **Crosspoint Connected By Name**
 - **Selected Levels**
 - **Selected Levels and Destination**
 - **Selected Destination**
@@ -54,7 +54,7 @@ Some dynamic information is stored in variables which you can access through the
 
 
 ## Action Recorder
-While recording, tally and connected messages recieved from the router will create new set crosspoint actions. Allowing for easy creation of salvos.
+Tally and connected messages recieved from the router will create new set crosspoint actions, allowing for easy creation of salvos.
 
 ## Version History
 
