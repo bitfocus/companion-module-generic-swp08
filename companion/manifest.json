@@ -10,6 +10,10 @@
 	"maintainers": [
 		{
 			"name": "Peter Daniel"
+		},
+		{
+			"name": "Phillip Ivan Pietruschka",
+			"email": "ivanpietruschka@gmail.com"
 		}
 	],
 	"runtime": {
