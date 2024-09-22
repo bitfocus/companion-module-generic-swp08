@@ -147,7 +147,7 @@ export async function UpdateFeedbacks(self) {
 		},
 		subscribe: (feedback) => {
 			self.getCrosspoints(feedback.options.dest)
-		}
+		},
 	}
 	feedbackDefinitions['crosspoint_connected_by_name'] = {
 		type: 'boolean',
@@ -174,7 +174,7 @@ export async function UpdateFeedbacks(self) {
 			if (isNaN(source) || source < 1 || source > 65536 || isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log(
 					'warn',
-					`crosspoint_connected_by_name has been passed an out of range variable - src ${source} : dst ${dest}`
+					`crosspoint_connected_by_name has been passed an out of range variable - src ${source} : dst ${dest}`,
 				)
 				return undefined
 			}
@@ -193,7 +193,7 @@ export async function UpdateFeedbacks(self) {
 			if (isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log(
 					'warn',
-					`crosspoint_connected_by_name:Subscribe has been passed an out of range variable - dst ${dest}`
+					`crosspoint_connected_by_name:Subscribe has been passed an out of range variable - dst ${dest}`,
 				)
 				return undefined
 			}

@@ -40,41 +40,41 @@ export async function UpdateVariableDefinitions(self) {
 
 	coreVariables.push(
 		{
-			name : 'Number of source names returned by router',
+			name: 'Number of source names returned by router',
 			variableId: 'Sources',
 		},
 		{
-			name : 'Number of destination names returned by router',
+			name: 'Number of destination names returned by router',
 			variableId: 'Destinations',
 		},
 		{
-			name : 'Selected destination',
+			name: 'Selected destination',
 			variableId: 'Destination',
 		},
 		{
-			name : 'Selected source',
+			name: 'Selected source',
 			variableId: 'Source',
-		}
+		},
 	)
 
 	for (let i = 1; i <= self.config.max_levels; i++) {
 		coreVariables.push({
-			name : 'Selected destination source for level ' + i.toString(),
+			name: 'Selected destination source for level ' + i.toString(),
 			variableId: 'Sel_Dest_Source_Level_' + i.toString(),
 		})
 		coreVariables.push({
-			name : 'Selected destination source name for level ' + i.toString(),
+			name: 'Selected destination source name for level ' + i.toString(),
 			variableId: 'Sel_Dest_Source_Name_Level_' + i.toString(),
 		})
 	}
-	
+
 	for (let i = 1; i <= sourceKeys.length; i++) {
 		coreVariables.push({
 			name: 'Source ' + i.toString(),
 			variableId: 'Source_' + i.toString(),
 		})
 	}
-	
+
 	for (let i = 1; i <= destKeys.length; i++) {
 		coreVariables.push({
 			name: 'Destination ' + i.toString(),

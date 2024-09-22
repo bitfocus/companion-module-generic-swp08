@@ -9,7 +9,7 @@
 import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
-import { UpdateFeedbacks } from'./feedbacks.js'
+import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import { SetupVariables, UpdateVariableDefinitions } from './variables.js'
 import * as config from './config.js'
@@ -21,8 +21,7 @@ import * as levels from './levels.js'
 import * as names from './names.js'
 import * as tcp from './tcp.js'
 import * as util from './util.js'
-
-
+import PQueue from 'p-queue'
 
 class SW_P_08 extends InstanceBase {
 	constructor(internal) {
@@ -41,10 +40,12 @@ class SW_P_08 extends InstanceBase {
 	}
 
 	async init(config) {
+		this.queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })
 		this.configUpdated(config)
 	}
 
 	async configUpdated(config) {
+		this.queue.clear()
 		this.updateStatus(InstanceStatus.Connecting)
 		this.config = config
 		this.setupVariables()
@@ -58,12 +59,13 @@ class SW_P_08 extends InstanceBase {
 			'selected_dest',
 			'selected_source',
 			'crosspoint_connected',
-			'crosspoint_connected_by_name'
+			'crosspoint_connected_by_name',
 		)
 	}
 
 	async destroy() {
 		this.log('debug', `destroy. ID: ${this.id}`)
+		this.queue.clear()
 		this.stopKeepAliveTimer()
 		if (this.socket) {
 			this.socket.destroy()

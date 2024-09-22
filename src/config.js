@@ -32,8 +32,8 @@ export function getConfigFields() {
 			default: 1,
 			min: 1,
 			max: 16,
-            range: true,
-            step: 1,
+			range: true,
+			step: 1,
 		},
 		{
 			type: 'number',
@@ -43,8 +43,8 @@ export function getConfigFields() {
 			default: 3,
 			min: 1,
 			max: 256,
-            range: true,
-            step: 1,
+			range: true,
+			step: 1,
 		},
 		{
 			type: 'checkbox',

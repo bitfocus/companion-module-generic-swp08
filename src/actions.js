@@ -64,7 +64,7 @@ export async function UpdateActions(self) {
 	}
 	actionDefinitions['select_source'] = {
 		name: 'Select Source',
-		options: [ actionOptions.source ],
+		options: [actionOptions.source],
 		callback: ({ options }) => {
 			self.selected_source = parseInt(options.source)
 			console.log('set source ' + self.selected_source)
@@ -89,7 +89,7 @@ export async function UpdateActions(self) {
 	}
 	actionDefinitions['route_source'] = {
 		name: 'Route Source to selected Levels and Destination',
-		options: [ actionOptions.source ],
+		options: [actionOptions.source],
 		callback: ({ options }) => {
 			console.log(self.selected_level)
 			const l = self.selected_level.length
@@ -133,7 +133,7 @@ export async function UpdateActions(self) {
 	}
 	actionDefinitions['clear'] = {
 		name: 'Clear',
-		options: [ actionOptions.clear, actionOptions.clearEnableLevels ],
+		options: [actionOptions.clear, actionOptions.clearEnableLevels],
 		callback: ({ options }) => {
 			if (options.clear === 'all' || options.clear === 'level') {
 				self.selected_level = []
@@ -161,11 +161,7 @@ export async function UpdateActions(self) {
 	}
 	actionDefinitions['set_crosspoint'] = {
 		name: 'Set crosspoint',
-		options: [
-			{ ...actionOptions.levels, choices: self.levels },
-			actionOptions.source,
-			actionOptions.destination,
-		],
+		options: [{ ...actionOptions.levels, choices: self.levels }, actionOptions.source, actionOptions.destination],
 		callback: ({ options }) => {
 			for (let level_val of options.level) {
 				self.SetCrosspoint(options.source, options.dest, level_val)

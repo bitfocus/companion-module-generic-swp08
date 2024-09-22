@@ -14,7 +14,7 @@ export const colours = {
 	green: combineRgb(102, 255, 102),
 	purple: combineRgb(255, 102, 255),
 	cyan: combineRgb(102, 255, 255),
-	orange: combineRgb(255, 191, 128)
+	orange: combineRgb(255, 191, 128),
 }
 
 export const feedbackOptions = {
@@ -168,5 +168,5 @@ export const hexBytes = {
 		destNames: 0x6b,
 		extendedSourceNames: 0xea,
 		extendedDestNames: 0xeb,
-	}
+	},
 }

@@ -24,7 +24,7 @@
 	},
 	"legacyIds": [],
 	"manufacturer": "Generic",
-    "products": [
+	"products": [
 		"SW-P-08",
 		"SW-P-08 Ross Router",
 		"SW-P-08 Snell ProBel Router",
@@ -37,5 +37,4 @@
 		"SW-P-08 DirectOut M.1k2"
 	],
 	"keywords": ["Router", "Matrix", "Broadcast", "Production"]
-	
 }
