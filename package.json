@@ -30,10 +30,10 @@
 	"prettier": "@companion-module/tools/.prettierrc.json",
 	"packageManager": "yarn@4.5.0",
 	"lint-staged": {
-		"*.{js,json,md}": [
+		"*.{css,json,md,scss}": [
 			"prettier --write"
 		],
-		"*.js": [
+		"*.{ts,tsx,js,jsx}": [
 			"yarn lint:raw --fix"
 		]
 	}
