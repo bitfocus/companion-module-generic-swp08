@@ -4,6 +4,7 @@
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
+		"prepare": "husky",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"format": "prettier --w .",
 		"package": "companion-module-build",
@@ -22,8 +23,18 @@
 	"devDependencies": {
 		"@companion-module/tools": "^2.0.4",
 		"eslint": "^9.11.0",
+		"husky": "^9.1.6",
+		"lint-staged": "^15.2.10",
 		"prettier": "^3.3.3"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.5.0"
+	"packageManager": "yarn@4.5.0",
+	"lint-staged": {
+		"*.{js,json,md}": [
+			"prettier --write"
+		],
+		"*.ts": [
+			"yarn lint:raw --fix"
+		]
+	}
 }
