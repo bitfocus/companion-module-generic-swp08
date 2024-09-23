@@ -37,7 +37,7 @@ export function record_crosspoint(source, dest, level) {
 				actionId: 'set_crosspoint',
 				options: { level: [level], source: source, dest: dest },
 			},
-			`connect dest ${dest} level ${level}`
+			`connect dest ${dest} level ${level}`,
 		)
 	}
 }
@@ -53,7 +53,7 @@ export function update_crosspoints(source, dest, level) {
 					[`Sel_Dest_Source_Name_Level_${level.toString()}`]: this.stripNumber(this.source_names[source - 1].label),
 				})
 			} catch (e) {
-				this.log('debug', 'Unable to set Sel_Dest_Source_Name_Level')
+				this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e.toString()}`)
 			}
 		}
 	}

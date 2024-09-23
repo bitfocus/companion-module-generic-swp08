@@ -1,4 +1,4 @@
-export function processLevelsSelection (selection, state) {
+export function processLevelsSelection(selection, state) {
 	console.log(selection)
 	selection.forEach((level) => {
 		if (state === 'toggle') {

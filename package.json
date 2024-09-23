@@ -1,12 +1,14 @@
 {
 	"name": "generic-swp08",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
+		"prepare": "husky",
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"format": "prettier --write",
-		"lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
+		"format": "prettier --w .",
+		"package": "companion-module-build",
+		"lint:raw": "eslint",
 		"lint": "yarn lint:raw ."
 	},
 	"license": "MIT",
@@ -15,10 +17,24 @@
 		"url": "git+https://github.com/bitfocus/companion-module-generic-swp08.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.8.0"
+		"@companion-module/base": "~1.10.0",
+		"p-queue": "^8.0.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^1.5.1"
+		"@companion-module/tools": "^2.0.4",
+		"eslint": "^9.11.0",
+		"husky": "^9.1.6",
+		"lint-staged": "^15.2.10",
+		"prettier": "^3.3.3"
 	},
-	"prettier": "@companion-module/tools/.prettierrc.json"	
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"packageManager": "yarn@4.5.0",
+	"lint-staged": {
+		"*.{css,json,md,scss}": [
+			"prettier --write"
+		],
+		"*.{ts,tsx,js,jsx}": [
+			"yarn lint:raw --fix"
+		]
+	}
 }

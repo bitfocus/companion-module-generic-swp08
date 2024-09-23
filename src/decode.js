@@ -1,7 +1,6 @@
-
 import { hexBytes } from './consts.js'
 
-export function decode (data) {
+export function decode(data) {
 	let message = []
 
 	if (data.length > 0) {

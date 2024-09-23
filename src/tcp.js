@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer'
 import { ACK, DLE, STX, ETX } from './consts.js'
 
 export function sendAck() {
-	this.log('debug','Sending ACK')
+	this.log('debug', 'Sending ACK')
 	if (this.socket !== undefined && this.socket.isConnected) {
 		this.socket.send(this.hexStringToBuffer(DLE + ACK))
 		this.startKeepAliveTimer()
@@ -51,17 +51,18 @@ export function sendMessage(message) {
 	const cmd = DLE + STX + packed + DLE + ETX
 
 	console.log('Sending >> ' + cmd)
-
-	if (cmd !== undefined) {
-		if (this.socket !== undefined && this.socket.isConnected) {
-			this.socket.send(this.hexStringToBuffer(cmd))
-			this.startKeepAliveTimer()
-		} else {
-			this.log('warn', 'Socket not connected')
+	this.queue.add(() => {
+		if (cmd !== undefined) {
+			if (this.socket !== undefined && this.socket.isConnected) {
+				this.socket.send(this.hexStringToBuffer(cmd))
+				this.startKeepAliveTimer()
+			} else {
+				this.log('warn', `Socket not connected. Tried to send ${cmd}`)
+			}
 		}
-	}
+	})
 }
- 
+
 export function init_tcp() {
 	let receivebuffer = Buffer.from('')
 
