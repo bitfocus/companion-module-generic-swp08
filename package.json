@@ -33,7 +33,7 @@
 		"*.{js,json,md}": [
 			"prettier --write"
 		],
-		"*.ts": [
+		"*.js": [
 			"yarn lint:raw --fix"
 		]
 	}
