@@ -9,3 +9,4 @@ package-lock.json
 .nova/
 temp.js
 DEBUG-*
+.DS_Store

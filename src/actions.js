@@ -42,7 +42,7 @@ export async function UpdateActions(self) {
 		name: 'Select Destination name',
 		options: [{ ...actionOptions.destinationName, choices: self.dest_names }],
 		callback: async ({ options }) => {
-			const dest = parseInt(await self.parseVaraiblesInString(options.dest))
+			const dest = parseInt(await self.parseVariablesInString(options.dest))
 			if (isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log('warn', `select_dest_name has been passed an out of range variable ${dest}`)
 				return undefined
@@ -76,7 +76,7 @@ export async function UpdateActions(self) {
 		name: 'Select Source name',
 		options: [{ ...actionOptions.sourceName, choices: self.source_names }],
 		callback: async ({ options }) => {
-			const source = parseInt(await self.parseVaraiblesInString(options.source))
+			const source = parseInt(await self.parseVariablesInString(options.source))
 			if (isNaN(source) || source < 1 || source > 65536) {
 				self.log('warn', `select_source_name has been passed an out of range variable ${source}`)
 				return undefined
@@ -104,7 +104,7 @@ export async function UpdateActions(self) {
 		name: 'Route Source name to selected Levels and Destination',
 		options: [{ ...actionOptions.sourceName, choices: self.source_names }],
 		callback: async ({ options }) => {
-			const source = parseInt(await self.parseVaraiblesInString(options.source))
+			const source = parseInt(await self.parseVariablesInString(options.source))
 			if (isNaN(source) || source < 1 || source > 65536) {
 				self.log('warn', `route_source_name has been passed an out of range variable ${source}`)
 				return undefined
@@ -176,8 +176,8 @@ export async function UpdateActions(self) {
 			{ ...actionOptions.destinationName, choices: self.dest_names },
 		],
 		callback: async ({ options }) => {
-			const source = parseInt(await self.parseVaraiblesInString(options.source))
-			const dest = parseInt(await self.parseVaraiblesInString(options.dest))
+			const source = parseInt(await self.parseVariablesInString(options.source))
+			const dest = parseInt(await self.parseVariablesInString(options.dest))
 			if (isNaN(source) || source < 1 || source > 65536 || isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log('warn', `set_crosspoint_name has been passed an out of range variable - src ${source} : dst ${dest}`)
 				return undefined
