@@ -1,6 +1,6 @@
 {
 	"name": "generic-swp08",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
@@ -17,18 +17,21 @@
 		"url": "git+https://github.com/bitfocus/companion-module-generic-swp08.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.10.0",
+		"@companion-module/base": "~1.11.2",
 		"p-queue": "^8.0.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.0.4",
-		"eslint": "^9.11.0",
-		"husky": "^9.1.6",
+		"@companion-module/tools": "^2.1.0",
+		"eslint": "^9.15.0",
+		"husky": "^9.1.7",
 		"lint-staged": "^15.2.10",
 		"prettier": "^3.3.3"
 	},
+	"engines": {
+		"node": "^22.11"
+	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.5.0",
+	"packageManager": "yarn@4.5.1",
 	"lint-staged": {
 		"*.{css,json,md,scss}": [
 			"prettier --write"
