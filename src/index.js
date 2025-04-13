@@ -21,6 +21,7 @@ import * as levels from './levels.js'
 import * as names from './names.js'
 import * as tcp from './tcp.js'
 import * as util from './util.js'
+import _ from 'lodash'
 import PQueue from 'p-queue'
 
 class SW_P_08 extends InstanceBase {
@@ -38,6 +39,13 @@ class SW_P_08 extends InstanceBase {
 			...util,
 		})
 	}
+
+	throttledUpdate = _.throttle(() => {
+		this.updateVariableDefinitions()
+		this.updateActions()
+		this.updateFeedbacks()
+		this.updatePresets()
+	}, 1000)
 
 	async init(config) {
 		this.queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })
