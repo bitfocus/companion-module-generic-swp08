@@ -64,13 +64,6 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 		Destinations: Object.keys(this.dest_names).length,
 	})
 
-	this.updateVariableDefinitions()
-
-	console.log(this.source_names)
-	console.log(this.dest_names)
-
 	// update dropdown lists
-	this.updateActions()
-	this.updateFeedbacks()
-	this.updatePresets()
+	this.throttledUpdate()
 }
