@@ -1,4 +1,4 @@
-import { cmd } from './consts.js'
+import { cmds } from './consts.js'
 
 export function crosspointConnected(data) {
 	//const matrix = ((data[1] & 0xf0) >> 4) + 1 unused
@@ -8,8 +8,8 @@ export function crosspointConnected(data) {
 	const dest = 128 * destDiv + data[3] + 1
 	const source = 128 * sourceDiv + data[4] + 1
 
-	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
-	this.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
+	//console.log(`Source ${source} routed to ${dest} on level ${level}`)
+	this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
 
 	this.update_crosspoints(source, dest, level)
 }
@@ -24,8 +24,8 @@ export function ext_crosspointConnected(data) {
 	const dest = destDiv + destMod + 1
 	const source = sourceDiv + sourceMod + 1
 
-	console.log('Source ' + source + ' routed to ' + dest + ' on level ' + level)
-	this.log('debug', 'Source ' + source + ' routed to destination ' + dest + ' on level ' + level)
+	//console.log(`Source ${source} routed to ${dest} on level ${level}`)
+	this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
 
 	this.update_crosspoints(source, dest, level)
 }
@@ -63,7 +63,6 @@ export function update_crosspoints(source, dest, level) {
 		if (this.routeTable[i].level === level && this.routeTable[i].dest === dest) {
 			// update existing
 			this.routeTable[i].source = source
-			console.log(this.routeTable)
 			this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
 			this.record_crosspoint(source, dest, level)
 			return
@@ -73,127 +72,105 @@ export function update_crosspoints(source, dest, level) {
 	// add new
 	const new_route = { level: level, dest: dest, source: source }
 	this.routeTable.push(new_route)
-	console.log(this.routeTable)
 	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
 	this.record_crosspoint(source, dest, level)
 }
 
 export function SetCrosspoint(sourceN, destN, levelN) {
-	let action
-	this.log('debug', 'Crosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
-	console.log('SetCrosspoint ' + sourceN + '>' + destN + ' level ' + levelN)
+	const cmd = []
+	this.log('debug', `Crosspoint ${sourceN}>${destN} level ${levelN}`)
+	console.log(`SetCrosspoint ${sourceN}>${destN} level ${levelN}`)
 
-	if (isNaN(sourceN) || sourceN <= 0 || sourceN > 65536) {
-		this.log('warn', 'Unable to route source ' + sourceN)
+	if (Number.isNaN(sourceN) || sourceN <= 0 || sourceN > 65536) {
+		this.log('warn', `Unable to route source ${sourceN}`)
 		return
 	}
 
-	if (isNaN(destN) || destN <= 0 || destN > 65536) {
-		this.log('warn', 'Unable to route destination ' + destN)
+	if (Number.isNaN(destN) || destN <= 0 || destN > 65536) {
+		this.log('warn', `Unable to route destination ${destN}`)
 		return
 	}
 
-	if (isNaN(levelN) || levelN <= 0 || levelN > 256) {
-		this.log('warn', 'Unable to route level ' + levelN)
+	if (Number.isNaN(levelN) || levelN < 0 || levelN > 255) {
+		this.log('warn', `Unable to route level ${levelN}`)
 		return
 	}
-	if (sourceN > 1024 || destN > 1024 || levelN > 16) {
+
+	const source = sourceN - 1
+	const dest = destN - 1
+	const level = levelN - 1
+
+	if (source > 1023 || dest > 1023 || levelN > 15) {
 		// Extended command required
-		const COM = cmd.extendedConnect
+		cmd.push(cmds.extendedCrosspointConnect)
 		// Matrix
-		const matrix = this.padLeft((this.config.matrix - 1).toString(16), 2)
+		cmd.push(this.config.matrix - 1)
 		// Level
-		const level = this.padLeft((levelN - 1).toString(16), 2)
+		cmd.push(level)
 		// Dest DIV 256
-		const destDIV = this.padLeft(Math.floor((destN - 1) / 256).toString(16), 2)
+		cmd.push(dest >> 8)
 		// Destination MOD 256
-		const destMOD = this.padLeft(((destN - 1) % 256).toString(16), 2)
+		cmd.push(dest & 0xff)
 		// Source DIV 256
-		const sourceDIV = this.padLeft(Math.floor((sourceN - 1) / 256).toString(16), 2)
-		// Source MOD 128
-		const sourceMOD = this.padLeft(((sourceN - 1) % 256).toString(16), 2)
-		// Byte count
-		const count = '07'
-		// checksum
-		const checksum = this.checksum8(COM + matrix + level + destDIV + destMOD + sourceDIV + sourceMOD + count)
-		// message
-		action = COM + matrix + level + destDIV + destMOD + sourceDIV + sourceMOD + count + checksum
+		cmd.push(source >> 8)
+		// Source MOD 256
+		cmd.push(source & 0xff)
 	} else {
 		// Standard Command
-		const COM = cmd.connect
+		cmd.push(cmds.crosspointConnect)
 		// Matrix and Level
-		const matrix = (this.config.matrix - 1) << 4
-		const level = levelN - 1
-		const matrix_level = this.padLeft((matrix | level).toString(16), 2)
+		cmd.push(((this.config.matrix - 1) << 4) | (level & 0x0f))
 		// Multiplier if source or dest > 128
-		const destDIV = Math.floor((destN - 1) / 128)
-		const sourceDIV = Math.floor((sourceN - 1) / 128)
-		const multiplier = this.padLeft(((destDIV << 4) | sourceDIV).toString(16), 2)
+		cmd.push(
+			((source >> 7) & 0x07) | // source DIV 128 Bits 0-2
+			(((dest >> 7) & 0x07) << 4) // dest DIV 128 Bits 4-6
+		)
 		// Destination MOD 128
-		const dest = this.padLeft(((destN - 1) % 128).toString(16), 2)
+		cmd.push(dest & 0x7f)
 		// Source MOD 128
-		const source = this.padLeft(((sourceN - 1) % 128).toString(16), 2)
-		// Byte count
-		const count = '05'
-		// checksum
-		const checksum = this.checksum8(COM + matrix_level + multiplier + dest + source + count)
-		// message
-		action = COM + matrix_level + multiplier + dest + source + count + checksum
+		cmd.push(source & 0x7f)
 	}
 
-	this.sendMessage(action)
+	this.sendMessage(cmd)
 }
 
 export function getCrosspoints(destN) {
-	console.log('GetCrosspoint ' + destN)
+	console.log(`GetCrosspoint ${destN}`)
 
 	if (destN <= 0 || destN > 65536) {
-		this.log('warn', 'Unable to get crosspoint destination ' + destN)
+		this.log('warn', `Unable to get crosspoint destination ${destN}`)
 		return
 	}
+	const dest = destN - 1
 
-	if (this.config.max_levels > 16 || destN > 1024) {
-		// Extended commands
-		const COM = cmd.extendedinterrogate
-		// Byte count
-		const count = '05'
-		// Matrix
-		const matrix = this.padLeft((this.config.matrix - 1).toString(16), 2)
-		// Dest DIV 256
-		const destDIV = this.padLeft(Math.floor((destN - 1) / 256).toString(16), 2)
-		// Dest Mod 256
-		const destMOD = this.padLeft(((destN - 1) % 256).toString(16), 2)
-
+	if (this.config.max_levels > 16 || dest > 1023) {
 		// check all levels
-		for (let i = 0; i <= this.config.max_levels - 1; i++) {
-			const level = this.padLeft(i.toString(16), 2)
-			// checksum
-			const checksum = this.checksum8(COM + matrix + level + destDIV + destMOD + count)
-			// message
-			const action = COM + matrix + level + destDIV + destMOD + count + checksum
-			this.sendMessage(action)
+		for (let i = 0; i < this.config.max_levels; i++) {
+			this.sendMessage([
+				// Extended commands
+				cmds.extendedInterrogate,
+				// Matrix
+				this.config.matrix - 1,
+				// Level
+				i,
+				// Dest DIV 256
+				dest >> 8,
+				// Dest Mod 256
+				dest & 0xff,
+			])
 		}
 	} else {
-		// Standard commands
-		const COM = cmd.interrogate
-		// Byte count
-		const count = '04'
-		// Matrix and Level
-		const matrix = (this.config.matrix - 1) << 4
-		// Multiplier if dest > 128
-		const destDIV = Math.floor((destN - 1) / 128)
-		const multiplier = this.padLeft((destDIV << 4).toString(16), 2)
-		// Destination MOD 128
-		const dest = this.padLeft(((destN - 1) % 128).toString(16), 2)
-
 		// check all levels
 		for (let i = 0; i <= this.config.max_levels - 1; i++) {
-			const matrix_level = this.padLeft((matrix | i).toString(16), 2)
-			// checksum
-			const checksum = this.checksum8(COM + matrix_level + multiplier + dest + count)
-			// message
-			const action = COM + matrix_level + multiplier + dest + count + checksum
-			this.sendMessage(action)
+			this.sendMessage([
+				// Standard commands
+				cmds.crosspointInterrogate,
+				// Matrix and Level
+				((this.config.matrix - 1) << 4) | i,
+				// Multiplier dest > 128
+				(((dest >> 7) & 0x07) << 4), // dest DIV 128 Bits 4-6
+				dest & 0x7f, // Destination MOD 128
+			])
 		}
 	}
 }

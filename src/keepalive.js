@@ -12,14 +12,15 @@ export function startKeepAliveTimer() {
 export function stopKeepAliveTimer() {
 	if (this.keepAliveTimer) {
 		clearTimeout(this.keepAliveTimer)
+		// biome-ignore lint/performance/noDelete: not really a performance issue
 		delete this.keepAliveTimer
 	}
 }
 
 export function keepAlive() {
-	if (this.socket !== undefined && this.socket.isConnected) {
+	if (this.socket?.isConnected) {
 		//Send dummy message
-		this.socket.send(this.hexStringToBuffer(DLE + STX + '0000' + DLE + ETX))
+		this.sendMessage([0x00])
 	}
 	this.startKeepAliveTimer()
 }

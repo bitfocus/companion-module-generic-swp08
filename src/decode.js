@@ -108,13 +108,13 @@ export function processMessage(message) {
 			this.crosspointConnected(message)
 			break
 
-		case cmds.extendedTally:
-		case cmds.extendedConnected:
+		case cmds.extendedCrosspointTally:
+		case cmds.extendedCrosspointConnected:
 			// Extended Crosspoint Connected
 			this.ext_crosspointConnected(message)
 			break
 
-		case cmds.protocolImplementation:
+		case cmds.protocolImplementationResponse:
 			// Protocol Implementation Response
 			//requests = message[1]
 			//responses = message[2]
@@ -125,7 +125,7 @@ export function processMessage(message) {
 				this.commands.push(message[j])
 			}
 
-			console.log('This router implements: ' + this.commands)
+			console.log(`This router implements: ${this.commands}`)
 
 			// request names
 			if (this.config.read_names_on_connect) {
@@ -133,28 +133,27 @@ export function processMessage(message) {
 			}
 			break
 
-		case cmds.sourceNames:
-		case cmds.destNames:
+		case cmds.sourceNamesResponse:
+		case cmds.destNamesResponse:
 			// Standard Names Request Reply
 			this.processLabels(message)
 			break
 
-		case cmds.extendedSourceNames:
+		case cmds.extendedSourceNamesResponse:
 			// Extended Source Names Reply
 			// Allows for extra Level field in response
 			this.ext_processSourceLabels(message)
 			break
 
-		case cmds.extendedDestNames:
+		case cmds.extendedDestNamesResponse:
 			// Extended Destination Names Reply
 			// There is no difference in structure to the standard response
 			this.processLabels(message)
 			break
 
 		default:
-			this.log('warn', 'Unknown response code ' + message[0])
-			this.log('debug', 'Response: ' + message.toString('hex'))
-			console.log('Unknown response code ' + message[0])
+			this.log('warn', `Unknown response code ${message[0]}`)
+			this.log('debug', `Unknown response code ${message[0]} in response: ${message.toString('hex')}`)
 			break
 	}
 }

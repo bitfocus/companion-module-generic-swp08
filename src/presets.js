@@ -1,9 +1,9 @@
 import { colours, presetDefaults } from './consts.js'
 
 export async function UpdatePresets(self) {
-	let presets = []
+	const presets = []
 
-	presets['take'] = {
+	presets.take = {
 		category: 'Actions',
 		type: 'button',
 		name: 'Take',
@@ -24,7 +24,7 @@ export async function UpdatePresets(self) {
 		],
 	}
 
-	presets['refresh'] = {
+	presets.refresh = {
 		category: 'Actions',
 		type: 'button',
 		name: 'Refresh Names',
@@ -50,10 +50,10 @@ export async function UpdatePresets(self) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
 			type: 'button',
-			name: 'Source ' + i,
+			name: `Source ${i}`,
 			style: {
 				...presetDefaults.style,
-				text: 'S' + i,
+				text: `S${i}`,
 			},
 			steps: [
 				{
@@ -147,10 +147,10 @@ export async function UpdatePresets(self) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
 			type: 'button',
-			name: 'Destination ' + i,
+			name: `Destination ${i}`,
 			style: {
 				...presetDefaults.style,
-				text: 'D' + i,
+				text: `D${i}`,
 			},
 			steps: [
 				{

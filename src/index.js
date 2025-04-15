@@ -38,6 +38,7 @@ class SW_P_08 extends InstanceBase {
 			...tcp,
 			...util,
 		})
+		this.ackCallbacks = []
 	}
 
 	throttledUpdate = _.throttle(() => {

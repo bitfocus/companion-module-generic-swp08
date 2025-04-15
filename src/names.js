@@ -1,27 +1,35 @@
-import { cmd } from './consts.js'
+import { cmds } from './consts.js'
 
 export function readNames() {
+	console.log('Reading names')
 	// reset
+	const cmdGetSources = []
+	const cmdGetDestinations = []
 	this.source_names = new Map()
 	this.dest_names = new Map()
 	this.setVariableValues({ Sources: 0, Destinations: 0 })
-	let get_source
-	let get_dest
 	if (this.config.extended_support === true) {
 		// extended commands (only gets source names for level 1)
-		const matrix = this.padLeft((this.config.matrix - 1).toString(16), 2)
-		get_source = cmd.extendedGetSourceName + matrix + '00' + this.config.name_chars + '04'
-		get_dest = cmd.extendedGetDestName + matrix + this.config.name_chars + '03'
+		cmdGetSources.push(
+			cmds.extendedGetSourceNames,
+			this.config.matrix - 1, // matrix
+			0, // level
+			Number.parseInt(this.config.name_chars) // name characters
+		)
+		cmdGetDestinations.push(
+			cmds.extendedGetDestNames,
+			this.config.matrix - 1, // matrix
+			Number.parseInt(this.config.name_chars) // name characters
+		)
 	} else {
 		// standard commands
-		const matrix = this.padLeft(((this.config.matrix-1)<<4).toString(16), 2)
-		get_source = cmd.getSourceName + matrix + this.config.name_chars + '03'
-		get_dest = cmd.getDestName + matrix + this.config.name_chars + '03'
+		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix-1)<<4)
+		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix-1)<<4)
 	}
 
 	// get source names
-	this.sendMessage(get_source + this.checksum8(get_source))
+	this.sendMessage(cmdGetSources)
 
 	// get dest names
-	this.sendMessage(get_dest + this.checksum8(get_dest))
+	this.sendMessage(cmdGetDestinations)
 }
