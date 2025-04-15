@@ -160,11 +160,11 @@ export async function UpdateFeedbacks(self) {
 		options: [
 			{
 				...feedbackOptions.sourceName,
-				choices: self.source_names,
+				choices: Array.from(self.source_names.values()),
 			},
 			{
 				...feedbackOptions.destinationName,
-				choices: self.dest_names,
+				choices: Array.from(self.dest_names.values()),
 			},
 		],
 		callback: async (feedback, context) => {

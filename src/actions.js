@@ -74,7 +74,7 @@ export async function UpdateActions(self) {
 	}
 	actionDefinitions['select_source_name'] = {
 		name: 'Select Source name',
-		options: [{ ...actionOptions.sourceName, choices: self.source_names }],
+		options: [{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) }],
 		callback: async ({ options }) => {
 			const source = parseInt(await self.parseVariablesInString(options.source))
 			if (isNaN(source) || source < 1 || source > 65536) {
@@ -102,7 +102,7 @@ export async function UpdateActions(self) {
 	}
 	actionDefinitions['route_source_name'] = {
 		name: 'Route Source name to selected Levels and Destination',
-		options: [{ ...actionOptions.sourceName, choices: self.source_names }],
+		options: [{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) }],
 		callback: async ({ options }) => {
 			const source = parseInt(await self.parseVariablesInString(options.source))
 			if (isNaN(source) || source < 1 || source > 65536) {
@@ -172,8 +172,8 @@ export async function UpdateActions(self) {
 		name: 'Set crosspoint by name',
 		options: [
 			{ ...actionOptions.levels, choices: self.levels },
-			{ ...actionOptions.sourceName, choices: self.source_names },
-			{ ...actionOptions.destinationName, choices: self.dest_names },
+			{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) },
+			{ ...actionOptions.destinationName, choices: Array.from(self.dest_names.values()) },
 		],
 		callback: async ({ options }) => {
 			const source = parseInt(await self.parseVariablesInString(options.source))

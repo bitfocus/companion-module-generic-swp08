@@ -3,10 +3,12 @@ import { combineRgb } from '@companion-module/base'
 export const msgDelay = 5
 export const keepAliveTimeOut = 30000
 
-export const DLE = '10'
-export const STX = '02'
-export const ETX = '03'
-export const ACK = '06'
+export const DLE = 0x10
+export const STX = 0x02
+export const ETX = 0x03
+export const ACK = 0x06
+export const NAK = 0x15
+
 export const colours = {
 	white: combineRgb(255, 255, 255),
 	black: combineRgb(0, 0, 0),
@@ -152,21 +154,14 @@ export const cmd = {
 	extendedGetDestName: 'E6',
 }
 
-export const hexBytes = {
-	DLE: 0x10,
-	STX: 0x02,
-	ETX: 0x03,
-	ACK: 0x06,
-	NAK: 0x15,
-	cmd: {
-		tally: 0x03,
-		connected: 0x04,
-		extendedTally: 0x83,
-		extendedConnected: 0x84,
-		protocolImplementation: 0x62,
-		sourceNames: 0x6a,
-		destNames: 0x6b,
-		extendedSourceNames: 0xea,
-		extendedDestNames: 0xeb,
-	},
+export const cmds = {
+	crosspointTally: 0x03,
+	crosspointConnected: 0x04,
+	extendedCrosspointTally: 0x83,
+	extendedCrosspointConnected: 0x84,
+	protocolImplementation: 0x62,
+	sourceNames: 0x6a,
+	destNames: 0x6b,
+	extendedSourceNames: 0xea,
+	extendedDestNames: 0xeb,
 }

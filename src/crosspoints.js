@@ -4,7 +4,7 @@ export function crosspointConnected(data) {
 	//const matrix = ((data[1] & 0xf0) >> 4) + 1 unused
 	const level = (data[1] & 0x0f) + 1
 	const destDiv = (data[2] & 0x70) >> 4
-	let sourceDiv = data[2] & 0x7
+	const sourceDiv = data[2] & 0x7
 	const dest = 128 * destDiv + data[3] + 1
 	const source = 128 * sourceDiv + data[4] + 1
 
@@ -43,14 +43,14 @@ export function record_crosspoint(source, dest, level) {
 }
 
 export function update_crosspoints(source, dest, level) {
-	if (dest == this.selected_dest) {
+	if (dest === this.selected_dest) {
 		// update variables for selected dest source
 		this.setVariableValues({ [`Sel_Dest_Source_Level_${level.toString()}`]: source })
-		if (this.source_names.length > 0) {
+		if (this.source_names.size > 0) {
 			// only if names have been retrieved
 			try {
 				this.setVariableValues({
-					[`Sel_Dest_Source_Name_Level_${level.toString()}`]: this.stripNumber(this.source_names[source - 1].label),
+					[`Sel_Dest_Source_Name_Level_${level.toString()}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
 				})
 			} catch (e) {
 				this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e.toString()}`)
