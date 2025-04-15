@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@companion-module/base@npm:~1.11.2":
+"@companion-module/base@npm:~1.11.3":
   version: 1.11.3
   resolution: "@companion-module/base@npm:1.11.3"
   dependencies:
@@ -22,7 +22,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@companion-module/tools@npm:^2.1.0":
+"@companion-module/tools@npm:^2.3.0":
   version: 2.3.0
   resolution: "@companion-module/tools@npm:2.3.0"
   dependencies:
@@ -1013,7 +1013,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.15.0":
+"eslint@npm:^9.24.0":
   version: 9.24.0
   resolution: "eslint@npm:9.24.0"
   dependencies:
@@ -1279,14 +1279,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "generic-swp08@workspace:."
   dependencies:
-    "@companion-module/base": "npm:~1.11.2"
-    "@companion-module/tools": "npm:^2.1.0"
-    eslint: "npm:^9.15.0"
+    "@companion-module/base": "npm:~1.11.3"
+    "@companion-module/tools": "npm:^2.3.0"
+    eslint: "npm:^9.24.0"
     husky: "npm:^9.1.7"
-    lint-staged: "npm:^15.2.10"
+    lint-staged: "npm:^15.5.1"
     lodash: "npm:^4.17.21"
-    p-queue: "npm:^8.0.1"
-    prettier: "npm:^3.3.3"
+    p-queue: "npm:^8.1.0"
+    prettier: "npm:^3.5.3"
   languageName: unknown
   linkType: soft
 
@@ -1593,7 +1593,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lint-staged@npm:^15.2.10":
+"lint-staged@npm:^15.5.1":
   version: 15.5.1
   resolution: "lint-staged@npm:15.5.1"
   dependencies:
@@ -1934,7 +1934,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-queue@npm:^8.0.1":
+"p-queue@npm:^8.1.0":
   version: 8.1.0
   resolution: "p-queue@npm:8.1.0"
   dependencies:
@@ -2075,7 +2075,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^3.3.3":
+"prettier@npm:^3.5.3":
   version: 3.5.3
   resolution: "prettier@npm:3.5.3"
   bin:
