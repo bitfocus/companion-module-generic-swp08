@@ -20,8 +20,8 @@ export function sendAck() {
 
 /**
  * Stuff DLE bytes in the data
- * @param {Uint8Array} data 
- * @returns {Uint8Array}
+ * @param {Array} data
+ * @returns {Array}
  */
 function stuffDLE(data) {
 	const output = new Array()
@@ -61,7 +61,7 @@ export function addAckCallback(sendCb) {
 
 /**
  * Encapsulate a message and send it to the router
- * @param {Buffer|Array} message 
+ * @param {Buffer|Array} message
  * @returns {void}
  */
 export function sendMessage(message) {
@@ -74,28 +74,33 @@ export function sendMessage(message) {
 	// check that the command is implemented in the router
 	const cmdCode = msg[0]
 
-	if (cmdCode !== 97 && cmdCode !== 0 && this.config.supported_commands_on_connect === true && this.commands.length > 0) {
+	if (
+		cmdCode !== 97 &&
+		cmdCode !== 0 &&
+		this.config.supported_commands_on_connect === true &&
+		this.commands.length > 0
+	) {
 		if (this.commands.indexOf(cmdCode) === -1) {
 			this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
 			return
 		}
 	}
 
-	const packet = Array.from(msg);
-	const length = msg.length;
-	
+	const packet = Array.from(msg)
+	const length = msg.length
+
 	// calculate checksum of DATA and BTC
-	let crc = 0;
+	let crc = 0
 
 	// replace byte value 10 (DLE) in data with 1010
 	for (let j = 0; j < packet.length; ++j) {
 		crc += packet[j]
 		if (packet[j] === DLE) {
 			packet.splice(j, 0, DLE)
-			j++;
+			j++
 		}
 	}
-	crc += length;
+	crc += length
 
 	// Message structure:
 	// +-----+---~~---+-----+-----+-----+
@@ -106,12 +111,12 @@ export function sendMessage(message) {
 	// BTC = length of data
 
 	// Add SOM at the beginning
-	packet.unshift(DLE, STX);
+	packet.unshift(DLE, STX)
 
 	// Add BTC, CHK, EOM at the end
-	packet.push(...stuffDLE([length, (~crc + 1) & 0xff]), DLE, ETX);
-	
-	const packetBuffer = Buffer.from(packet);
+	packet.push(...stuffDLE([length, (~crc + 1) & 0xff]), DLE, ETX)
+
+	const packetBuffer = Buffer.from(packet)
 
 	this.log('debug', `Sending >> ${packetBuffer.toString('hex')}`)
 
@@ -124,7 +129,7 @@ export function sendMessage(message) {
 				this.socket.send(packetBuffer)
 			})
 		} else {
-			this.log('warn', "Socket not connected")
+			this.log('warn', 'Socket not connected')
 		}
 	})
 }
@@ -176,11 +181,11 @@ export function init_tcp() {
 			while (receivebuffer.length > 0) {
 				// parseData will return the number of bytes consumed, and will retry until no more data is present
 
-				const bytesConsumed = this.decode(receivebuffer);
+				const bytesConsumed = this.decode(receivebuffer)
 				if (bytesConsumed === 0) {
 					break
 				}
-				receivebuffer = receivebuffer.slice(bytesConsumed);
+				receivebuffer = receivebuffer.slice(bytesConsumed)
 				if (receivebuffer.length > 0) {
 					this.log('debug', `More data available, ${receivebuffer.length} bytes remaining`)
 				}

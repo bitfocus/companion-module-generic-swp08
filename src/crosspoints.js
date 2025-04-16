@@ -123,7 +123,7 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 		// Multiplier if source or dest > 128
 		cmd.push(
 			((source >> 7) & 0x07) | // source DIV 128 Bits 0-2
-			(((dest >> 7) & 0x07) << 4) // dest DIV 128 Bits 4-6
+				(((dest >> 7) & 0x07) << 4), // dest DIV 128 Bits 4-6
 		)
 		// Destination MOD 128
 		cmd.push(dest & 0x7f)
@@ -168,7 +168,7 @@ export function getCrosspoints(destN) {
 				// Matrix and Level
 				((this.config.matrix - 1) << 4) | i,
 				// Multiplier dest > 128
-				(((dest >> 7) & 0x07) << 4), // dest DIV 128 Bits 4-6
+				((dest >> 7) & 0x07) << 4, // dest DIV 128 Bits 4-6
 				dest & 0x7f, // Destination MOD 128
 			])
 		}

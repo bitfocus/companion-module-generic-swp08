@@ -61,7 +61,7 @@ export async function UpdateFeedbacks(self) {
 				return true
 			}
 
-			return false	
+			return false
 		},
 	}
 

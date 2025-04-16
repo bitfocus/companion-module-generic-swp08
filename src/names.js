@@ -14,17 +14,17 @@ export function readNames() {
 			cmds.extendedGetSourceNames,
 			this.config.matrix - 1, // matrix
 			0, // level
-			Number.parseInt(this.config.name_chars) // name characters
+			Number.parseInt(this.config.name_chars), // name characters
 		)
 		cmdGetDestinations.push(
 			cmds.extendedGetDestNames,
 			this.config.matrix - 1, // matrix
-			Number.parseInt(this.config.name_chars) // name characters
+			Number.parseInt(this.config.name_chars), // name characters
 		)
 	} else {
 		// standard commands
-		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix-1)<<4)
-		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix-1)<<4)
+		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix - 1) << 4)
+		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix - 1) << 4)
 	}
 
 	// get source names

@@ -2,16 +2,16 @@ import { STX, DLE, ETX, ACK, NAK, cmds } from './consts.js'
 
 /**
  * Decode one message, handling DLE escaping, packet length and checksum
- * @param {Buffer} data 
+ * @param {Buffer} data
  */
 export function decode(data) {
 	if (data.length < 2) {
-		return 0;
+		return 0
 	}
 	if (data[0] !== DLE) {
 		this.log('warn', 'Invalid message start')
 		// protocol error, consume the byte, until we find a proper DLE, by returning 1
-		return 1;
+		return 1
 	}
 
 	if (data[1] === ACK || data[1] === NAK) {
@@ -25,21 +25,21 @@ export function decode(data) {
 				this.ackCallbacks.shift().reject()
 			}
 		}
-		return 2;
+		return 2
 	}
 
 	if (data[1] !== STX) {
 		this.log('warn', 'Invalid message start')
 		// protocol error, consume the byte, until we find a proper DLE, by returning 1
-		return 1;
+		return 1
 	}
 
 	for (let j = 0; j < data.length - 1; j++) {
 		if (data[j] === DLE && data[j + 1] === ETX) {
 			// We found ETX, now check the checksum, length, remove DLE escaping, and process message
 			let packet = Buffer.alloc(j)
-			let packetIndex = 0;
-			let crc = 0;
+			let packetIndex = 0
+			let crc = 0
 
 			// Remove DLE escaping and calculate checksum
 			// Start at 2 to skip SOM
@@ -65,10 +65,11 @@ export function decode(data) {
 			packet = packet.slice(0, packetIndex)
 
 			// Check packet size
-			if (packet[packet.length-2] !== packet.length - 2) { // length - 2 = length of packet - DLE - ETX
-				this.log('warn', `Invalid packet length ${packet[packet.length-2]} != ${packet.length - 2}`)
+			if (packet[packet.length - 2] !== packet.length - 2) {
+				// length - 2 = length of packet - BTC - CHK
+				this.log('warn', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}`)
 				this.sendNak()
-				return j + 2;
+				return j + 2
 			}
 
 			// Two's complement checksum
@@ -76,26 +77,26 @@ export function decode(data) {
 			if (crc !== packet[packet.length - 1]) {
 				this.log('warn', `Invalid checksum ${crc} != ${packet[packet.length - 1]}`)
 				this.sendNak()
-				return j + 2;
+				return j + 2
 			}
 
 			// We have a valid packet, process it
 			this.processMessage(packet.slice(0, packet.length - 2))
 			this.sendAck()
 
-			return j + 2;
+			return j + 2
 		}
 	}
 
 	// No ETX found, return 0
 	this.log('debug', `No ETX found, waiting for more data (has ${data.length} bytes): ${data.toString('hex')}`)
 
-	return 0;
+	return 0
 }
 
 /**
  * Process one message, handling the response
- * @param {Buffer} message 
+ * @param {Buffer} message
  */
 export function processMessage(message) {
 	switch (message[0]) {

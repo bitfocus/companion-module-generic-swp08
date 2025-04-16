@@ -141,8 +141,7 @@ export async function UpdatePresets(self) {
 			],
 		}
 	}
-	const destLength =
-		self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
+	const destLength = self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
 	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',

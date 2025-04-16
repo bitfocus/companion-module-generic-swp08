@@ -5,12 +5,12 @@ export function processLabels(data) {
 
 	// byte1 = matrix (in bits 4-7)
 	const matrix = (data[1] & 0xf0) >> 4
-	if (matrix !== this.config.matrix-1) {
-		this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix-1}`)
+	if (matrix !== this.config.matrix - 1) {
+		this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
 		// wrong matrix number
 		return
 	}
-	const level = (data[1] & 0x0f)
+	const level = data[1] & 0x0f
 	if (level !== 0) {
 		this.log('debug', `Level ${level} does not match 0`)
 		// ignore level > 0 ?
@@ -27,8 +27,8 @@ export function processLabels(data) {
 export function ext_processSourceLabels(data) {
 	const char_length_table = [4, 8, 12]
 
-	if (data[1] !== this.config.matrix-1) {
-		this.log('debug', `Matrix number ${data[1]} does not match ${this.config.matrix-1}`)
+	if (data[1] !== this.config.matrix - 1) {
+		this.log('debug', `Matrix number ${data[1]} does not match ${this.config.matrix - 1}`)
 		// wrong matrix number
 		return
 	}
@@ -56,15 +56,23 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 		const pos = l * char_length
 		const labelId = label_number + l
 
-		if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
+		if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
 			this.dest_names.set(labelId, {
 				id: labelId + 1,
-				label: data.slice(start + pos, start + pos + char_length).toString('utf8').replace(/\0/g, '').trim(),
+				label: data
+					.slice(start + pos, start + pos + char_length)
+					.toString('utf8')
+					.replace(/\0/g, '')
+					.trim(),
 			})
-		} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
+		} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
 			this.source_names.set(labelId, {
 				id: labelId + 1,
-				label: data.slice(start + pos, start + pos + char_length).toString('utf8').replace(/\0/g, '').trim(),
+				label: data
+					.slice(start + pos, start + pos + char_length)
+					.toString('utf8')
+					.replace(/\0/g, '')
+					.trim(),
 			})
 		} else {
 			this.log('debug', `Unknown label type ${data[0]}`)
