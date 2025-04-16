@@ -1,113 +1,172 @@
-import { hexBytes } from './consts.js'
+import { STX, DLE, ETX, ACK, NAK, cmds } from './consts.js'
 
+/**
+ * Decode one message, handling DLE escaping, packet length and checksum
+ * @param {Buffer} data
+ */
 export function decode(data) {
-	let message = []
+	if (data.length < 2) {
+		return 0
+	}
+	if (data[0] !== DLE) {
+		this.log('warn', 'Invalid message start')
+		// protocol error, consume the byte, until we find a proper DLE, by returning 1
+		return 1
+	}
 
-	if (data.length > 0) {
-		for (let j = 0; j < data.length; j++) {
-			if (data[j] == hexBytes.DLE) {
-				switch (data[j + 1]) {
-					case hexBytes.STX:
-						console.log('Received SOM')
-						j++
-						continue
-					//break
+	if (data[1] === ACK || data[1] === NAK) {
+		// ACK or NAK
+		if (this.ackCallbacks.length === 0) {
+			this.log('warn', 'Got unexpected ACK/NAK')
+		} else {
+			if (data[1] === ACK) {
+				this.ackCallbacks.shift().resolve()
+			} else {
+				this.ackCallbacks.shift().reject()
+			}
+		}
+		return 2
+	}
 
-					case hexBytes.ETX:
-						console.log('Received EOM')
-						j++
-						continue
-					//break
+	if (data[1] !== STX) {
+		this.log('warn', 'Invalid message start')
+		// protocol error, consume the byte, until we find a proper DLE, by returning 1
+		return 1
+	}
 
-					case hexBytes.ACK:
-						console.log('Received ACK')
-						j++
-						continue
-					//break
+	for (let j = 0; j < data.length - 1; j++) {
+		if (data[j] === DLE && data[j + 1] === ETX) {
+			// We found ETX, now check the checksum, length, remove DLE escaping, and process message
+			let packet = Buffer.alloc(j)
+			let packetIndex = 0
+			let crc = 0
 
-					case hexBytes.DLE:
-						// remove repeated byte 0x10
-						message.push(data[j])
-						j++
-						continue
-					//break
+			// Remove DLE escaping and calculate checksum
+			// Start at 2 to skip SOM
+			for (let k = 2; k < j; k++) {
+				if (data[k] === DLE && data[k + 1] === DLE) {
+					// We found a double DLE, replace it with a single DLE
+					k++
+					packet[packetIndex++] = DLE
+					if (k < j - 1) {
+						crc += data[k]
+					}
+					continue
+				}
+				packet[packetIndex++] = data[k]
 
-					case hexBytes.NAK:
-						console.log('Received NAK')
-						j++
-						continue
-					//break
-
-					default:
-						message.push(data[j])
-						continue
+				// add only DATA + BTC to CRC
+				if (k < j - 1) {
+					crc += data[k]
 				}
 			}
-			message.push(data[j])
+
+			// Trim the packet to the correct size
+			packet = packet.slice(0, packetIndex)
+
+			// Check packet size
+			if (packet[packet.length - 2] !== packet.length - 2) {
+				// length - 2 = length of packet - BTC - CHK
+				this.log('warn', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}`)
+				this.log('debug', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}: ${data.toString('hex')}`)
+				this.sendNak()
+				return j + 2
+			}
+
+			// Two's complement checksum
+			crc = (~(crc & 0xff) + 1) & 0xff
+			if (crc !== packet[packet.length - 1]) {
+				this.log('warn', `Invalid checksum ${crc} != ${packet[packet.length - 1]}`)
+				this.log('debug', `Invalid checksum ${crc} != ${packet[packet.length - 1]}: ${data.toString('hex')}`)
+				this.sendNak()
+				return j + 2
+			}
+
+			// We have a valid packet, process it
+			this.processMessage(packet.slice(0, packet.length - 2))
+			this.sendAck()
+
+			return j + 2
 		}
 	}
 
-	if (message.length > 2) {
-		console.log('message extracted: ' + message)
-		console.log('Command id: ' + message[0])
-		//let requests
-		//let responses
-		switch (message[0]) {
-			// Command
-			case hexBytes.cmd.tally:
-			case hexBytes.cmd.connected:
-				// Crosspoint Tally, Crosspoint Connected
-				this.crosspointConnected(message)
-				break
+	// No ETX found, return 0
+	this.log('debug', `No ETX found, waiting for more data (has ${data.length} bytes): ${data.toString('hex')}`)
 
-			case hexBytes.cmd.extendedTally:
-			case hexBytes.cmd.extendedConnected:
-				// Extended Crosspoint Connected
-				this.ext_crosspointConnected(message)
-				break
+	return 0
+}
 
-			case hexBytes.cmd.protocolImplementation:
-				// Protocol Implementation Response
-				//requests = message[1]
-				//responses = message[2]
+/**
+ * Process one message, handling the response
+ * @param {Buffer} message
+ */
+export function processMessage(message) {
+	switch (message[0]) {
+		// Command
+		case cmds.crosspointTally:
+		case cmds.crosspointConnected:
+			// Crosspoint Tally, Crosspoint Connected
+			this.crosspointConnected(message)
+			break
 
-				this.commands = []
+		case cmds.extendedCrosspointTally:
+		case cmds.extendedCrosspointConnected:
+			// Extended Crosspoint Connected
+			this.ext_crosspointConnected(message)
+			break
 
-				for (let j = 3; j < message.length - 2; j++) {
-					this.commands.push(message[j])
-				}
+		case cmds.protocolImplementationResponse:
+			// Protocol Implementation Response
+			this.commands = []
 
-				console.log('This router implements: ' + this.commands)
+			for (let j = 3; j < message.length; j++) {
+				this.commands.push(message[j])
+			}
 
-				// request names
-				if (this.config.read_names_on_connect) {
-					this.readNames()
-				}
-				break
+			console.log(`This router implements: ${this.commands}`)
 
-			case hexBytes.cmd.sourceNames:
-			case hexBytes.cmd.destNames:
-				// Standard Names Request Reply
-				this.processLabels(message)
-				break
+			// request names
+			if (this.config.read_names_on_connect) {
+				this.readNames()
+			}
 
-			case hexBytes.cmd.extendedSourceNames:
-				// Extended Source Names Reply
-				// Allows for extra Level field in response
-				this.ext_processSourceLabels(message)
-				break
+			// request tally
+			if (this.config.tally_dump_and_update) {
+				this.readTally()
+			}
+			break
 
-			case hexBytes.cmd.extendedDestNames:
-				// Extended Destination Names Reply
-				// There is no difference in structure to the standard response
-				this.processLabels(message)
-				break
+		case cmds.sourceNamesResponse:
+		case cmds.destNamesResponse:
+			// Standard Names Request Reply
+			this.processLabels(message)
+			break
 
-			default:
-				this.log('warn', 'Unknown response code ' + message[0])
-				this.log('debug', message.toString())
-				console.log('Unknown response code ' + message[0])
-				break
-		}
+		case cmds.extendedSourceNamesResponse:
+			// Extended Source Names Reply
+			// Allows for extra Level field in response
+			this.ext_processSourceLabels(message)
+			break
+
+		case cmds.extendedDestNamesResponse:
+			// Extended Destination Names Reply
+			// There is no difference in structure to the standard response
+			this.processLabels(message)
+			break
+
+		case cmds.crosspointTallyDumpByteResponse:
+		case cmds.crosspointTallyDumpWordResponse:
+			// Crosspoint Tally Dump
+			this.processCrosspointTallyDump(message)
+			break
+		case cmds.extendedCrosspointTallyDumpWordResponse:
+			// Extended Crosspoint Tally Dump
+			this.processExtCrosspointTallyDump(message)
+			break
+		
+		default:
+			this.log('warn', `Unknown response code ${message[0]}`)
+			this.log('debug', `Unknown response code ${message[0]} in response: ${message.toString('hex')}`)
+			break
 	}
 }

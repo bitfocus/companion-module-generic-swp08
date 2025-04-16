@@ -1,73 +1,156 @@
 import { InstanceStatus, TCPHelper } from '@companion-module/base'
 import { Buffer } from 'node:buffer'
-import { ACK, DLE, STX, ETX } from './consts.js'
+import { ACK, NAK, DLE, STX, ETX, cmds } from './consts.js'
 
-export function sendAck() {
-	this.log('debug', 'Sending ACK')
-	if (this.socket !== undefined && this.socket.isConnected) {
-		this.socket.send(this.hexStringToBuffer(DLE + ACK))
+export function sendNak() {
+	this.log('debug', 'Sending NAK')
+	if (this.socket?.isConnected) {
+		this.socket.send(Buffer.from([DLE, NAK]))
 		this.startKeepAliveTimer()
-	} else {
-		this.log('warn', 'Socket not connected :(')
 	}
 }
 
+export function sendAck() {
+	//this.log('debug', 'Sending ACK')
+	if (this.socket?.isConnected) {
+		this.socket.send(Buffer.from([DLE, ACK]))
+		this.startKeepAliveTimer()
+	}
+}
+
+/**
+ * Stuff DLE bytes in the data
+ * @param {Array} data
+ * @returns {Array}
+ */
+function stuffDLE(data) {
+	const output = new Array()
+	// replace byte value 10 (DLE) in data with 1010
+	for (let j = 0; j < data.length; ++j) {
+		output.push(data[j])
+		if (data[j] === DLE) {
+			output.push(DLE)
+		}
+	}
+	return output
+}
+
+export function addAckCallback(sendCb) {
+	this.ackCallbacks.push({
+		resolve: () => {
+			//this.log('debug', 'ACK received')
+		},
+		reject: () => {
+			this.log('warn', 'ACK not received, resending')
+			// Retry once
+			if (this.socket?.isConnected) {
+				// Retry sending the command
+				sendCb()
+				this.ackCallbacks.push({
+					resolve: () => {
+						this.log('debug', 'ACK received on second try')
+					},
+					reject: () => {
+						this.log('warn', 'ACK not received on second try')
+					},
+				})
+			}
+		},
+	})
+}
+
+export function readTally() {	if (this.config.extended_support) {
+		for (let i = 0; i < this.config.max_levels; i++) {
+			this.sendMessage([cmds.extendedCrosspointTallyDump, this.config.matrix - 1, i])
+		}
+	} else {
+		for (let i = 0; i < this.config.max_levels; i++) {
+			this.sendMessage([cmds.crosspointTallyDump, ((this.config.matrix - 1) << 4) | (i & 0x0f)])
+		}
+	}
+}
+
+/**
+ * Encapsulate a message and send it to the router
+ * @param {Buffer|Array} message
+ * @returns {void}
+ */
 export function sendMessage(message) {
-	if (message.length < 2) {
+	const msg = message instanceof Buffer ? message : Buffer.from(message)
+	if (msg.length < 1) {
 		this.log('warn', 'Empty or invalid message!')
 		return
 	}
 
 	// check that the command is implemented in the router
-	let cmdCode = parseInt(message.substring(0, 2), 16)
+	const cmdCode = msg[0]
 
-	if (this.config.supported_commands_on_connect === true) {
-		if (cmdCode !== 97) {
-			if (this.commands.length > 0) {
-				if (this.commands.indexOf(cmdCode) !== -1) {
-					// all good
-				} else {
-					this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
-					return
-				}
-			} else {
-				this.log('warn', 'Unable to verify list of implemented commands')
-				return
-			}
+	if (
+		cmdCode !== 97 &&
+		cmdCode !== 0 &&
+		this.config.supported_commands_on_connect === true &&
+		this.commands.length > 0
+	) {
+		if (this.commands.indexOf(cmdCode) === -1) {
+			this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
+			return
 		}
 	}
+
+	const packet = Array.from(msg)
+	const length = msg.length
+
+	// calculate checksum of DATA and BTC
+	let crc = 0
 
 	// replace byte value 10 (DLE) in data with 1010
-	let packed = ''
-	for (let j = 0; j < message.length; j = j + 2) {
-		let b = message.substr(j, 2)
-		if (b === DLE) {
-			packed = packed + DLE + DLE
-		} else {
-			packed = packed + b
+	for (let j = 0; j < packet.length; ++j) {
+		crc += packet[j]
+		if (packet[j] === DLE) {
+			packet.splice(j, 0, DLE)
+			j++
 		}
 	}
+	crc += length
 
-	const cmd = DLE + STX + packed + DLE + ETX
+	// Message structure:
+	// +-----+---~~---+-----+-----+-----+
+	// | SOM |  DATA  | BTC | CHK | EOM |
+	// +-----+---~~---+-----+-----+-----+
+	// SOM = DLE + STX (Start of Message)
+	// EOM = DLE + ETX (End of Message)
+	// BTC = length of data
 
-	console.log('Sending >> ' + cmd)
-	this.queue.add(() => {
-		if (cmd !== undefined) {
-			if (this.socket !== undefined && this.socket.isConnected) {
-				this.socket.send(this.hexStringToBuffer(cmd))
-				this.startKeepAliveTimer()
-			} else {
-				this.log('warn', `Socket not connected. Tried to send ${cmd}`)
-			}
+	// Add SOM at the beginning
+	packet.unshift(DLE, STX)
+
+	// Add BTC, CHK, EOM at the end
+	packet.push(...stuffDLE([length, (~crc + 1) & 0xff]), DLE, ETX)
+
+	const packetBuffer = Buffer.from(packet)
+
+	this.log('debug', `Sending >> ${packetBuffer.toString('hex')}`)
+
+	this.queue.add(async () => {
+		if (this.socket?.isConnected) {
+			this.socket.send(packetBuffer)
+			this.startKeepAliveTimer()
+
+			this.addAckCallback(() => {
+				this.socket.send(packetBuffer)
+			})
+		} else {
+			this.log('warn', 'Socket not connected')
 		}
 	})
 }
 
 export function init_tcp() {
-	let receivebuffer = Buffer.from('')
+	let receivebuffer = Buffer.alloc(0)
 
 	if (this.socket !== undefined) {
 		this.socket.destroy()
+		// biome-ignore lint/performance/noDelete: not really a performance issue
 		delete this.socket
 	}
 
@@ -79,16 +162,28 @@ export function init_tcp() {
 		})
 
 		this.socket.on('error', (err) => {
-			this.log('error', 'Network error: ' + err.message)
+			this.log('error', `Network error: ${err.message}`)
 			this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
 			this.stopKeepAliveTimer()
 		})
 
 		this.socket.on('connect', () => {
+			console.log(`Connected to ${this.config.host}:${this.config.port}`)
+			this.ackCallbacks = []
+			this.commands = []
+			this.routeMap = new Map()
+			receivebuffer = Buffer.alloc(0)
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
 			if (this.config.supported_commands_on_connect === true) {
 				// request protocol implementation
-				this.sendMessage('61019E')
+				this.sendMessage([cmds.protocolImplementation])
+			} else {
+				if (this.config.read_names_on_connect) {
+					this.readNames()
+				}
+				if (this.config.tally_dump_and_update) {
+					this.readTally()
+				}
 			}
 			this.subscribeActions()
 			this.subscribeFeedbacks()
@@ -97,16 +192,15 @@ export function init_tcp() {
 		})
 
 		this.socket.on('data', (chunk) => {
-			if (Buffer.compare(chunk, receivebuffer) != 0) {
-				// console.log('Received: ' + chunk.length + ' bytes ', chunk.toString('hex').match(/../g).join(' '))
-				// send ACK
-				this.sendAck()
-				// Decode
-				this.decode(chunk)
-				receivebuffer = chunk
-			} else {
-				// duplicate
-				console.log(`Repeated: ${chunk.length} bytes`)
+			receivebuffer = Buffer.concat([receivebuffer, chunk])
+			while (receivebuffer.length > 0) {
+				// parseData will return the number of bytes consumed, and will retry until no more data is present
+
+				const bytesConsumed = this.decode(receivebuffer)
+				if (bytesConsumed === 0) {
+					break
+				}
+				receivebuffer = receivebuffer.slice(bytesConsumed)
 			}
 		})
 	}

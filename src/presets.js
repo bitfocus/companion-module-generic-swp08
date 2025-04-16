@@ -1,9 +1,9 @@
 import { colours, presetDefaults } from './consts.js'
 
 export async function UpdatePresets(self) {
-	let presets = []
+	const presets = []
 
-	presets['take'] = {
+	presets.take = {
 		category: 'Actions',
 		type: 'button',
 		name: 'Take',
@@ -24,7 +24,7 @@ export async function UpdatePresets(self) {
 		],
 	}
 
-	presets['refresh'] = {
+	presets.refresh = {
 		category: 'Actions',
 		type: 'button',
 		name: 'Refresh Names',
@@ -45,15 +45,15 @@ export async function UpdatePresets(self) {
 	}
 
 	const srcLength =
-		self.source_names.length > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.length
+		self.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.size
 	for (let i = 1; i <= srcLength; i++) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
 			type: 'button',
-			name: 'Source ' + i,
+			name: `Source ${i}`,
 			style: {
 				...presetDefaults.style,
-				text: 'S' + i,
+				text: `S${i}`,
 			},
 			steps: [
 				{
@@ -141,16 +141,15 @@ export async function UpdatePresets(self) {
 			],
 		}
 	}
-	const destLength =
-		self.dest_names.length > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.length
+	const destLength = self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
 	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
 			type: 'button',
-			name: 'Destination ' + i,
+			name: `Destination ${i}`,
 			style: {
 				...presetDefaults.style,
-				text: 'D' + i,
+				text: `D${i}`,
 			},
 			steps: [
 				{

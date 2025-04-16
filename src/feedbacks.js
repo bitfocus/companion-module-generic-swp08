@@ -1,9 +1,9 @@
 import { colours, feedbackOptions } from './consts.js'
 
 export async function UpdateFeedbacks(self) {
-	let feedbackDefinitions = []
+	const feedbackDefinitions = []
 
-	feedbackDefinitions['selected_level'] = {
+	feedbackDefinitions.selected_level = {
 		name: 'Selected Levels',
 		type: 'boolean',
 		description: 'Change colour of button on selected levels',
@@ -13,13 +13,13 @@ export async function UpdateFeedbacks(self) {
 		},
 		options: [{ ...feedbackOptions.levels, choices: self.levels }],
 		callback: (feedback) => {
-			let l = feedback.options.level.length
-			let k = self.selected_level.length
+			const l = feedback.options.level.length
+			const k = self.selected_level.length
 
 			for (let i = 0; i < l; i++) {
-				let feedback_test = feedback.options.level[i]
+				const feedback_test = feedback.options.level[i]
 				for (let j = 0; j < k; j++) {
-					if (self.selected_level[j].id == feedback_test) {
+					if (self.selected_level[j].id === feedback_test) {
 						if (self.selected_level[j].enabled === true) {
 							// matched
 						} else {
@@ -32,7 +32,7 @@ export async function UpdateFeedbacks(self) {
 		},
 	}
 
-	feedbackDefinitions['selected_level_dest'] = {
+	feedbackDefinitions.selected_level_dest = {
 		name: 'Selected Levels and Destination',
 		type: 'boolean',
 		description: 'Change colour of button on selected levels and destination',
@@ -43,13 +43,13 @@ export async function UpdateFeedbacks(self) {
 		options: [{ ...feedbackOptions.levels, choices: self.levels }, feedbackOptions.destination],
 		callback: (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
-				let l = feedback.options.level.length
-				let k = self.selected_level.length
+				const l = feedback.options.level.length
+				const k = self.selected_level.length
 
 				for (let i = 0; i < l; i++) {
-					let feedback_test = feedback.options.level[i]
+					const feedback_test = feedback.options.level[i]
 					for (let j = 0; j < k; j++) {
-						if (self.selected_level[j].id == feedback_test) {
+						if (self.selected_level[j].id === feedback_test) {
 							if (self.selected_level[j].enabled === true) {
 								// matched
 							} else {
@@ -59,13 +59,13 @@ export async function UpdateFeedbacks(self) {
 					}
 				}
 				return true
-			} else {
-				return false
 			}
+
+			return false
 		},
 	}
 
-	feedbackDefinitions['selected_dest'] = {
+	feedbackDefinitions.selected_dest = {
 		type: 'boolean',
 		name: 'Selected Destination',
 		description: 'Change colour of button on selected destination',
@@ -77,13 +77,12 @@ export async function UpdateFeedbacks(self) {
 		callback: (feedback) => {
 			if (self.selected_dest === feedback.options.dest) {
 				return true
-			} else {
-				return false
 			}
+			return false
 		},
 	}
 
-	feedbackDefinitions['selected_source'] = {
+	feedbackDefinitions.selected_source = {
 		type: 'boolean',
 		name: 'Selected Source',
 		description: 'Change colour of button on selected source',
@@ -95,13 +94,12 @@ export async function UpdateFeedbacks(self) {
 		callback: (feedback) => {
 			if (self.selected_source === feedback.options.source) {
 				return true
-			} else {
-				return false
 			}
+			return false
 		},
 	}
 
-	feedbackDefinitions['source_dest_route'] = {
+	feedbackDefinitions.source_dest_route = {
 		type: 'boolean',
 		name: 'Source Routed to Destination',
 		description: 'Change button colour when this source is routed to selected destination on any level',
@@ -112,19 +110,17 @@ export async function UpdateFeedbacks(self) {
 		options: [feedbackOptions.source],
 		callback: (feedback) => {
 			// look for this dest in route table
-			console.log('dest:source feedback ' + self.selected_dest + ':' + feedback.options.source)
-			for (let i = 0; i < self.routeTable.length; i++) {
-				if (self.routeTable[i].dest === self.selected_dest) {
-					if (self.routeTable[i].source === feedback.options.source) {
-						return true
-					}
-				}
+			console.log(`dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
+			return self.hasSourceInRoutemap(self.selected_dest, feedback.options.source)
+		},
+		subscribe: () => {
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(self.selected_dest)
 			}
-			return false
 		},
 	}
 
-	feedbackDefinitions['crosspoint_connected'] = {
+	feedbackDefinitions.crosspoint_connected = {
 		type: 'boolean',
 		name: 'Crosspoint Connected',
 		description: 'Change button colour when this crosspoint is connected on any level',
@@ -135,21 +131,16 @@ export async function UpdateFeedbacks(self) {
 		options: [feedbackOptions.source, feedbackOptions.destination],
 		callback: (feedback) => {
 			// look for this dest in route table
-			console.log('dest:source feedback ' + feedback.options.dest + ':' + feedback.options.source)
-			for (let i = 0; i < self.routeTable.length; i++) {
-				if (self.routeTable[i].dest === feedback.options.dest) {
-					if (self.routeTable[i].source === feedback.options.source) {
-						return true
-					}
-				}
-			}
-			return false
+			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
+			return self.hasSourceInRoutemap(feedback.options.dest, feedback.options.source)
 		},
 		subscribe: (feedback) => {
-			self.getCrosspoints(feedback.options.dest)
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(feedback.options.dest)
+			}
 		},
 	}
-	feedbackDefinitions['crosspoint_connected_by_name'] = {
+	feedbackDefinitions.crosspoint_connected_by_name = {
 		type: 'boolean',
 		name: 'Crosspoint Connected By Name',
 		description: 'Change button colour when this crosspoint is connected on any level',
@@ -160,37 +151,33 @@ export async function UpdateFeedbacks(self) {
 		options: [
 			{
 				...feedbackOptions.sourceName,
-				choices: self.source_names,
+				choices: Array.from(self.source_names.values()),
 			},
 			{
 				...feedbackOptions.destinationName,
-				choices: self.dest_names,
+				choices: Array.from(self.dest_names.values()),
 			},
 		],
 		callback: async (feedback, context) => {
-			const source = parseInt(await context.parseVariablesInString(feedback.options.source))
-			const dest = parseInt(await context.parseVariablesInString(feedback.options.dest))
+			const source = Number.parseInt(await context.parseVariablesInString(feedback.options.source))
+			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest))
 			// look for this dest in route table
-			if (isNaN(source) || source < 1 || source > 65536 || isNaN(dest) || dest < 1 || dest > 65536) {
+			if (Number.isNaN(source) || source < 1 || source > 65536 || Number.isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log(
 					'warn',
 					`crosspoint_connected_by_name has been passed an out of range variable - src ${source} : dst ${dest}`,
 				)
 				return undefined
 			}
-			console.log('dest:source feedback ' + feedback.options.dest + ':' + feedback.options.source)
-			for (let i = 0; i < self.routeTable.length; i++) {
-				if (self.routeTable[i].dest === dest) {
-					if (self.routeTable[i].source === source) {
-						return true
-					}
-				}
-			}
-			return false
+			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
+			return self.hasSourceInRoutemap(dest, source)
 		},
 		subscribe: async (feedback, context) => {
-			const dest = parseInt(await context.parseVariablesInString(feedback.options.dest))
-			if (isNaN(dest) || dest < 1 || dest > 65536) {
+			if (self.config.tally_dump_and_update) {
+				return;
+			}
+			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest))
+			if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log(
 					'warn',
 					`crosspoint_connected_by_name:Subscribe has been passed an out of range variable - dst ${dest}`,
