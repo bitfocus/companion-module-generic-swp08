@@ -71,8 +71,6 @@ export function sendMessage(message) {
 		return
 	}
 
-	console.log(`BEFORE: ${msg.toString('hex')}`)
-
 	// check that the command is implemented in the router
 	const cmdCode = msg[0]
 
@@ -86,7 +84,7 @@ export function sendMessage(message) {
 	const packet = Array.from(msg);
 	const length = msg.length;
 	
-	// calculate checksum
+	// calculate checksum of DATA and BTC
 	let crc = 0;
 
 	// replace byte value 10 (DLE) in data with 1010
@@ -103,16 +101,19 @@ export function sendMessage(message) {
 	// +-----+---~~---+-----+-----+-----+
 	// | SOM |  DATA  | BTC | CHK | EOM |
 	// +-----+---~~---+-----+-----+-----+
+	// SOM = DLE + STX (Start of Message)
+	// EOM = DLE + ETX (End of Message)
+	// BTC = length of data
 
-	// Add SOM (DLE and STX) at the beginning
+	// Add SOM at the beginning
 	packet.unshift(DLE, STX);
 
-	// Add BTC, CHK, EOM (DLE and ETX) at the end
+	// Add BTC, CHK, EOM at the end
 	packet.push(...stuffDLE([length, (~crc + 1) & 0xff]), DLE, ETX);
 	
 	const packetBuffer = Buffer.from(packet);
 
-	console.log(`Sending >> ${packetBuffer.toString('hex')}`)
+	this.log('debug', `Sending >> ${packetBuffer.toString('hex')}`)
 
 	this.queue.add(async () => {
 		if (this.socket?.isConnected) {

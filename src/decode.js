@@ -1,4 +1,5 @@
 import { STX, DLE, ETX, ACK, NAK, cmds } from './consts.js'
+
 /**
  * Decode one message, handling DLE escaping, packet length and checksum
  * @param {Buffer} data 
@@ -87,8 +88,7 @@ export function decode(data) {
 	}
 
 	// No ETX found, return 0
-	this.log('debug', `No ETX found, waiting for more data (has ${data.length} bytes)`)
-	console.log(`No ETX found, waiting for more data (has ${data.length} bytes): ${data.toString('hex')}`)
+	this.log('debug', `No ETX found, waiting for more data (has ${data.length} bytes): ${data.toString('hex')}`)
 
 	return 0;
 }
@@ -98,8 +98,6 @@ export function decode(data) {
  * @param {Buffer} message 
  */
 export function processMessage(message) {
-	//let requests
-	//let responses
 	switch (message[0]) {
 		// Command
 		case cmds.crosspointTally:
@@ -116,9 +114,6 @@ export function processMessage(message) {
 
 		case cmds.protocolImplementationResponse:
 			// Protocol Implementation Response
-			//requests = message[1]
-			//responses = message[2]
-
 			this.commands = []
 
 			for (let j = 3; j < message.length; j++) {
