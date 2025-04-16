@@ -45,15 +45,15 @@ export function record_crosspoint(source, dest, level) {
 export function update_crosspoints(source, dest, level) {
 	if (dest === this.selected_dest) {
 		// update variables for selected dest source
-		this.setVariableValues({ [`Sel_Dest_Source_Level_${level.toString()}`]: source })
+		this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: source })
 		if (this.source_names.size > 0) {
 			// only if names have been retrieved
 			try {
 				this.setVariableValues({
-					[`Sel_Dest_Source_Name_Level_${level.toString()}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+					[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
 				})
 			} catch (e) {
-				this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e.toString()}`)
+				this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e?.message || e.toString()}`)
 			}
 		}
 	}

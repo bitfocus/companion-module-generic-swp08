@@ -1,6 +1,6 @@
 export async function SetupVariables(self) {
 	// Implemented Commands
-	let varList = []
+	const varList = []
 	self.commands = []
 
 	// Hold values
@@ -14,8 +14,8 @@ export async function SetupVariables(self) {
 
 	self.config.max_levels = self.config.max_levels === undefined ? 3 : self.config.max_levels
 
-	for (var i = 1; i <= self.config.max_levels; i++) {
-		self.levels.push({ id: i, label: 'Level: ' + i })
+	for (let i = 1; i <= self.config.max_levels; i++) {
+		self.levels.push({ id: i, label: `Level: ${i}` })
 		self.selected_level.push({ id: i, enabled: true })
 	}
 
@@ -25,11 +25,11 @@ export async function SetupVariables(self) {
 
 	self.updateVariableDefinitions()
 
-	varList['Sources'] = 0
-	varList['Destinations'] = 0
+	varList.Sources = 0
+	varList.Destinations = 0
 
-	varList['Source'] = self.selected_source
-	varList['Destination'] = self.selected_dest
+	varList.Source = self.selected_source
+	varList.Destination = self.selected_dest
 	self.setVariableValues(varList)
 }
 
@@ -59,26 +59,26 @@ export async function UpdateVariableDefinitions(self) {
 
 	for (let i = 1; i <= self.config.max_levels; i++) {
 		coreVariables.push({
-			name: 'Selected destination source for level ' + i.toString(),
-			variableId: 'Sel_Dest_Source_Level_' + i.toString(),
+			name: `Selected destination source for level ${i}`,
+			variableId: `Sel_Dest_Source_Level_${i}`,
 		})
 		coreVariables.push({
-			name: 'Selected destination source name for level ' + i.toString(),
-			variableId: 'Sel_Dest_Source_Name_Level_' + i.toString(),
+			name: `Selected destination source name for level ${i}`,
+			variableId: `Sel_Dest_Source_Name_Level_${i}`,
 		})
 	}
 
 	for (let i = 1; i <= sourceValues.length; i++) {
 		coreVariables.push({
-			name: 'Source ' + i.toString(),
-			variableId: 'Source_' + i.toString(),
+			name: `Source ${i}`,
+			variableId: `Source_${i}`,
 		})
 	}
 
 	for (let i = 1; i <= destValues.length; i++) {
 		coreVariables.push({
-			name: 'Destination ' + i.toString(),
-			variableId: 'Destination_' + i.toString(),
+			name: `Destination ${i}`,
+			variableId: `Destination_${i}`,
 		})
 	}
 
