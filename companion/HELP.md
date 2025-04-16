@@ -125,3 +125,11 @@ Tally and connected messages recieved from the router will create new set crossp
 
 - Use Node 22
 - Update dependencies
+
+### Version 2.0.4
+
+- Throttle Action, Feedback, Variable definition updates
+
+### Version 2.0.5
+
+- Parse variables with context object (for local variables)
