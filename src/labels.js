@@ -58,12 +58,12 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 
 		if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
 			this.dest_names.set(labelId, {
-				id: labelId,
+				id: labelId + 1,
 				label: data.slice(start + pos, start + pos + char_length).toString('utf8').replace(/\0/g, '').trim(),
 			})
 		} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
 			this.source_names.set(labelId, {
-				id: labelId,
+				id: labelId + 1,
 				label: data.slice(start + pos, start + pos + char_length).toString('utf8').replace(/\0/g, '').trim(),
 			})
 		} else {
