@@ -8,8 +8,6 @@ export async function SetupVariables(self) {
 	self.selected_dest = 0
 	self.selected_source = 0
 
-	self.routeTable = []
-
 	self.levels = []
 
 	self.config.max_levels = self.config.max_levels === undefined ? 3 : self.config.max_levels

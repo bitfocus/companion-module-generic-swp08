@@ -1,4 +1,4 @@
-import { DLE, STX, ETX, keepAliveTimeOut } from './consts.js'
+import { keepAliveTimeOut } from './consts.js'
 
 export function startKeepAliveTimer() {
 	if (this.keepAliveTimer) {

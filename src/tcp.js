@@ -1,9 +1,9 @@
 import { InstanceStatus, TCPHelper } from '@companion-module/base'
 import { Buffer } from 'node:buffer'
-import { ACK, DLE, STX, ETX, cmds } from './consts.js'
+import { ACK, NAK, DLE, STX, ETX, cmds } from './consts.js'
 
 export function sendNak() {
-	//this.log('debug', 'Sending NAK')
+	this.log('debug', 'Sending NAK')
 	if (this.socket?.isConnected) {
 		this.socket.send(Buffer.from([DLE, NAK]))
 		this.startKeepAliveTimer()
@@ -57,6 +57,17 @@ export function addAckCallback(sendCb) {
 			}
 		},
 	})
+}
+
+export function readTally() {	if (this.config.extended_support) {
+		for (let i = 0; i < this.config.max_levels; i++) {
+			this.sendMessage([cmds.extendedCrosspointTallyDump, this.config.matrix - 1, i])
+		}
+	} else {
+		for (let i = 0; i < this.config.max_levels; i++) {
+			this.sendMessage([cmds.crosspointTallyDump, ((this.config.matrix - 1) << 4) | (i & 0x0f)])
+		}
+	}
 }
 
 /**
@@ -160,6 +171,7 @@ export function init_tcp() {
 			console.log(`Connected to ${this.config.host}:${this.config.port}`)
 			this.ackCallbacks = []
 			this.commands = []
+			this.routeMap = new Map()
 			receivebuffer = Buffer.alloc(0)
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
 			if (this.config.supported_commands_on_connect === true) {
@@ -168,6 +180,9 @@ export function init_tcp() {
 			} else {
 				if (this.config.read_names_on_connect) {
 					this.readNames()
+				}
+				if (this.config.tally_dump_and_update) {
+					this.readTally()
 				}
 			}
 			this.subscribeActions()
@@ -186,9 +201,6 @@ export function init_tcp() {
 					break
 				}
 				receivebuffer = receivebuffer.slice(bytesConsumed)
-				if (receivebuffer.length > 0) {
-					this.log('debug', `More data available, ${receivebuffer.length} bytes remaining`)
-				}
 			}
 		})
 	}

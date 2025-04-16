@@ -111,14 +111,12 @@ export async function UpdateFeedbacks(self) {
 		callback: (feedback) => {
 			// look for this dest in route table
 			console.log(`dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
-			for (let i = 0; i < self.routeTable.length; i++) {
-				if (self.routeTable[i].dest === self.selected_dest) {
-					if (self.routeTable[i].source === feedback.options.source) {
-						return true
-					}
-				}
+			return self.hasSourceInRoutemap(self.selected_dest, feedback.options.source)
+		},
+		subscribe: () => {
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(self.selected_dest)
 			}
-			return false
 		},
 	}
 
@@ -134,17 +132,12 @@ export async function UpdateFeedbacks(self) {
 		callback: (feedback) => {
 			// look for this dest in route table
 			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
-			for (let i = 0; i < self.routeTable.length; i++) {
-				if (self.routeTable[i].dest === feedback.options.dest) {
-					if (self.routeTable[i].source === feedback.options.source) {
-						return true
-					}
-				}
-			}
-			return false
+			return self.hasSourceInRoutemap(feedback.options.dest, feedback.options.source)
 		},
 		subscribe: (feedback) => {
-			self.getCrosspoints(feedback.options.dest)
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(feedback.options.dest)
+			}
 		},
 	}
 	feedbackDefinitions.crosspoint_connected_by_name = {
@@ -176,17 +169,13 @@ export async function UpdateFeedbacks(self) {
 				)
 				return undefined
 			}
-			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
-			for (let i = 0; i < self.routeTable.length; i++) {
-				if (self.routeTable[i].dest === dest) {
-					if (self.routeTable[i].source === source) {
-						return true
-					}
-				}
-			}
-			return false
+			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
+			return self.hasSourceInRoutemap(dest, source)
 		},
 		subscribe: async (feedback, context) => {
+			if (self.config.tally_dump_and_update) {
+				return;
+			}
 			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest))
 			if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
 				self.log(

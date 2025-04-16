@@ -29,13 +29,17 @@ export async function UpdateActions(self) {
 		options: [actionOptions.destination],
 		callback: ({ options }) => {
 			self.selected_dest = Number.parseInt(options.dest)
-			self.getCrosspoints(options.dest)
 			console.log(`set destination ${self.selected_dest}`)
 			self.setVariableValues({ Destination: self.selected_dest })
 			self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(options.dest)
+			}
 		},
-		subscribe: (action) => {
-			self.getCrosspoints(action.options.dest)
+		subscribe: ({ options }) => {
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(options.dest)
+			}
 		},
 	}
 	actionDefinitions.select_dest_name = {
@@ -48,18 +52,22 @@ export async function UpdateActions(self) {
 				return undefined
 			}
 			self.selected_dest = dest
-			self.getCrosspoints(dest)
 			console.log(`set destination ${self.selected_dest}`)
 			self.setVariableValues({ Destination: self.selected_dest })
 			self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+			if (!self.config.tally_dump_and_update) {
+				self.getCrosspoints(dest)
+			}
 		},
 		subscribe: async (action, context) => {
-			const dest = Number.parseInt(await context.parseVariablesInString(action.options.dest))
-			if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
-				self.log('warn', `select_dest_name:Subscribe has been passed an out of range variable - dst ${dest}`)
-				return undefined
+			if (!self.config.tally_dump_and_update) {
+				const dest = Number.parseInt(await context.parseVariablesInString(action.options.dest))
+				if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
+					self.log('warn', `select_dest_name:Subscribe has been passed an out of range variable - dst ${dest}`)
+					return undefined
+				}
+				self.getCrosspoints(dest)
 			}
-			self.getCrosspoints(dest)
 		},
 	}
 	actionDefinitions.select_source = {

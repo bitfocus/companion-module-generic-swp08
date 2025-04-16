@@ -23,8 +23,8 @@ export function readNames() {
 		)
 	} else {
 		// standard commands
-		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix - 1) << 4)
-		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix - 1) << 4)
+		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix - 1) << 4, this.config.name_chars)
+		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix - 1) << 4, this.config.name_chars)
 	}
 
 	// get source names

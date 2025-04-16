@@ -1,12 +1,15 @@
+import _ from 'lodash'
 import { cmds } from './consts.js'
 
 export function crosspointConnected(data) {
-	//const matrix = ((data[1] & 0xf0) >> 4) + 1 unused
+	const matrix = ((data[1] & 0xf0) >> 4) + 1
 	const level = (data[1] & 0x0f) + 1
-	const destDiv = (data[2] & 0x70) >> 4
-	const sourceDiv = data[2] & 0x7
-	const dest = 128 * destDiv + data[3] + 1
-	const source = 128 * sourceDiv + data[4] + 1
+	const dest = ((data[2] & 0x70) << 3) + data[3] + 1
+	const source = ((data[2] & 0x07) << 7) + data[4] + 1
+
+	if (matrix !== this.config.matrix) {
+		return
+	}
 
 	//console.log(`Source ${source} routed to ${dest} on level ${level}`)
 	this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
@@ -15,19 +18,138 @@ export function crosspointConnected(data) {
 }
 
 export function ext_crosspointConnected(data) {
-	//const matrix = data[1] + 1
+	const matrix = data[1] + 1
 	const level = data[2] + 1
-	const destDiv = data[3] * 256
-	const destMod = data[4]
-	const sourceDiv = data[5] * 256
-	const sourceMod = data[6]
-	const dest = destDiv + destMod + 1
-	const source = sourceDiv + sourceMod + 1
+	const dest = ((data[3] << 8) | data[4]) + 1
+	const source = ((data[5] << 8) | data[6]) + 1
+
+	if (matrix !== this.config.matrix) {
+		return
+	}
 
 	//console.log(`Source ${source} routed to ${dest} on level ${level}`)
 	this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
 
 	this.update_crosspoints(source, dest, level)
+}
+
+export function setRoutemap(source, dest, level) {
+	let map = this.routeMap.get(dest)
+	if (!map) {
+		map = new Map()
+		this.routeMap.set(dest, map)
+	}
+
+	map.set(level, source)
+}
+
+export function getRoutemapEntries(dest) {
+	const map = this.routeMap.get(dest)
+	if (map) {
+		const sources = Array.from(map.values())
+		return sources
+	}
+	return []
+}
+
+export function hasSourceInRoutemap(dest, source) {
+	return this.getRoutemapEntries(dest).some((entry) => entry === source)
+}
+
+/**
+ * Process crosspoint tally dump
+ * @param {Buffer} data 
+ */
+export function processCrosspointTallyDump(data) {
+	const type = data[0] === cmds.crosspointTallyDumpByteResponse ? 'byte' : 'word'
+	const matrix = ((data[1] & 0xf0) >> 4) + 1
+	const level = (data[1] & 0x0f) + 1
+	const tallies = data[2]
+
+	if (matrix !== this.config.matrix) {
+		return
+	}
+
+	if (tallies > 64) {
+		this.log('warn', `Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than 64 specified as limit by protocol)`)
+	}
+
+	let currentOffset = 3
+	if (type === 'byte') {
+		for (let i = 0; i < tallies; i++) {			
+			const dest = data.readUInt8(currentOffset) + 1
+			const source = data.readUInt8(currentOffset + 1) + 1
+			this.setRoutemap(source, dest, level)
+			currentOffset += 2
+		}
+	} else {
+		for (let i = 0; i < tallies; i++) {
+			const dest = data.readUInt16BE(currentOffset) + 1
+			const source = data.readUInt16BE(currentOffset + 2) + 1
+			this.setRoutemap(source, dest, level)
+			currentOffset += 4
+		}
+	}
+
+	this.throttledCrosspointUpdate()
+}
+
+/**
+ * Process extended crosspoint tally dump
+ * @param {Buffer} data 
+ */
+export function processExtCrosspointTallyDump(data) {
+	const matrix = data[1] + 1
+	const level = data[2] + 1
+	const tallies = data[3]
+
+	if (matrix !== this.config.matrix) {
+		return
+	}
+
+	if (tallies > 32) {
+		this.log('warn', `Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies, exceeds protocol limit of 133 bytes`)
+	}
+	let currentOffset = 4
+	for (let i = 0; i < tallies; i++) {
+		const dest = data.readUInt16BE(currentOffset) + 1
+		const source = data.readUInt16BE(currentOffset + 2) + 1
+		this.setRoutemap(source, dest, level)
+		currentOffset += 4
+	}
+
+	this.throttledCrosspointUpdate()
+}
+
+export function updateAllCrosspoints() {
+	const numDests = this.dest_names.size > 0 ? this.dest_names.size : 256
+	for (let dest = 1; dest <= numDests; dest++) {
+		if (dest === this.selected_dest) {
+			const map = this.routeMap.get(dest) ?? new Map()
+			for (let level = 1; level <= this.config.max_levels; level++) {
+				if (map.has(level)) {
+					const source = map.get(level)
+					this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: source })
+					if (this.source_names.size > 0) {
+						// only if names have been retrieved
+						try {
+							this.setVariableValues({
+								[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+							})
+						} catch (e) {
+							this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e?.message || e.toString()}`)
+						}
+					}
+				} else {
+					this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: -1 })
+					this.setVariableValues({
+						[`Sel_Dest_Source_Name_Level_${level}`]: 'N/A',
+					})
+				}
+			}
+		}
+	}
+	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
 }
 
 export function record_crosspoint(source, dest, level) {
@@ -58,20 +180,7 @@ export function update_crosspoints(source, dest, level) {
 		}
 	}
 
-	// store route data
-	for (let i = 0; i < this.routeTable.length; i++) {
-		if (this.routeTable[i].level === level && this.routeTable[i].dest === dest) {
-			// update existing
-			this.routeTable[i].source = source
-			this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
-			this.record_crosspoint(source, dest, level)
-			return
-		}
-	}
-
-	// add new
-	const new_route = { level: level, dest: dest, source: source }
-	this.routeTable.push(new_route)
+	this.setRoutemap(source, dest, level)
 	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
 	this.record_crosspoint(source, dest, level)
 }
@@ -166,7 +275,7 @@ export function getCrosspoints(destN) {
 				// Standard commands
 				cmds.crosspointInterrogate,
 				// Matrix and Level
-				((this.config.matrix - 1) << 4) | i,
+				((this.config.matrix - 1) << 4) | (i & 0x0f),
 				// Multiplier dest > 128
 				((dest >> 7) & 0x07) << 4, // dest DIV 128 Bits 4-6
 				dest & 0x7f, // Destination MOD 128

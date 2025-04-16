@@ -49,6 +49,20 @@ export function getConfigFields() {
 		{
 			type: 'checkbox',
 			label: 'Enable',
+			id: 'tally_dump_and_update',
+			width: 1,
+			default: false,
+		},
+		{
+			type: 'static-text',
+			label: 'My router controller supports tally dump, and sends tally updates',
+			id: 'tally_dump_and_update_txt',
+			value: 'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
+			width: 11,
+		},
+		{
+			type: 'checkbox',
+			label: 'Enable',
 			id: 'supported_commands_on_connect',
 			width: 1,
 			default: true,
@@ -85,7 +99,7 @@ export function getConfigFields() {
 			type: 'static-text',
 			label: 'Router has more than 1024 source or destination names',
 			id: 'extended_support_txt',
-			value: 'Use extended command set for name requests. Not supported by all router controllers',
+			value: 'Use extended command set. Not supported by all router controllers',
 			width: 11,
 		},
 		{

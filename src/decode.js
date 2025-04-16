@@ -68,6 +68,7 @@ export function decode(data) {
 			if (packet[packet.length - 2] !== packet.length - 2) {
 				// length - 2 = length of packet - BTC - CHK
 				this.log('warn', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}`)
+				this.log('debug', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}: ${data.toString('hex')}`)
 				this.sendNak()
 				return j + 2
 			}
@@ -76,6 +77,7 @@ export function decode(data) {
 			crc = (~(crc & 0xff) + 1) & 0xff
 			if (crc !== packet[packet.length - 1]) {
 				this.log('warn', `Invalid checksum ${crc} != ${packet[packet.length - 1]}`)
+				this.log('debug', `Invalid checksum ${crc} != ${packet[packet.length - 1]}: ${data.toString('hex')}`)
 				this.sendNak()
 				return j + 2
 			}
@@ -127,6 +129,11 @@ export function processMessage(message) {
 			if (this.config.read_names_on_connect) {
 				this.readNames()
 			}
+
+			// request tally
+			if (this.config.tally_dump_and_update) {
+				this.readTally()
+			}
 			break
 
 		case cmds.sourceNamesResponse:
@@ -147,6 +154,16 @@ export function processMessage(message) {
 			this.processLabels(message)
 			break
 
+		case cmds.crosspointTallyDumpByteResponse:
+		case cmds.crosspointTallyDumpWordResponse:
+			// Crosspoint Tally Dump
+			this.processCrosspointTallyDump(message)
+			break
+		case cmds.extendedCrosspointTallyDumpWordResponse:
+			// Extended Crosspoint Tally Dump
+			this.processExtCrosspointTallyDump(message)
+			break
+		
 		default:
 			this.log('warn', `Unknown response code ${message[0]}`)
 			this.log('debug', `Unknown response code ${message[0]} in response: ${message.toString('hex')}`)
