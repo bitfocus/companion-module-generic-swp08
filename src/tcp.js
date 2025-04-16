@@ -160,6 +160,10 @@ export function init_tcp() {
 			if (this.config.supported_commands_on_connect === true) {
 				// request protocol implementation
 				this.sendMessage([cmds.protocolImplementation])
+			} else {
+				if (this.config.read_names_on_connect) {
+					this.readNames()
+				}
 			}
 			this.subscribeActions()
 			this.subscribeFeedbacks()
