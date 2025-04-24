@@ -58,25 +58,39 @@ export function hasSourceInRoutemap(dest, source) {
 
 /**
  * Process crosspoint tally dump
- * @param {Buffer} data 
+ * @param {Buffer} data
  */
 export function processCrosspointTallyDump(data) {
 	const type = data[0] === cmds.crosspointTallyDumpByteResponse ? 'byte' : 'word'
 	const matrix = ((data[1] & 0xf0) >> 4) + 1
 	const level = (data[1] & 0x0f) + 1
-	const tallies = data[2]
+	let tallies = data[2]
 
 	if (matrix !== this.config.matrix) {
 		return
 	}
 
-	if (tallies > 64) {
-		this.log('warn', `Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than 64 specified as limit by protocol)`)
+	this.log('debug', `Crosspoint tally dump for matrix ${matrix} level ${level} are going to read ${tallies} tallies`)
+
+	if (tallies * (type === 'byte' ? 2 : 4) > 133 - 2) {
+		// Not more than 133 bytes, and not more than 64 tallies per spec
+		const newTallies = Math.min(Math.floor((133 - 2) / (type === 'byte' ? 2 : 4)), 64)
+
+		this.log(
+			'warn',
+			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than ${newTallies} specified as limit by protocol)`,
+		)
+
+		// The issue with this is if that the device is sending for example 45 word tallies, the first packet would go ok
+		// but then we have to know that the next packet will be only 13 tallies. But there are no packet identifications, so the two
+		// packets aren't really related. Needs more testing. This is quite a design flaw in the protocol if so.
+
+		tallies = newTallies
 	}
 
 	let currentOffset = 3
 	if (type === 'byte') {
-		for (let i = 0; i < tallies; i++) {			
+		for (let i = 0; i < tallies; i++) {
 			const dest = data.readUInt8(currentOffset) + 1
 			const source = data.readUInt8(currentOffset + 1) + 1
 			this.setRoutemap(source, dest, level)
@@ -95,21 +109,35 @@ export function processCrosspointTallyDump(data) {
 }
 
 /**
- * Process extended crosspoint tally dump
- * @param {Buffer} data 
+ * Process extended crosspoint tally dump (word)
+ * @param {Buffer} data
  */
 export function processExtCrosspointTallyDump(data) {
 	const matrix = data[1] + 1
 	const level = data[2] + 1
-	const tallies = data[3]
+	let tallies = data[3]
 
 	if (matrix !== this.config.matrix) {
 		return
 	}
 
-	if (tallies > 32) {
-		this.log('warn', `Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies, exceeds protocol limit of 133 bytes`)
+	this.log(
+		'debug',
+		`Extended cosspoint tally dump for matrix ${matrix} level ${level} are going to read ${tallies} tallies`,
+	)
+
+	if (tallies * 4 > 133 - 2) {
+		// Not more than 133 bytes, and not more than 64 tallies per spec
+		const newTallies = Math.min(Math.floor((133 - 2) / 4), 64)
+
+		this.log(
+			'warn',
+			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than ${newTallies} specified as limit by protocol)`,
+		)
+
+		tallies = newTallies
 	}
+
 	let currentOffset = 4
 	for (let i = 0; i < tallies; i++) {
 		const dest = data.readUInt16BE(currentOffset) + 1
@@ -134,7 +162,9 @@ export function updateAllCrosspoints() {
 						// only if names have been retrieved
 						try {
 							this.setVariableValues({
-								[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+								[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(
+									this.source_names.get(source - 1)?.label || 'N/A',
+								),
 							})
 						} catch (e) {
 							this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e?.message || e.toString()}`)
