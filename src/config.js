@@ -46,13 +46,13 @@ export function getConfigFields() {
 			range: true,
 			step: 1,
 		},
-		{
+		/*{
 			type: 'checkbox',
 			label: 'Enable',
 			id: 'tally_dump_and_update',
 			width: 1,
 			default: false,
-		},
+		},*/
 		{
 			type: 'static-text',
 			label: 'My router controller supports tally dump, and sends tally updates',
