@@ -25,6 +25,17 @@ import _ from 'lodash'
 import PQueue from 'p-queue'
 
 class SW_P_08 extends InstanceBase {
+	throttledUpdate = _.throttle(() => {
+		this.updateVariableDefinitions()
+		this.updateActions()
+		this.updateFeedbacks()
+		this.updatePresets()
+	}, 1000)
+
+	throttledCrosspointUpdate = _.throttle(() => {
+		this.updateAllCrosspoints()
+	}, 500)
+
 	constructor(internal) {
 		super(internal)
 		Object.assign(this, {
@@ -38,14 +49,10 @@ class SW_P_08 extends InstanceBase {
 			...tcp,
 			...util,
 		})
+		this.ackCallbacks = []
+		this.routeMap = new Map()
+		this.routeDestMap = new Map()
 	}
-
-	throttledUpdate = _.throttle(() => {
-		this.updateVariableDefinitions()
-		this.updateActions()
-		this.updateFeedbacks()
-		this.updatePresets()
-	}, 1000)
 
 	async init(config) {
 		this.queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })

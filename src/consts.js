@@ -3,10 +3,12 @@ import { combineRgb } from '@companion-module/base'
 export const msgDelay = 5
 export const keepAliveTimeOut = 30000
 
-export const DLE = '10'
-export const STX = '02'
-export const ETX = '03'
-export const ACK = '06'
+export const DLE = 0x10
+export const STX = 0x02
+export const ETX = 0x03
+export const ACK = 0x06
+export const NAK = 0x15
+
 export const colours = {
 	white: combineRgb(255, 255, 255),
 	black: combineRgb(0, 0, 0),
@@ -130,43 +132,30 @@ export const presetDefaults = {
 	destCount: 256,
 }
 
-export const cmd = {
-	interrogate: '01',
-	connect: '02',
-	tally: '03',
-	connected: '04',
-	tallyDumpRequest: '21',
-	tallyDumpByteMessage: '22',
-	tallyDumpWordMessage: '23',
-	getSourceName: '64',
-	getDestName: '66',
-	connectOnGoGroupSalvo: '78',
-	goGroupSalvo: '79',
-	connectOnGoGroupSalvoAck: '7A',
-	goDoneGroupSalvoAck: '7B',
-	salvoGroupInterrogate: '7C',
-	groupSalvoTally: '7D',
-	extendedinterrogate: '81',
-	extendedConnect: '82',
-	extendedGetSourceName: 'E4',
-	extendedGetDestName: 'E6',
-}
-
-export const hexBytes = {
-	DLE: 0x10,
-	STX: 0x02,
-	ETX: 0x03,
-	ACK: 0x06,
-	NAK: 0x15,
-	cmd: {
-		tally: 0x03,
-		connected: 0x04,
-		extendedTally: 0x83,
-		extendedConnected: 0x84,
-		protocolImplementation: 0x62,
-		sourceNames: 0x6a,
-		destNames: 0x6b,
-		extendedSourceNames: 0xea,
-		extendedDestNames: 0xeb,
-	},
+export const cmds = {
+	crosspointInterrogate: 0x01,
+	crosspointConnect: 0x02,
+	crosspointTally: 0x03,
+	crosspointConnected: 0x04,
+	crosspointTallyDump: 0x15,
+	crosspointTallyDumpByteResponse: 0x16,
+	crosspointTallyDumpWordResponse: 0x17,
+	getSourceNames: 0x64,
+	getDestNames: 0x66,
+	extendedInterrogate: 0x81,
+	extendedCrosspointConnect: 0x82,
+	extendedCrosspointTally: 0x83,
+	extendedCrosspointConnected: 0x84,
+	protocolImplementation: 0x61,
+	protocolImplementationResponse: 0x62,
+	allSourceNames: 0x64,
+	allDestNames: 0x66,
+	sourceNamesResponse: 0x6a,
+	destNamesResponse: 0x6b,
+	extendedCrosspointTallyDump: 0x95,
+	extendedCrosspointTallyDumpWordResponse: 0x97,
+	extendedGetSourceNames: 0xe4,
+	extendedGetDestNames: 0xe6,
+	extendedSourceNamesResponse: 0xea,
+	extendedDestNamesResponse: 0xeb,
 }

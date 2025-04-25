@@ -1,6 +1,6 @@
 export async function SetupVariables(self) {
 	// Implemented Commands
-	let varList = []
+	const varList = []
 	self.commands = []
 
 	// Hold values
@@ -8,14 +8,12 @@ export async function SetupVariables(self) {
 	self.selected_dest = 0
 	self.selected_source = 0
 
-	self.routeTable = []
-
 	self.levels = []
 
 	self.config.max_levels = self.config.max_levels === undefined ? 3 : self.config.max_levels
 
-	for (var i = 1; i <= self.config.max_levels; i++) {
-		self.levels.push({ id: i, label: 'Level: ' + i })
+	for (let i = 1; i <= self.config.max_levels; i++) {
+		self.levels.push({ id: i, label: `Level: ${i}` })
 		self.selected_level.push({ id: i, enabled: true })
 	}
 
@@ -25,18 +23,18 @@ export async function SetupVariables(self) {
 
 	self.updateVariableDefinitions()
 
-	varList['Sources'] = 0
-	varList['Destinations'] = 0
+	varList.Sources = 0
+	varList.Destinations = 0
 
-	varList['Source'] = self.selected_source
-	varList['Destination'] = self.selected_dest
+	varList.Source = self.selected_source
+	varList.Destination = self.selected_dest
 	self.setVariableValues(varList)
 }
 
 export async function UpdateVariableDefinitions(self) {
-	let coreVariables = []
-	const sourceKeys = Object.keys(self.source_names)
-	const destKeys = Object.keys(self.dest_names)
+	const coreVariables = []
+	const sourceValues = Array.from(self.source_names.values())
+	const destValues = Array.from(self.dest_names.values())
 
 	coreVariables.push(
 		{
@@ -59,39 +57,39 @@ export async function UpdateVariableDefinitions(self) {
 
 	for (let i = 1; i <= self.config.max_levels; i++) {
 		coreVariables.push({
-			name: 'Selected destination source for level ' + i.toString(),
-			variableId: 'Sel_Dest_Source_Level_' + i.toString(),
+			name: `Selected destination source for level ${i}`,
+			variableId: `Sel_Dest_Source_Level_${i}`,
 		})
 		coreVariables.push({
-			name: 'Selected destination source name for level ' + i.toString(),
-			variableId: 'Sel_Dest_Source_Name_Level_' + i.toString(),
-		})
-	}
-
-	for (let i = 1; i <= sourceKeys.length; i++) {
-		coreVariables.push({
-			name: 'Source ' + i.toString(),
-			variableId: 'Source_' + i.toString(),
+			name: `Selected destination source name for level ${i}`,
+			variableId: `Sel_Dest_Source_Name_Level_${i}`,
 		})
 	}
 
-	for (let i = 1; i <= destKeys.length; i++) {
+	for (let i = 1; i <= sourceValues.length; i++) {
 		coreVariables.push({
-			name: 'Destination ' + i.toString(),
-			variableId: 'Destination_' + i.toString(),
+			name: `Source ${i}`,
+			variableId: `Source_${i}`,
+		})
+	}
+
+	for (let i = 1; i <= destValues.length; i++) {
+		coreVariables.push({
+			name: `Destination ${i}`,
+			variableId: `Destination_${i}`,
 		})
 	}
 
 	self.setVariableDefinitions(coreVariables)
 
-	let labelDump = []
+	const labelDump = {}
 
-	for (let i = 0; i < sourceKeys.length; i++) {
-		labelDump[`Source_${self.source_names[i].id}`] = self.stripNumber(self.source_names[i].label)
+	for (const sourceValue of sourceValues) {
+		labelDump[`Source_${sourceValue.id}`] = self.stripNumber(sourceValue.label)
 	}
 
-	for (let i = 0; i < destKeys.length; i++) {
-		labelDump[`Destination_${self.dest_names[i].id}`] = self.stripNumber(self.dest_names[i].label)
+	for (const destValue of destValues) {
+		labelDump[`Destination_${destValue.id}`] = self.stripNumber(destValue.label)
 	}
 
 	self.setVariableValues(labelDump)
