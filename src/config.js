@@ -53,13 +53,13 @@ export function getConfigFields() {
 			width: 1,
 			default: false,
 		},*/
-		{
-			type: 'static-text',
-			label: 'My router controller supports tally dump, and sends tally updates',
-			id: 'tally_dump_and_update_txt',
-			value: 'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
-			width: 11,
-		},
+		// {
+		// 	type: 'static-text',
+		// 	label: 'My router controller supports tally dump, and sends tally updates',
+		// 	id: 'tally_dump_and_update_txt',
+		// 	value: 'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
+		// 	width: 11,
+		// },
 		{
 			type: 'checkbox',
 			label: 'Enable',
