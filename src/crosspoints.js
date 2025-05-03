@@ -64,7 +64,20 @@ export function processCrosspointTallyDump(data) {
 	const type = data[0] === cmds.crosspointTallyDumpByteResponse ? 'byte' : 'word'
 	const matrix = ((data[1] & 0xf0) >> 4) + 1
 	const level = (data[1] & 0x0f) + 1
-	let tallies = data[2]
+
+	this.processCrosspointTallyDumpData(data, matrix, level, type, 2)
+}
+
+/**
+ * General function for processing crosspoint tally dumps
+ * @param {Buffer} data
+ * @param {string} matrix Matrix number
+ * @param {number} level Level number
+ * @param {'byte'|'word'} type Type of data (byte or word)
+ * @param {number} offset Offset in the buffer where the data starts
+ */
+export function processCrosspointTallyDumpData(data, matrix, level, type, offset) {
+	const tallies = data[offset]
 
 	if (matrix !== this.config.matrix) {
 		return
@@ -72,36 +85,46 @@ export function processCrosspointTallyDump(data) {
 
 	this.log('debug', `Crosspoint tally dump for matrix ${matrix} level ${level} are going to read ${tallies} tallies`)
 
-	if (tallies * (type === 'byte' ? 2 : 4) > 133 - 2) {
-		// Not more than 133 bytes, and not more than 64 tallies per spec
-		const newTallies = Math.min(Math.floor((133 - 2) / (type === 'byte' ? 2 : 4)), 64)
-
+	const psize = (type === 'byte' ? 1 : 2) * tallies
+	if (psize > 133 - 3) {
 		this.log(
 			'warn',
-			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than ${newTallies} specified as limit by protocol)`,
+			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (${psize + 3} exceeds the maximum size of 133 bytes per packet)`,
 		)
-
-		// The issue with this is if that the device is sending for example 45 word tallies, the first packet would go ok
-		// but then we have to know that the next packet will be only 13 tallies. But there are no packet identifications, so the two
-		// packets aren't really related. Needs more testing. This is quite a design flaw in the protocol if so.
-
-		tallies = newTallies
 	}
 
-	let currentOffset = 3
+	if (tallies > 64) {
+		this.log(
+			'warn',
+			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than 64 specified as limit by protocol)`,
+		)
+	}
+
+	let currentOffset = offset + 1
 	if (type === 'byte') {
+		let dest = data.readUInt8(currentOffset) + 1
+		currentOffset += 1
 		for (let i = 0; i < tallies; i++) {
-			const dest = data.readUInt8(currentOffset) + 1
+			if (currentOffset + 1 > data.length) {
+				this.log(
+					'warn',
+					`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies but only ${data.length} bytes available`,
+				)
+				break
+			}
 			const source = data.readUInt8(currentOffset + 1) + 1
 			this.setRoutemap(source, dest, level)
-			currentOffset += 2
+			dest++
+			currentOffset++
 		}
 	} else {
+		let dest = data.readUInt16BE(currentOffset) + 1
+		currentOffset += 2
 		for (let i = 0; i < tallies; i++) {
-			const dest = data.readUInt16BE(currentOffset) + 1
-			const source = data.readUInt16BE(currentOffset + 2) + 1
+			const source = data.readUInt16BE(currentOffset) + 1
 			this.setRoutemap(source, dest, level)
-			currentOffset += 4
+			currentOffset += 2
+			dest++
 		}
 	}
 
@@ -115,38 +138,9 @@ export function processCrosspointTallyDump(data) {
 export function processExtCrosspointTallyDump(data) {
 	const matrix = data[1] + 1
 	const level = data[2] + 1
-	let tallies = data[3]
 
-	if (matrix !== this.config.matrix) {
-		return
-	}
-
-	this.log(
-		'debug',
-		`Extended cosspoint tally dump for matrix ${matrix} level ${level} are going to read ${tallies} tallies`,
-	)
-
-	if (tallies * 4 > 133 - 2) {
-		// Not more than 133 bytes, and not more than 64 tallies per spec
-		const newTallies = Math.min(Math.floor((133 - 2) / 4), 64)
-
-		this.log(
-			'warn',
-			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than ${newTallies} specified as limit by protocol)`,
-		)
-
-		tallies = newTallies
-	}
-
-	let currentOffset = 4
-	for (let i = 0; i < tallies; i++) {
-		const dest = data.readUInt16BE(currentOffset) + 1
-		const source = data.readUInt16BE(currentOffset + 2) + 1
-		this.setRoutemap(source, dest, level)
-		currentOffset += 4
-	}
-
-	this.throttledCrosspointUpdate()
+	// we only know about word-style extended tally dumps
+	this.processCrosspointTallyDumpData(data, matrix, level, 'word', 3)
 }
 
 export function updateAllCrosspoints() {
