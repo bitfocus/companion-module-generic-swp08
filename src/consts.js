@@ -148,8 +148,6 @@ export const cmds = {
 	extendedCrosspointConnected: 0x84,
 	protocolImplementation: 0x61,
 	protocolImplementationResponse: 0x62,
-	allSourceNames: 0x64,
-	allDestNames: 0x66,
 	sourceNamesResponse: 0x6a,
 	destNamesResponse: 0x6b,
 	extendedCrosspointTallyDump: 0x95,
@@ -158,4 +156,13 @@ export const cmds = {
 	extendedGetDestNames: 0xe6,
 	extendedSourceNamesResponse: 0xea,
 	extendedDestNamesResponse: 0xeb,
+}
+
+export function getCommandName(value) {
+	for (const [key, val] of Object.entries(cmds)) {
+		if (val === value) {
+			return key
+		}
+	}
+	return 'Unknown Command'
 }

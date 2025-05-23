@@ -1,5 +1,8 @@
-import _ from 'lodash'
 import { cmds } from './consts.js'
+
+export function getRouteVariableName(level, dest) {
+	return `Route_${level}_${dest}`
+}
 
 export function crosspointConnected(data) {
 	const matrix = ((data[1] & 0xf0) >> 4) + 1
@@ -46,14 +49,18 @@ export function setRoutemap(source, dest, level) {
 export function getRoutemapEntries(dest) {
 	const map = this.routeMap.get(dest)
 	if (map) {
-		const sources = Array.from(map.values())
+		const sources = Object.fromEntries(map.entries())
 		return sources
 	}
-	return []
+	return {}
 }
 
-export function hasSourceInRoutemap(dest, source) {
-	return this.getRoutemapEntries(dest).some((entry) => entry === source)
+export function hasSourceInAnyLevelRoutemap(dest, source) {
+	return Object.values(this.getRoutemapEntries(dest)).some((entry) => entry === source)
+}
+
+export function hasSourceInRoutemap(level, dest, source) {
+	return this.getRoutemapEntries(dest)[level] === source
 }
 
 /**
@@ -144,6 +151,7 @@ export function processExtCrosspointTallyDump(data) {
 }
 
 export function updateAllCrosspoints() {
+	const variables = new Map()
 	const numDests = this.dest_names.size > 0 ? this.dest_names.size : 256
 	for (let dest = 1; dest <= numDests; dest++) {
 		if (dest === this.selected_dest) {
@@ -151,29 +159,55 @@ export function updateAllCrosspoints() {
 			for (let level = 1; level <= this.config.max_levels; level++) {
 				if (map.has(level)) {
 					const source = map.get(level)
-					this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: source })
+					variables.set(`Sel_Dest_Source_Level_${level}`, source)
 					if (this.source_names.size > 0) {
 						// only if names have been retrieved
 						try {
-							this.setVariableValues({
-								[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(
-									this.source_names.get(source - 1)?.label || 'N/A',
-								),
-							})
+							variables.set(
+								`Sel_Dest_Source_Name_Level_${level}`,
+								this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+							)
 						} catch (e) {
 							this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e?.message || e.toString()}`)
 						}
 					}
 				} else {
-					this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: -1 })
-					this.setVariableValues({
-						[`Sel_Dest_Source_Name_Level_${level}`]: 'N/A',
-					})
+					variables.set(`Sel_Dest_Source_Level_${level}`, -1)
+					variables.set(`Sel_Dest_Source_Name_Level_${level}`, 'N/A')
 				}
 			}
 		}
 	}
-	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
+
+	const sourceValues = Array.from(this.source_names.values())
+	const destValues = Array.from(this.dest_names.values())
+
+	for (const sourceValue of sourceValues) {
+		variables.set(`Source_${sourceValue.id}`, this.stripNumber(sourceValue.label))
+	}
+
+	for (const destValue of destValues) {
+		variables.set(`Destination_${destValue.id}`, this.stripNumber(destValue.label))
+	}
+
+	if (this.config.tally_dump_variables) {
+		for (const index of this.routeMap.keys()) {
+			const levels = this.routeMap.get(index) ?? new Map()
+			for (const level of levels.keys()) {
+				variables.set(getRouteVariableName(level, index), levels.get(level))
+			}
+		}
+	}
+
+	this.setVariableValuesCached(Object.fromEntries(variables))
+
+	// TODO: separate id for each destination, and only send source_dest_route if any of them have changed
+	this.checkFeedbacks(
+		'source_dest_route',
+		'crosspoint_connected',
+		'crosspoint_connected_by_name',
+		'crosspoint_connected_by_level',
+	)
 }
 
 export function record_crosspoint(source, dest, level) {
@@ -191,11 +225,11 @@ export function record_crosspoint(source, dest, level) {
 export function update_crosspoints(source, dest, level) {
 	if (dest === this.selected_dest) {
 		// update variables for selected dest source
-		this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: source })
+		this.setVariableValuesCached({ [`Sel_Dest_Source_Level_${level}`]: source })
 		if (this.source_names.size > 0) {
 			// only if names have been retrieved
 			try {
-				this.setVariableValues({
+				this.setVariableValuesCached({
 					[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
 				})
 			} catch (e) {
@@ -204,8 +238,14 @@ export function update_crosspoints(source, dest, level) {
 		}
 	}
 
+	this.setVariableValuesCached({ [getRouteVariableName(level, dest)]: source })
 	this.setRoutemap(source, dest, level)
-	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
+	this.checkFeedbacks(
+		'source_dest_route',
+		'crosspoint_connected',
+		'crosspoint_connected_by_name',
+		'crosspoint_connected_by_level',
+	)
 	this.record_crosspoint(source, dest, level)
 }
 
@@ -233,7 +273,14 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 	const dest = destN - 1
 	const level = levelN - 1
 
-	if (source > 1023 || dest > 1023 || levelN > 15) {
+	if ((source > 1023 || dest > 1023 || levelN > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
+		if (this.config.extended_support === false) {
+			this.log(
+				'warn',
+				'Doing a crosspoint connect with a value outside of the normal command range, but extended support is not enabled, using extended command anyway',
+			)
+			return
+		}
 		// Extended command required
 		cmd.push(cmds.extendedCrosspointConnect)
 		// Matrix
@@ -249,6 +296,14 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 		// Source MOD 256
 		cmd.push(source & 0xff)
 	} else {
+		if (source > 1023 || dest > 1023 || levelN > 15) {
+			this.log(
+				'error',
+				'Doing a crosspoint connect with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint.',
+			)
+			return
+		}
+
 		// Standard Command
 		cmd.push(cmds.crosspointConnect)
 		// Matrix and Level
@@ -276,7 +331,7 @@ export function getCrosspoints(destN) {
 	}
 	const dest = destN - 1
 
-	if (this.config.max_levels > 16 || dest > 1023) {
+	if ((this.config.max_levels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) {
 		// check all levels
 		for (let i = 0; i < this.config.max_levels; i++) {
 			this.sendMessage([
@@ -293,6 +348,14 @@ export function getCrosspoints(destN) {
 			])
 		}
 	} else {
+		if (this.config.max_levels > 16 || dest > 1023) {
+			this.log(
+				'error',
+				'Doing a crosspoint interrogate with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint interrogate.',
+			)
+			return
+		}
+
 		// check all levels
 		for (let i = 0; i <= this.config.max_levels - 1; i++) {
 			this.sendMessage([
