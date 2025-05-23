@@ -1,7 +1,7 @@
 import { combineRgb } from '@companion-module/base'
 
 export const msgDelay = 5
-export const keepAliveTimeOut = 30000
+export const keepAliveTime = 30000
 
 export const DLE = 0x10
 export const STX = 0x02

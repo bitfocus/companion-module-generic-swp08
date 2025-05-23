@@ -91,23 +91,21 @@ export function hasCommand(cmdCode) {
  */
 export function sendMessage(message) {
 	const msg = message instanceof Buffer ? message : Buffer.from(message)
-	if (msg.length < 1) {
-		this.log('warn', 'Empty or invalid message!')
-		return
-	}
 
-	// check that the command is implemented in the router
-	const cmdCode = msg[0]
+	if (msg.length > 0) {
+		// check that the command is implemented in the router
+		const cmdCode = msg[0]
 
-	if (
-		cmdCode !== 97 &&
-		cmdCode !== 0 &&
-		this.config.supported_commands_on_connect === true &&
-		this.commands.length > 0
-	) {
-		if (this.commands.indexOf(cmdCode) === -1) {
-			this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
-			return
+		if (
+			cmdCode !== 97 &&
+			cmdCode !== 0 &&
+			this.config.supported_commands_on_connect === true &&
+			this.commands.length > 0
+		) {
+			if (this.commands.indexOf(cmdCode) === -1) {
+				this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
+				return
+			}
 		}
 	}
 
@@ -148,7 +146,6 @@ export function sendMessage(message) {
 	this.queue.add(async () => {
 		if (this.socket?.isConnected) {
 			this.socket.send(packetBuffer)
-			this.startKeepAliveTimer()
 
 			this.addAckCallback(() => {
 				// Retry sending the command if it fails
@@ -170,6 +167,8 @@ export function init_tcp() {
 		delete this.socket
 	}
 
+	this.stopKeepAliveTimer()
+
 	if (this.config.host) {
 		this.socket = new TCPHelper(this.config.host, this.config.port)
 
@@ -180,6 +179,10 @@ export function init_tcp() {
 		this.socket.on('error', (err) => {
 			this.log('error', `Network error: ${err.message}`)
 			this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
+			this.stopKeepAliveTimer()
+		})
+
+		this.socket.on('close', () => {
 			this.stopKeepAliveTimer()
 		})
 
