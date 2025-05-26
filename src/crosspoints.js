@@ -179,17 +179,6 @@ export function updateAllCrosspoints() {
 		}
 	}
 
-	const sourceValues = Array.from(this.source_names.values())
-	const destValues = Array.from(this.dest_names.values())
-
-	for (const sourceValue of sourceValues) {
-		variables.set(`Source_${sourceValue.id}`, this.stripNumber(sourceValue.label))
-	}
-
-	for (const destValue of destValues) {
-		variables.set(`Destination_${destValue.id}`, this.stripNumber(destValue.label))
-	}
-
 	if (this.config.tally_dump_variables) {
 		for (const index of this.routeMap.keys()) {
 			const levels = this.routeMap.get(index) ?? new Map()

@@ -105,11 +105,25 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 		}
 	}
 
-	this.setVariableValuesCached({
-		Sources: this.source_names.size,
-		Destinations: this.dest_names.size,
-	})
-
 	// update dropdown lists
 	this.throttledUpdate()
+}
+
+export function updateAllNames() {
+	const variables = new Map()
+
+	// biome-ignore lint/complexity/noForEach: better for maps
+	this.source_names.forEach((sourceValue) => {
+		variables.set(`Source_${sourceValue.id}`, this.stripNumber(sourceValue.label))
+	})
+
+	// biome-ignore lint/complexity/noForEach: better for maps
+	this.dest_names.forEach((destValue) => {
+		variables.set(`Destination_${destValue.id}`, this.stripNumber(destValue.label))
+	})
+
+	variables.set('Sources', this.source_names.size)
+	variables.set('Destinations', this.dest_names.size)
+
+	this.setVariableValuesCached(Object.fromEntries(variables))
 }

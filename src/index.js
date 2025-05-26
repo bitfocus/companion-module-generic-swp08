@@ -27,6 +27,7 @@ import PQueue from 'p-queue'
 class SW_P_08 extends InstanceBase {
 	throttledUpdate = _.throttle(() => {
 		this.updateVariableDefinitions()
+		this.updateAllNames()
 		this.updateActions()
 		this.updateFeedbacks()
 		this.updatePresets()
@@ -35,9 +36,10 @@ class SW_P_08 extends InstanceBase {
 	throttledCrosspointUpdate = _.throttle(
 		() => {
 			this.updateVariableDefinitions()
+			this.updateAllNames()
 			this.updateAllCrosspoints()
 		},
-		500,
+		1000,
 		{ trailing: true },
 	)
 

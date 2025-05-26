@@ -120,10 +120,10 @@ export async function updateVariableDefinitions() {
 		if (!_.isEqual(this.lastVariableDefinitions.get(variable.variableId), variable)) {
 			this.lastVariableDefinitions.set(variable.variableId, variable)
 			changes = true
-			break
 		}
 	}
 
+	// No changes, no need to update
 	if (!changes) {
 		return
 	}

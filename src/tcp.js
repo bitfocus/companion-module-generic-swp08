@@ -141,7 +141,7 @@ export function sendMessage(message) {
 
 	const packetBuffer = Buffer.from(packet)
 
-	this.log('debug', `Sending >> ${packetBuffer.toString('hex')} at ${new Date().toISOString()}`)
+	this.log('debug', `Sending >> ${packetBuffer.toString('hex')}`)
 
 	this.queue.add(async () => {
 		if (this.socket?.isConnected) {
