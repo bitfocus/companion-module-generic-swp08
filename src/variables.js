@@ -7,15 +7,14 @@ export async function setupVariables() {
 	this.commands = []
 
 	// Hold values
-	this.selected_level = []
 	this.selected_dest = 0
 	this.selected_source = 0
 
+	const currentLevels = (this.config.extended_support ? this.config.max_levels_ext : this.config.max_levels) || 3
+
 	this.levels = []
-
-	this.config.max_levels = this.config.max_levels === undefined ? 3 : this.config.max_levels
-
-	for (let i = 1; i <= this.config.max_levels; i++) {
+	this.selected_level = []
+	for (let i = 1; i <= currentLevels; i++) {
 		this.levels.push({ id: i, label: `Level: ${i}` })
 		this.selected_level.push({ id: i, enabled: true })
 	}

@@ -75,6 +75,12 @@ class SW_P_08 extends InstanceBase {
 		this.queue.clear()
 		this.updateStatus(InstanceStatus.Connecting)
 
+		if (config.max_levels === undefined) {
+			config.max_levels = 3
+		}
+		if (config.max_levels_ext === undefined) {
+			config.max_levels_ext = config.max_levels || 3
+		}
 		if (config.extended_support) {
 			const newMatrix = Math.min(config.matrix_ext, 16)
 			const newLevels = Math.min(config.max_levels_ext, 16)
