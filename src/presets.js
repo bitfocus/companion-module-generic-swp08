@@ -1,6 +1,6 @@
 import { colours, presetDefaults } from './consts.js'
 
-export async function UpdatePresets(self) {
+export async function updatePresets() {
 	const presets = []
 
 	presets.take = {
@@ -45,7 +45,7 @@ export async function UpdatePresets(self) {
 	}
 
 	const srcLength =
-		self.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.size
+		this.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : this.source_names.size
 	for (let i = 1; i <= srcLength; i++) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
@@ -141,7 +141,7 @@ export async function UpdatePresets(self) {
 			],
 		}
 	}
-	const destLength = self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
+	const destLength = this.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : this.dest_names.size
 	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
@@ -216,5 +216,5 @@ export async function UpdatePresets(self) {
 		}
 	}
 
-	self.setPresetDefinitions(presets)
+	this.setPresetDefinitions(presets)
 }

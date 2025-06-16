@@ -1,5 +1,8 @@
-import _ from 'lodash'
 import { cmds } from './consts.js'
+
+export function getRouteVariableName(level, dest) {
+	return `Route_${level}_${dest}`
+}
 
 export function crosspointConnected(data) {
 	const matrix = ((data[1] & 0xf0) >> 4) + 1
@@ -46,14 +49,18 @@ export function setRoutemap(source, dest, level) {
 export function getRoutemapEntries(dest) {
 	const map = this.routeMap.get(dest)
 	if (map) {
-		const sources = Array.from(map.values())
+		const sources = Object.fromEntries(map.entries())
 		return sources
 	}
-	return []
+	return {}
 }
 
-export function hasSourceInRoutemap(dest, source) {
-	return this.getRoutemapEntries(dest).some((entry) => entry === source)
+export function hasSourceInAnyLevelRoutemap(dest, source) {
+	return Object.values(this.getRoutemapEntries(dest)).some((entry) => entry === source)
+}
+
+export function hasSourceInRoutemap(level, dest, source) {
+	return this.getRoutemapEntries(dest)[level] === source
 }
 
 /**
@@ -64,7 +71,20 @@ export function processCrosspointTallyDump(data) {
 	const type = data[0] === cmds.crosspointTallyDumpByteResponse ? 'byte' : 'word'
 	const matrix = ((data[1] & 0xf0) >> 4) + 1
 	const level = (data[1] & 0x0f) + 1
-	let tallies = data[2]
+
+	this.processCrosspointTallyDumpData(data, matrix, level, type, 2)
+}
+
+/**
+ * General function for processing crosspoint tally dumps
+ * @param {Buffer} data
+ * @param {string} matrix Matrix number
+ * @param {number} level Level number
+ * @param {'byte'|'word'} type Type of data (byte or word)
+ * @param {number} offset Offset in the buffer where the data starts
+ */
+export function processCrosspointTallyDumpData(data, matrix, level, type, offset) {
+	const tallies = data[offset]
 
 	if (matrix !== this.config.matrix) {
 		return
@@ -72,36 +92,46 @@ export function processCrosspointTallyDump(data) {
 
 	this.log('debug', `Crosspoint tally dump for matrix ${matrix} level ${level} are going to read ${tallies} tallies`)
 
-	if (tallies * (type === 'byte' ? 2 : 4) > 133 - 2) {
-		// Not more than 133 bytes, and not more than 64 tallies per spec
-		const newTallies = Math.min(Math.floor((133 - 2) / (type === 'byte' ? 2 : 4)), 64)
-
+	const psize = (type === 'byte' ? 1 : 2) * tallies
+	if (psize > 133 - 3) {
 		this.log(
 			'warn',
-			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than ${newTallies} specified as limit by protocol)`,
+			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (${psize + 3} exceeds the maximum size of 133 bytes per packet)`,
 		)
-
-		// The issue with this is if that the device is sending for example 45 word tallies, the first packet would go ok
-		// but then we have to know that the next packet will be only 13 tallies. But there are no packet identifications, so the two
-		// packets aren't really related. Needs more testing. This is quite a design flaw in the protocol if so.
-
-		tallies = newTallies
 	}
 
-	let currentOffset = 3
+	if (tallies > 64) {
+		this.log(
+			'warn',
+			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than 64 specified as limit by protocol)`,
+		)
+	}
+
+	let currentOffset = offset + 1
 	if (type === 'byte') {
+		let dest = data.readUInt8(currentOffset) + 1
+		currentOffset += 1
 		for (let i = 0; i < tallies; i++) {
-			const dest = data.readUInt8(currentOffset) + 1
+			if (currentOffset + 1 > data.length) {
+				this.log(
+					'warn',
+					`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies but only ${data.length} bytes available`,
+				)
+				break
+			}
 			const source = data.readUInt8(currentOffset + 1) + 1
 			this.setRoutemap(source, dest, level)
-			currentOffset += 2
+			dest++
+			currentOffset++
 		}
 	} else {
+		let dest = data.readUInt16BE(currentOffset) + 1
+		currentOffset += 2
 		for (let i = 0; i < tallies; i++) {
-			const dest = data.readUInt16BE(currentOffset) + 1
-			const source = data.readUInt16BE(currentOffset + 2) + 1
+			const source = data.readUInt16BE(currentOffset) + 1
 			this.setRoutemap(source, dest, level)
-			currentOffset += 4
+			currentOffset += 2
+			dest++
 		}
 	}
 
@@ -115,41 +145,13 @@ export function processCrosspointTallyDump(data) {
 export function processExtCrosspointTallyDump(data) {
 	const matrix = data[1] + 1
 	const level = data[2] + 1
-	let tallies = data[3]
 
-	if (matrix !== this.config.matrix) {
-		return
-	}
-
-	this.log(
-		'debug',
-		`Extended cosspoint tally dump for matrix ${matrix} level ${level} are going to read ${tallies} tallies`,
-	)
-
-	if (tallies * 4 > 133 - 2) {
-		// Not more than 133 bytes, and not more than 64 tallies per spec
-		const newTallies = Math.min(Math.floor((133 - 2) / 4), 64)
-
-		this.log(
-			'warn',
-			`Tally dump for matrix ${matrix} level ${level} has ${tallies} tallies (more than ${newTallies} specified as limit by protocol)`,
-		)
-
-		tallies = newTallies
-	}
-
-	let currentOffset = 4
-	for (let i = 0; i < tallies; i++) {
-		const dest = data.readUInt16BE(currentOffset) + 1
-		const source = data.readUInt16BE(currentOffset + 2) + 1
-		this.setRoutemap(source, dest, level)
-		currentOffset += 4
-	}
-
-	this.throttledCrosspointUpdate()
+	// we only know about word-style extended tally dumps
+	this.processCrosspointTallyDumpData(data, matrix, level, 'word', 3)
 }
 
 export function updateAllCrosspoints() {
+	const variables = new Map()
 	const numDests = this.dest_names.size > 0 ? this.dest_names.size : 256
 	for (let dest = 1; dest <= numDests; dest++) {
 		if (dest === this.selected_dest) {
@@ -157,29 +159,44 @@ export function updateAllCrosspoints() {
 			for (let level = 1; level <= this.config.max_levels; level++) {
 				if (map.has(level)) {
 					const source = map.get(level)
-					this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: source })
+					variables.set(`Sel_Dest_Source_Level_${level}`, source)
 					if (this.source_names.size > 0) {
 						// only if names have been retrieved
 						try {
-							this.setVariableValues({
-								[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(
-									this.source_names.get(source - 1)?.label || 'N/A',
-								),
-							})
+							variables.set(
+								`Sel_Dest_Source_Name_Level_${level}`,
+								this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+							)
 						} catch (e) {
 							this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e?.message || e.toString()}`)
 						}
 					}
 				} else {
-					this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: -1 })
-					this.setVariableValues({
-						[`Sel_Dest_Source_Name_Level_${level}`]: 'N/A',
-					})
+					variables.set(`Sel_Dest_Source_Level_${level}`, -1)
+					variables.set(`Sel_Dest_Source_Name_Level_${level}`, 'N/A')
 				}
 			}
 		}
 	}
-	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
+
+	if (this.config.tally_dump_variables) {
+		for (const index of this.routeMap.keys()) {
+			const levels = this.routeMap.get(index) ?? new Map()
+			for (const level of levels.keys()) {
+				variables.set(getRouteVariableName(level, index), levels.get(level))
+			}
+		}
+	}
+
+	this.setVariableValuesCached(Object.fromEntries(variables))
+
+	// TODO: separate id for each destination, and only send source_dest_route if any of them have changed
+	this.checkFeedbacks(
+		'source_dest_route',
+		'crosspoint_connected',
+		'crosspoint_connected_by_name',
+		'crosspoint_connected_by_level',
+	)
 }
 
 export function record_crosspoint(source, dest, level) {
@@ -197,11 +214,11 @@ export function record_crosspoint(source, dest, level) {
 export function update_crosspoints(source, dest, level) {
 	if (dest === this.selected_dest) {
 		// update variables for selected dest source
-		this.setVariableValues({ [`Sel_Dest_Source_Level_${level}`]: source })
+		this.setVariableValuesCached({ [`Sel_Dest_Source_Level_${level}`]: source })
 		if (this.source_names.size > 0) {
 			// only if names have been retrieved
 			try {
-				this.setVariableValues({
+				this.setVariableValuesCached({
 					[`Sel_Dest_Source_Name_Level_${level}`]: this.stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
 				})
 			} catch (e) {
@@ -210,8 +227,14 @@ export function update_crosspoints(source, dest, level) {
 		}
 	}
 
+	this.setVariableValuesCached({ [getRouteVariableName(level, dest)]: source })
 	this.setRoutemap(source, dest, level)
-	this.checkFeedbacks('source_dest_route', 'crosspoint_connected', 'crosspoint_connected_by_name')
+	this.checkFeedbacks(
+		'source_dest_route',
+		'crosspoint_connected',
+		'crosspoint_connected_by_name',
+		'crosspoint_connected_by_level',
+	)
 	this.record_crosspoint(source, dest, level)
 }
 
@@ -239,7 +262,14 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 	const dest = destN - 1
 	const level = levelN - 1
 
-	if (source > 1023 || dest > 1023 || levelN > 15) {
+	if ((source > 1023 || dest > 1023 || levelN > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
+		if (this.config.extended_support === false) {
+			this.log(
+				'warn',
+				'Doing a crosspoint connect with a value outside of the normal command range, but extended support is not enabled, using extended command anyway',
+			)
+			return
+		}
 		// Extended command required
 		cmd.push(cmds.extendedCrosspointConnect)
 		// Matrix
@@ -255,6 +285,14 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 		// Source MOD 256
 		cmd.push(source & 0xff)
 	} else {
+		if (source > 1023 || dest > 1023 || levelN > 15) {
+			this.log(
+				'error',
+				'Doing a crosspoint connect with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint.',
+			)
+			return
+		}
+
 		// Standard Command
 		cmd.push(cmds.crosspointConnect)
 		// Matrix and Level
@@ -282,7 +320,7 @@ export function getCrosspoints(destN) {
 	}
 	const dest = destN - 1
 
-	if (this.config.max_levels > 16 || dest > 1023) {
+	if ((this.config.max_levels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) {
 		// check all levels
 		for (let i = 0; i < this.config.max_levels; i++) {
 			this.sendMessage([
@@ -299,6 +337,14 @@ export function getCrosspoints(destN) {
 			])
 		}
 	} else {
+		if (this.config.max_levels > 16 || dest > 1023) {
+			this.log(
+				'error',
+				'Doing a crosspoint interrogate with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint interrogate.',
+			)
+			return
+		}
+
 		// check all levels
 		for (let i = 0; i <= this.config.max_levels - 1; i++) {
 			this.sendMessage([

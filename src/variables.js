@@ -1,40 +1,62 @@
-export async function SetupVariables(self) {
+import _ from 'lodash'
+import { getRouteVariableName } from './crosspoints.js'
+
+export async function setupVariables() {
 	// Implemented Commands
-	const varList = []
-	self.commands = []
+	const varList = {}
+	this.commands = []
 
 	// Hold values
-	self.selected_level = []
-	self.selected_dest = 0
-	self.selected_source = 0
+	this.selected_dest = 0
+	this.selected_source = 0
 
-	self.levels = []
+	const currentLevels = (this.config.extended_support ? this.config.max_levels_ext : this.config.max_levels) || 3
 
-	self.config.max_levels = self.config.max_levels === undefined ? 3 : self.config.max_levels
-
-	for (let i = 1; i <= self.config.max_levels; i++) {
-		self.levels.push({ id: i, label: `Level: ${i}` })
-		self.selected_level.push({ id: i, enabled: true })
+	this.levels = []
+	this.selected_level = []
+	for (let i = 1; i <= currentLevels; i++) {
+		this.levels.push({ id: i, label: `Level: ${i}` })
+		this.selected_level.push({ id: i, enabled: true })
 	}
 
 	// Labels
-	self.source_names = []
-	self.dest_names = []
+	this.source_names = []
+	this.dest_names = []
 
-	self.updateVariableDefinitions()
+	this.updateVariableDefinitions()
 
 	varList.Sources = 0
 	varList.Destinations = 0
 
-	varList.Source = self.selected_source
-	varList.Destination = self.selected_dest
-	self.setVariableValues(varList)
+	varList.Source = this.selected_source
+	varList.Destination = this.selected_dest
+
+	this.setVariableValuesCached(varList)
 }
 
-export async function UpdateVariableDefinitions(self) {
+/**
+ * Only set variable values if they have changed, easing the load on companion
+ * @param {*} object - Object with variable values to set
+ */
+export function setVariableValuesCached(object) {
+	const objCopy = { ...object }
+	for (const [key, value] of Object.entries(objCopy)) {
+		if (this.lastVariables.get(key) !== value) {
+			this.lastVariables.set(key, value)
+		} else {
+			delete objCopy[key]
+		}
+	}
+	if (Object.keys(objCopy).length === 0) {
+		return
+	}
+	this.setVariableValues(objCopy)
+}
+
+export async function updateVariableDefinitions() {
 	const coreVariables = []
-	const sourceValues = Array.from(self.source_names.values())
-	const destValues = Array.from(self.dest_names.values())
+	const sourceValues = Array.from(this.source_names.values())
+	const destValues = Array.from(this.dest_names.values())
 
 	coreVariables.push(
 		{
@@ -55,7 +77,7 @@ export async function UpdateVariableDefinitions(self) {
 		},
 	)
 
-	for (let i = 1; i <= self.config.max_levels; i++) {
+	for (let i = 1; i <= this.config.max_levels; i++) {
 		coreVariables.push({
 			name: `Selected destination source for level ${i}`,
 			variableId: `Sel_Dest_Source_Level_${i}`,
@@ -80,17 +102,30 @@ export async function UpdateVariableDefinitions(self) {
 		})
 	}
 
-	self.setVariableDefinitions(coreVariables)
-
-	const labelDump = {}
-
-	for (const sourceValue of sourceValues) {
-		labelDump[`Source_${sourceValue.id}`] = self.stripNumber(sourceValue.label)
+	if (this.config.tally_dump_variables) {
+		this.routeMap.forEach((levels, index) => {
+			for (const level of levels?.keys() ?? []) {
+				coreVariables.push({
+					name: `Source for destination ${index} at level ${level}`,
+					variableId: getRouteVariableName(level, index),
+				})
+			}
+		})
 	}
 
-	for (const destValue of destValues) {
-		labelDump[`Destination_${destValue.id}`] = self.stripNumber(destValue.label)
+	// Only update if there are changes to the variable definitions
+	let changes = false
+	for (const variable of coreVariables) {
+		if (!_.isEqual(this.lastVariableDefinitions.get(variable.variableId), variable)) {
+			this.lastVariableDefinitions.set(variable.variableId, variable)
+			changes = true
+		}
 	}
 
-	self.setVariableValues(labelDump)
+	// No changes, no need to update
+	if (!changes) {
+		return
+	}
+
+	this.setVariableDefinitions(coreVariables)
 }

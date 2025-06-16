@@ -5,16 +5,18 @@ import { ACK, NAK, DLE, STX, ETX, cmds } from './consts.js'
 export function sendNak() {
 	this.log('debug', 'Sending NAK')
 	if (this.socket?.isConnected) {
-		this.socket.send(Buffer.from([DLE, NAK]))
-		this.startKeepAliveTimer()
+		this.queue.add(async () => {
+			this.socket.send(Buffer.from([DLE, NAK]))
+		})
 	}
 }
 
 export function sendAck() {
 	//this.log('debug', 'Sending ACK')
 	if (this.socket?.isConnected) {
-		this.socket.send(Buffer.from([DLE, ACK]))
-		this.startKeepAliveTimer()
+		this.queue.add(async () => {
+			this.socket.send(Buffer.from([DLE, ACK]))
+		})
 	}
 }
 
@@ -35,7 +37,7 @@ function stuffDLE(data) {
 	return output
 }
 
-export function addAckCallback(sendCb) {
+export function addAckCallback(retryCb) {
 	this.ackCallbacks.push({
 		resolve: () => {
 			//this.log('debug', 'ACK received')
@@ -45,7 +47,7 @@ export function addAckCallback(sendCb) {
 			// Retry once
 			if (this.socket?.isConnected) {
 				// Retry sending the command
-				sendCb()
+				retryCb()
 				this.ackCallbacks.push({
 					resolve: () => {
 						this.log('debug', 'ACK received on second try')
@@ -59,8 +61,9 @@ export function addAckCallback(sendCb) {
 	})
 }
 
-export function readTally() {	if (this.config.extended_support) {
-		for (let i = 0; i < this.config.max_levels; i++) {
+export function readTally() {
+	if (this.config.extended_support) {
+		for (let i = 0; i < this.config.max_levels_ext; i++) {
 			this.sendMessage([cmds.extendedCrosspointTallyDump, this.config.matrix - 1, i])
 		}
 	} else {
@@ -70,6 +73,17 @@ export function readTally() {	if (this.config.extended_support) {
 	}
 }
 
+export function hasCommand(cmdCode) {
+	if (!this.config.supported_commands_on_connect || this.commands.length === 0) {
+		return true
+	}
+
+	if (this.commands.indexOf(cmdCode) !== -1) {
+		return true
+	}
+	return false
+}
+
 /**
  * Encapsulate a message and send it to the router
  * @param {Buffer|Array} message
@@ -77,23 +91,21 @@ export function readTally() {	if (this.config.extended_support) {
  */
 export function sendMessage(message) {
 	const msg = message instanceof Buffer ? message : Buffer.from(message)
-	if (msg.length < 1) {
-		this.log('warn', 'Empty or invalid message!')
-		return
-	}
 
-	// check that the command is implemented in the router
-	const cmdCode = msg[0]
+	if (msg.length > 0) {
+		// check that the command is implemented in the router
+		const cmdCode = msg[0]
 
-	if (
-		cmdCode !== 97 &&
-		cmdCode !== 0 &&
-		this.config.supported_commands_on_connect === true &&
-		this.commands.length > 0
-	) {
-		if (this.commands.indexOf(cmdCode) === -1) {
-			this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
-			return
+		if (
+			cmdCode !== 97 &&
+			cmdCode !== 0 &&
+			this.config.supported_commands_on_connect === true &&
+			this.commands.length > 0
+		) {
+			if (this.commands.indexOf(cmdCode) === -1) {
+				this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
+				return
+			}
 		}
 	}
 
@@ -134,9 +146,10 @@ export function sendMessage(message) {
 	this.queue.add(async () => {
 		if (this.socket?.isConnected) {
 			this.socket.send(packetBuffer)
-			this.startKeepAliveTimer()
 
 			this.addAckCallback(() => {
+				// Retry sending the command if it fails
+				this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
 				this.socket.send(packetBuffer)
 			})
 		} else {
@@ -154,6 +167,8 @@ export function init_tcp() {
 		delete this.socket
 	}
 
+	this.stopKeepAliveTimer()
+
 	if (this.config.host) {
 		this.socket = new TCPHelper(this.config.host, this.config.port)
 
@@ -167,11 +182,17 @@ export function init_tcp() {
 			this.stopKeepAliveTimer()
 		})
 
+		this.socket.on('close', () => {
+			this.stopKeepAliveTimer()
+		})
+
 		this.socket.on('connect', () => {
 			console.log(`Connected to ${this.config.host}:${this.config.port}`)
 			this.ackCallbacks = []
 			this.commands = []
 			this.routeMap = new Map()
+			this.lastVariables = new Map()
+			this.lastVariableDefinitions = new Map()
 			receivebuffer = Buffer.alloc(0)
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
 			if (this.config.supported_commands_on_connect === true) {

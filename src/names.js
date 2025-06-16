@@ -7,8 +7,12 @@ export function readNames() {
 	const cmdGetDestinations = []
 	this.source_names = new Map()
 	this.dest_names = new Map()
-	this.setVariableValues({ Sources: 0, Destinations: 0 })
-	if (this.config.extended_support === true) {
+	this.setVariableValuesCached({ Sources: 0, Destinations: 0 })
+
+	if (
+		this.config.extended_support === true &&
+		(this.hasCommand(cmds.extendedGetSourceNames) || this.hasCommand(cmds.extendedGetDestNames))
+	) {
 		// extended commands (only gets source names for level 1)
 		cmdGetSources.push(
 			cmds.extendedGetSourceNames,

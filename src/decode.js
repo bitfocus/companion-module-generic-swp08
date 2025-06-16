@@ -1,4 +1,4 @@
-import { STX, DLE, ETX, ACK, NAK, cmds } from './consts.js'
+import { STX, DLE, ETX, ACK, NAK, cmds, getCommandName } from './consts.js'
 
 /**
  * Decode one message, handling DLE escaping, packet length and checksum
@@ -68,7 +68,10 @@ export function decode(data) {
 			if (packet[packet.length - 2] !== packet.length - 2) {
 				// length - 2 = length of packet - BTC - CHK
 				this.log('warn', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}`)
-				this.log('debug', `Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2}: ${data.toString('hex')}`)
+				this.log(
+					'debug',
+					`Invalid packet length ${packet[packet.length - 2]} != ${packet.length - 2} in ${getCommandName(packet[0])} packet: ${data.toString('hex')}`,
+				)
 				this.sendNak()
 				return j + 2
 			}
@@ -77,14 +80,19 @@ export function decode(data) {
 			crc = (~(crc & 0xff) + 1) & 0xff
 			if (crc !== packet[packet.length - 1]) {
 				this.log('warn', `Invalid checksum ${crc} != ${packet[packet.length - 1]}`)
-				this.log('debug', `Invalid checksum ${crc} != ${packet[packet.length - 1]}: ${data.toString('hex')}`)
+				this.log(
+					'debug',
+					`Invalid checksum ${crc} != ${packet[packet.length - 1]} in ${getCommandName(packet[0])} packet: ${data.toString('hex')}`,
+				)
 				this.sendNak()
 				return j + 2
 			}
 
-			// We have a valid packet, process it
-			this.processMessage(packet.slice(0, packet.length - 2))
+			// Always acknowledge the packet if it is valid on a packet level
 			this.sendAck()
+
+			// Process the message
+			this.processMessage(packet.slice(0, packet.length - 2))
 
 			return j + 2
 		}
@@ -137,21 +145,21 @@ export function processMessage(message) {
 			break
 
 		case cmds.sourceNamesResponse:
+			this.processLabels(message, { hasMatrix: true, hasLevels: true })
+			break
+
 		case cmds.destNamesResponse:
-			// Standard Names Request Reply
-			this.processLabels(message)
+			this.processLabels(message, { hasMatrix: true, hasLevels: false })
 			break
 
 		case cmds.extendedSourceNamesResponse:
 			// Extended Source Names Reply
-			// Allows for extra Level field in response
-			this.ext_processSourceLabels(message)
+			this.processLabels(message, { hasMatrix: true, hasLevels: true, extended: true })
 			break
 
 		case cmds.extendedDestNamesResponse:
 			// Extended Destination Names Reply
-			// There is no difference in structure to the standard response
-			this.processLabels(message)
+			this.processLabels(message, { hasMatrix: true, hasLevels: false, extended: true })
 			break
 
 		case cmds.crosspointTallyDumpByteResponse:
@@ -163,7 +171,7 @@ export function processMessage(message) {
 			// Extended Crosspoint Tally Dump
 			this.processExtCrosspointTallyDump(message)
 			break
-		
+
 		default:
 			this.log('warn', `Unknown response code ${message[0]}`)
 			this.log('debug', `Unknown response code ${message[0]} in response: ${message.toString('hex')}`)

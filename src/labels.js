@@ -1,46 +1,71 @@
 import { cmds } from './consts.js'
 
-export function processLabels(data) {
+/**
+ * @typedef ProcessLabelsOptions
+ * @property {boolean} hasMatrix - Indicates if the command has matrix information.
+ * @property {boolean} hasLevels - Indicates if the command has level information.
+ * @property {boolean} extended - Indicates if it is an extended command.
+ */
+
+/**
+ * Process labels defined by the options
+ * @param {Buffer} data - Data section of packet
+ * @param {ProcessLabelsOptions} options - Options for label parser
+ */
+export function processLabels(data, options) {
 	const char_length_table = [4, 8, 12]
+	let level = 0
+	let matrix = 0
+	let start = 0
+	let char_length = 0
+	let label_number = 0
+	let labels_in_part = 0
 
-	// byte1 = matrix (in bits 4-7)
-	const matrix = (data[1] & 0xf0) >> 4
-	if (matrix !== this.config.matrix - 1) {
-		this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
-		// wrong matrix number
-		return
+	if (!options.extended) {
+		let idx = 1
+		// byte1 = matrix (in bits 4-7)
+		if (options.hasMatrix && options.hasLevels) {
+			matrix = (data[idx] & 0xf0) >> 4
+			if (matrix !== this.config.matrix - 1) {
+				this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
+				// wrong matrix number
+				return
+			}
+		}
+		if (options.hasMatrix && !options.hasLevels) {
+			matrix = data[idx]
+			if (matrix !== this.config.matrix - 1) {
+				this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
+				// wrong matrix number
+				return
+			}
+		}
+		if (options.hasLevels) {
+			level = data[idx] & 0x0f
+			if (level !== 0) {
+				this.log('debug', `Level ${level} does not match 0`)
+				// ignore level > 0 ?
+				return
+			}
+		}
+		idx++
+		char_length = char_length_table[data[idx++]]
+		label_number = (data[idx++] << 8) | data[idx++]
+		labels_in_part = data[idx++]
+		start = idx
+	} else {
+		let idx = 1
+		if (options.hasMatrix) {
+			matrix = data[idx++]
+		}
+		if (options.hasLevels) {
+			level = data[idx++]
+		}
+		char_length = char_length_table[data[idx++]]
+		label_number = (data[idx++] << 8) | data[idx++]
+		labels_in_part = data[idx++]
+		start = idx
 	}
-	const level = data[1] & 0x0f
-	if (level !== 0) {
-		this.log('debug', `Level ${level} does not match 0`)
-		// ignore level > 0 ?
-		return
-	}
-	const char_length = char_length_table[data[2]]
-	const label_number = (data[3] << 8) | data[4]
-	const labels_in_part = data[5]
-	const start = 6
-
-	this.extractLabels(data, char_length, label_number, labels_in_part, start)
-}
-
-export function ext_processSourceLabels(data) {
-	const char_length_table = [4, 8, 12]
-
-	if (data[1] !== this.config.matrix - 1) {
-		this.log('debug', `Matrix number ${data[1]} does not match ${this.config.matrix - 1}`)
-		// wrong matrix number
-		return
-	}
-	if (data[2] !== 0) {
-		this.log('debug', `Level ${data[2]} does not match 0`)
-		// ignore level > 0 ?
-		return
-	}
-	const char_length = char_length_table[data[3]]
-	const label_number = (data[4] << 8) | data[5]
-	const labels_in_part = data[6]
-	const start = 7
 
 	this.extractLabels(data, char_length, label_number, labels_in_part, start)
 }
@@ -80,11 +105,25 @@ export function extractLabels(data, char_length, label_number, labels_in_part, s
 		}
 	}
 
-	this.setVariableValues({
-		Sources: this.source_names.size,
-		Destinations: this.dest_names.size,
-	})
-
 	// update dropdown lists
 	this.throttledUpdate()
+}
+
+export function updateAllNames() {
+	const variables = new Map()
+
+	// biome-ignore lint/complexity/noForEach: better for maps
+	this.source_names.forEach((sourceValue) => {
+		variables.set(`Source_${sourceValue.id}`, this.stripNumber(sourceValue.label))
+	})
+
+	// biome-ignore lint/complexity/noForEach: better for maps
+	this.dest_names.forEach((destValue) => {
+		variables.set(`Destination_${destValue.id}`, this.stripNumber(destValue.label))
+	})
+
+	variables.set('Sources', this.source_names.size)
+	variables.set('Destinations', this.dest_names.size)
+
+	this.setVariableValuesCached(Object.fromEntries(variables))
 }
