@@ -22,7 +22,7 @@
 		"p-queue": "^8.1.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.3.0",
+		"@companion-module/tools": "^2.6.1",
 		"eslint": "^9.24.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^15.5.1",
