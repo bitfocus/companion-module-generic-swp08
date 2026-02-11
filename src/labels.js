@@ -23,30 +23,16 @@ export function processLabels(data, options) {
 
 	if (!options.extended) {
 		let idx = 1
-		// byte1 = matrix (in bits 4-7)
-		if (options.hasMatrix && options.hasLevels) {
+		// byte1 = matrix (in bits 4-7), level (in bits 3-0) per SW-P-08 spec
+		if (options.hasMatrix) {
 			matrix = (data[idx] & 0xf0) >> 4
 			if (matrix !== this.config.matrix - 1) {
 				this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
-				// wrong matrix number
-				return
-			}
-		}
-		if (options.hasMatrix && !options.hasLevels) {
-			matrix = data[idx]
-			if (matrix !== this.config.matrix - 1) {
-				this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
-				// wrong matrix number
 				return
 			}
 		}
 		if (options.hasLevels) {
 			level = data[idx] & 0x0f
-			if (level !== 0) {
-				this.log('debug', `Level ${level} does not match 0`)
-				// ignore level > 0 ?
-				return
-			}
 		}
 		idx++
 		char_length = char_length_table[data[idx++]]
@@ -57,6 +43,10 @@ export function processLabels(data, options) {
 		let idx = 1
 		if (options.hasMatrix) {
 			matrix = data[idx++]
+			if (matrix !== this.config.matrix_ext - 1) {
+				this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix_ext - 1}`)
+				return
+			}
 		}
 		if (options.hasLevels) {
 			level = data[idx++]
