@@ -128,4 +128,14 @@ export async function updateVariableDefinitions() {
 	}
 
 	this.setVariableDefinitions(coreVariables)
+
+	// Clear the value cache so all values are re-sent after definitions change,
+	// since Companion core resets variable values when receiving new definitions
+	this.lastVariables.clear()
+
+	// Rebuild definition cache to remove stale entries
+	this.lastVariableDefinitions.clear()
+	for (const variable of coreVariables) {
+		this.lastVariableDefinitions.set(variable.variableId, variable)
+	}
 }
