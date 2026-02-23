@@ -17,7 +17,7 @@
 		"url": "git+https://github.com/bitfocus/companion-module-generic-swp08.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.11.3",
+		"@companion-module/base": "~1.13.6",
 		"lodash": "^4.17.23",
 		"p-queue": "^9.1.0"
 	},
