@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer'
+// import { Buffer } from 'node:buffer'
 
 export function stripNumber(str) {
 	const n = str.indexOf(':')

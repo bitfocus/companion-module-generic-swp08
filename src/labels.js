@@ -49,6 +49,7 @@ export function processLabels(data, options) {
 			}
 		}
 		if (options.hasLevels) {
+			// eslint-disable-next-line no-unused-vars
 			level = data[idx++]
 		}
 		char_length = char_length_table[data[idx++]]
