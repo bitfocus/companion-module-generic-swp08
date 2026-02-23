@@ -313,6 +313,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/lodash@npm:^4.17.23":
+  version: 4.17.23
+  resolution: "@types/lodash@npm:4.17.23"
+  checksum: 10c0/9d9cbfb684e064a2b78aab9e220d398c9c2a7d36bc51a07b184ff382fa043a99b3d00c16c7f109b4eb8614118f4869678dbae7d5c6700ed16fb9340e26cc0bf6
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:*":
   version: 22.14.1
   resolution: "@types/node@npm:22.14.1"
@@ -1306,6 +1313,7 @@ __metadata:
   dependencies:
     "@companion-module/base": "npm:~1.11.3"
     "@companion-module/tools": "npm:^2.6.1"
+    "@types/lodash": "npm:^4.17.23"
     eslint: "npm:^9.24.0"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^15.5.1"
