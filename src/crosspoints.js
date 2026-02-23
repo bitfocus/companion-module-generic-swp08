@@ -135,7 +135,7 @@ export function processCrosspointTallyDumpData(data, matrix, level, type, offset
 		}
 	}
 
-	this.throttledCrosspointUpdate()
+	this.debouncedCrosspointUpdate()
 }
 
 /**

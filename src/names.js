@@ -13,22 +13,22 @@ export function readNames() {
 		this.config.extended_support === true &&
 		(this.hasCommand(cmds.extendedGetSourceNames) || this.hasCommand(cmds.extendedGetDestNames))
 	) {
-		// extended commands (only gets source names for level 1)
+		// extended commands (only gets source names for level 0)
 		cmdGetSources.push(
 			cmds.extendedGetSourceNames,
-			this.config.matrix - 1, // matrix
+			this.config.matrix_ext - 1, // matrix
 			0, // level
 			Number.parseInt(this.config.name_chars), // name characters
 		)
 		cmdGetDestinations.push(
 			cmds.extendedGetDestNames,
-			this.config.matrix - 1, // matrix
+			this.config.matrix_ext - 1, // matrix
 			Number.parseInt(this.config.name_chars), // name characters
 		)
 	} else {
 		// standard commands
-		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix - 1) << 4, this.config.name_chars)
-		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix - 1) << 4, this.config.name_chars)
+		cmdGetSources.push(cmds.getSourceNames, (this.config.matrix - 1) << 4, Number.parseInt(this.config.name_chars))
+		cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix - 1) << 4, Number.parseInt(this.config.name_chars))
 	}
 
 	// get source names
