@@ -19,15 +19,15 @@
 	"dependencies": {
 		"@companion-module/base": "~1.11.3",
 		"lodash": "^4.17.23",
-		"p-queue": "^8.1.0"
+		"p-queue": "^9.1.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.6.1",
+		"@companion-module/tools": "^2.7.1",
 		"@types/lodash": "^4.17.23",
-		"eslint": "^9.24.0",
+		"eslint": "^9.39.3",
 		"husky": "^9.1.7",
-		"lint-staged": "^15.5.1",
-		"prettier": "^3.5.3"
+		"lint-staged": "^16.2.7",
+		"prettier": "^3.8.1"
 	},
 	"engines": {
 		"node": "^22.13"
