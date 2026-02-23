@@ -1,6 +1,6 @@
 {
 	"name": "generic-swp08",
-	"version": "2.0.8",
+	"version": "2.0.9",
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
@@ -19,20 +19,21 @@
 	"dependencies": {
 		"@companion-module/base": "~1.11.3",
 		"lodash": "^4.17.23",
-		"p-queue": "^8.1.0"
+		"p-queue": "^9.1.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.6.1",
-		"eslint": "^9.24.0",
+		"@companion-module/tools": "^2.7.1",
+		"@types/lodash": "^4.17.23",
+		"eslint": "^9.39.3",
 		"husky": "^9.1.7",
-		"lint-staged": "^15.5.1",
-		"prettier": "^3.5.3"
+		"lint-staged": "^16.2.7",
+		"prettier": "^3.8.1"
 	},
 	"engines": {
 		"node": "^22.13"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.9.1",
+	"packageManager": "yarn@4.12.0",
 	"lint-staged": {
 		"*.{css,json,md,scss}": [
 			"prettier --write"

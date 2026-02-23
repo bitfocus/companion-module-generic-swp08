@@ -25,23 +25,31 @@ import _ from 'lodash'
 import PQueue from 'p-queue'
 
 class SW_P_08 extends InstanceBase {
-	debouncedUpdate = _.debounce(() => {
-		this.updateVariableDefinitions()
-		this.updateAllNames()
-		this.updateActions()
-		this.updateFeedbacks()
-		this.updatePresets()
-	}, 200, {
-		maxWait: 2000,
-	})
+	debouncedUpdate = _.debounce(
+		() => {
+			this.updateVariableDefinitions()
+			this.updateAllNames()
+			this.updateActions()
+			this.updateFeedbacks()
+			this.updatePresets()
+		},
+		200,
+		{
+			maxWait: 2000,
+		},
+	)
 
-	debouncedCrosspointUpdate = _.debounce(() => {
-		this.updateVariableDefinitions()
-		this.updateAllNames()
-		this.updateAllCrosspoints()
-	}, 200, {
-		maxWait: 2000,
-	})
+	debouncedCrosspointUpdate = _.debounce(
+		() => {
+			this.updateVariableDefinitions()
+			this.updateAllNames()
+			this.updateAllCrosspoints()
+		},
+		200,
+		{
+			maxWait: 2000,
+		},
+	)
 
 	constructor(internal) {
 		super(internal)
