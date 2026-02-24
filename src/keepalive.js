@@ -21,7 +21,7 @@ export function keepAlive() {
 	if (this.socket?.isConnected) {
 		// Send dummy message if the queue is empty
 		if (this.queue.size === 0) {
-			this.sendMessage([])
+			this.sendMessage([0x0a])
 		}
 	}
 }
