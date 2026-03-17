@@ -119,7 +119,7 @@ export function processCrosspointTallyDumpData(data, matrix, level, type, offset
 				)
 				break
 			}
-			const source = data.readUInt8(currentOffset + 1) + 1
+			const source = data.readUInt8(currentOffset) + 1
 			this.setRoutemap(source, dest, level)
 			dest++
 			currentOffset++
