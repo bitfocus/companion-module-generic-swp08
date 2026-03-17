@@ -1,6 +1,6 @@
 {
 	"name": "generic-swp08",
-	"version": "2.0.9",
+	"version": "2.0.9-tallyDumpByteOffsetChange",
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
@@ -23,17 +23,17 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.7.1",
-		"@types/lodash": "^4.17.23",
-		"eslint": "^9.39.3",
+		"@types/lodash": "^4.17.24",
+		"eslint": "^9.39.4",
 		"husky": "^9.1.7",
-		"lint-staged": "^16.2.7",
+		"lint-staged": "^16.4.0",
 		"prettier": "^3.8.1"
 	},
 	"engines": {
 		"node": "^22.13"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.12.0",
+	"packageManager": "yarn@4.13.0",
 	"lint-staged": {
 		"*.{css,json,md,scss}": [
 			"prettier --write"
