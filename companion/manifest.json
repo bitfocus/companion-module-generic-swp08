@@ -1,4 +1,5 @@
 {
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"id": "generic-swp08",
 	"name": "generic-swp08",
 	"shortname": "SW-P-08",
