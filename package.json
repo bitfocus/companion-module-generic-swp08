@@ -18,7 +18,7 @@
 	},
 	"dependencies": {
 		"@companion-module/base": "~1.13.6",
-		"lodash": "^4.17.23",
+		"lodash": "^4.18.1",
 		"p-queue": "^9.1.0"
 	},
 	"devDependencies": {
