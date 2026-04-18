@@ -1,6 +1,7 @@
 {
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"id": "generic-swp08",
+	"type": "connection",
 	"name": "generic-swp08",
 	"shortname": "SW-P-08",
 	"description": "General Remote Control Protocol (SW-P-08)",
