@@ -19,7 +19,7 @@
 	"dependencies": {
 		"@companion-module/base": "~1.13.6",
 		"lodash": "^4.18.1",
-		"p-queue": "^9.1.0"
+		"p-queue": "^9.1.2"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.7.1",
@@ -27,7 +27,7 @@
 		"eslint": "^9.39.4",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.4.0",
-		"prettier": "^3.8.1"
+		"prettier": "^3.8.3"
 	},
 	"engines": {
 		"node": "^22.13"
