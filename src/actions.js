@@ -48,7 +48,7 @@ export async function updateActions() {
 
 	actionDefinitions.select_dest_name = {
 		name: 'Select Destination name',
-		options: [{ ...actionOptions.destinationName, choices: this.dest_names }],
+		options: [{ ...actionOptions.destinationName, choices: Array.from(this.dest_names.values()) }],
 		callback: async ({ options }, context) => {
 			const dest = Number.parseInt(await context.parseVariablesInString(options.dest))
 			if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
