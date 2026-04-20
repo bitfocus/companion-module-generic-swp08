@@ -1,4 +1,4 @@
-import { combineRgb } from '@companion-module/base'
+import { combineRgb, SomeCompanionActionInputField, type SomeCompanionFeedbackInputField } from '@companion-module/base'
 
 export const msgDelay = 5
 export const keepAliveTime = 30000
@@ -26,6 +26,7 @@ export const feedbackOptions = {
 		id: 'level',
 		default: [1],
 		minSelection: 1,
+		choices: [],
 	},
 	destination: {
 		type: 'number',
@@ -42,6 +43,7 @@ export const feedbackOptions = {
 		default: 1,
 		allowCustom: true,
 		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
+		choices: [],
 	},
 	source: {
 		type: 'number',
@@ -58,8 +60,9 @@ export const feedbackOptions = {
 		default: 1,
 		allowCustom: true,
 		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
+		choices: [],
 	},
-}
+} as const satisfies Record<string, SomeCompanionFeedbackInputField>
 
 export const actionOptions = {
 	levels: {
@@ -68,6 +71,7 @@ export const actionOptions = {
 		id: 'level',
 		default: [1],
 		minSelection: 1,
+		choices: [],
 	},
 	destination: {
 		type: 'number',
@@ -84,6 +88,7 @@ export const actionOptions = {
 		default: 1,
 		allowCustom: true,
 		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
+		choices: [],
 	},
 	source: {
 		type: 'number',
@@ -100,6 +105,7 @@ export const actionOptions = {
 		default: 1,
 		allowCustom: true,
 		tooltip: 'Accepts Variable. Should return an integer between 1 & 65536',
+		choices: [],
 	},
 	clear: {
 		type: 'dropdown',
@@ -119,18 +125,18 @@ export const actionOptions = {
 		id: 'clear_enable_levels',
 		default: true,
 	},
-}
+} as const satisfies Record<string, SomeCompanionActionInputField>
+
 export const presetDefaults = {
 	style: {
 		size: '18',
-		show_topbar: 'default',
 		alignment: 'center:center',
 		color: colours.white,
 		bgcolor: colours.black,
 	},
 	sourceCount: 256,
 	destCount: 256,
-}
+} as const
 
 export const cmds = {
 	crosspointInterrogate: 0x01,
@@ -156,9 +162,9 @@ export const cmds = {
 	extendedGetDestNames: 0xe6,
 	extendedSourceNamesResponse: 0xea,
 	extendedDestNamesResponse: 0xeb,
-}
+} as const satisfies Record<string, number>
 
-export function getCommandName(value) {
+export function getCommandName(value: number): string {
 	for (const [key, val] of Object.entries(cmds)) {
 		if (val === value) {
 			return key

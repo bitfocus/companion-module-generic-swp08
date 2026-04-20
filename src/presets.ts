@@ -1,7 +1,9 @@
+import { CompanionPresetDefinition } from '@companion-module/base'
 import { colours, presetDefaults } from './consts.js'
+import { SW_P_08 } from './index.js'
 
-export async function updatePresets() {
-	const presets = []
+export async function UpdatePresets(self: SW_P_08): Promise<void> {
+	const presets: Record<string, CompanionPresetDefinition> = {}
 
 	presets.take = {
 		category: 'Actions',
@@ -18,10 +20,13 @@ export async function updatePresets() {
 					{
 						actionId: 'take',
 						delay: 0,
+						options: {},
 					},
 				],
+				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets.refresh = {
@@ -38,14 +43,17 @@ export async function updatePresets() {
 					{
 						actionId: 'get_names',
 						delay: 0,
+						options: {},
 					},
 				],
+				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	const srcLength =
-		this.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : this.source_names.size
+		self.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.size
 	for (let i = 1; i <= srcLength; i++) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
@@ -66,6 +74,7 @@ export async function updatePresets() {
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
@@ -113,6 +122,7 @@ export async function updatePresets() {
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
@@ -141,7 +151,7 @@ export async function updatePresets() {
 			],
 		}
 	}
-	const destLength = this.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : this.dest_names.size
+	const destLength = self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
 	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
@@ -162,6 +172,7 @@ export async function updatePresets() {
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
@@ -198,6 +209,7 @@ export async function updatePresets() {
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
@@ -216,5 +228,5 @@ export async function updatePresets() {
 		}
 	}
 
-	this.setPresetDefinitions(presets)
+	self.setPresetDefinitions(presets)
 }

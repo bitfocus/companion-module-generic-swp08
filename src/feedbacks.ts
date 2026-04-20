@@ -1,7 +1,9 @@
+import { CompanionFeedbackDefinition } from '@companion-module/base'
 import { colours, feedbackOptions } from './consts.js'
+import { SW_P_08 } from './index.js'
 
-export async function updateFeedbacks() {
-	const feedbackDefinitions = []
+export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
+	const feedbackDefinitions: Record<string, CompanionFeedbackDefinition> = {}
 
 	feedbackDefinitions.selected_level = {
 		name: 'Selected Levels',
@@ -11,16 +13,16 @@ export async function updateFeedbacks() {
 			color: colours.black,
 			bgcolor: colours.purple,
 		},
-		options: [{ ...feedbackOptions.levels, choices: this.levels }],
+		options: [{ ...feedbackOptions.levels, choices: self.levels }],
 		callback: (feedback) => {
-			const l = feedback.options.level.length
-			const k = this.selected_level.length
+			const l = (feedback.options.level as number[]).length
+			const k = self.selected_level.length
 
 			for (let i = 0; i < l; i++) {
-				const feedback_test = feedback.options.level[i]
+				const feedback_test = (feedback.options.level as number[])[i]
 				for (let j = 0; j < k; j++) {
-					if (this.selected_level[j].id === feedback_test) {
-						if (this.selected_level[j].enabled === true) {
+					if (self.selected_level[j].id === feedback_test) {
+						if (self.selected_level[j].enabled === true) {
 							// matched
 						} else {
 							return false
@@ -40,17 +42,17 @@ export async function updateFeedbacks() {
 			color: colours.black,
 			bgcolor: colours.purple,
 		},
-		options: [{ ...feedbackOptions.levels, choices: this.levels }, feedbackOptions.destination],
+		options: [{ ...feedbackOptions.levels, choices: self.levels }, feedbackOptions.destination],
 		callback: (feedback) => {
-			if (this.selected_dest === feedback.options.dest) {
-				const l = feedback.options.level.length
-				const k = this.selected_level.length
+			if (self.selected_dest === feedback.options.dest) {
+				const l = (feedback.options.level as number[]).length
+				const k = self.selected_level.length
 
 				for (let i = 0; i < l; i++) {
-					const feedback_test = feedback.options.level[i]
+					const feedback_test = (feedback.options.level as number[])[i]
 					for (let j = 0; j < k; j++) {
-						if (this.selected_level[j].id === feedback_test) {
-							if (this.selected_level[j].enabled === true) {
+						if (self.selected_level[j].id === feedback_test) {
+							if (self.selected_level[j].enabled === true) {
 								// matched
 							} else {
 								return false
@@ -75,7 +77,7 @@ export async function updateFeedbacks() {
 		},
 		options: [feedbackOptions.destination],
 		callback: (feedback) => {
-			if (this.selected_dest === feedback.options.dest) {
+			if (self.selected_dest === feedback.options.dest) {
 				return true
 			}
 			return false
@@ -92,7 +94,7 @@ export async function updateFeedbacks() {
 		},
 		options: [feedbackOptions.source],
 		callback: (feedback) => {
-			if (this.selected_source === feedback.options.source) {
+			if (self.selected_source === feedback.options.source) {
 				return true
 			}
 			return false
@@ -102,20 +104,20 @@ export async function updateFeedbacks() {
 	feedbackDefinitions.source_dest_route = {
 		type: 'boolean',
 		name: 'Source Routed to Destination',
-		description: 'Active when this source is routed to selected destination on any level',
+		description: 'Active when self source is routed to selected destination on any level',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
 		options: [feedbackOptions.source],
 		callback: (feedback) => {
-			// look for this dest in route table
-			console.log(`dest:source feedback ${this.selected_dest}:${feedback.options.source}`)
-			return this.hasSourceInAnyLevelRoutemap(this.selected_dest, feedback.options.source)
+			// look for self dest in route table
+			console.log(`dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
+			return self.hasSourceInAnyLevelRoutemap(self.selected_dest, feedback.options.source as number)
 		},
-		subscribe: () => {
-			if (!this.config.tally_dump_and_update) {
-				this.getCrosspoints(this.selected_dest)
+		subscribe: async () => {
+			if (!self.config.tally_dump_and_update) {
+				await self.getCrosspoints(self.selected_dest)
 			}
 		},
 	}
@@ -123,20 +125,20 @@ export async function updateFeedbacks() {
 	feedbackDefinitions.crosspoint_connected = {
 		type: 'boolean',
 		name: 'Crosspoint Connected',
-		description: 'Active when this crosspoint is connected on any level',
+		description: 'Active when self crosspoint is connected on any level',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
 		options: [feedbackOptions.destination, feedbackOptions.source],
 		callback: (feedback) => {
-			// look for this dest in route table
+			// look for self dest in route table
 			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
-			return this.hasSourceInAnyLevelRoutemap(feedback.options.dest, feedback.options.source)
+			return self.hasSourceInAnyLevelRoutemap(feedback.options.dest as number, feedback.options.source as number)
 		},
-		subscribe: (feedback) => {
-			if (!this.config.tally_dump_and_update) {
-				this.getCrosspoints(feedback.options.dest)
+		subscribe: async (feedback) => {
+			if (!self.config.tally_dump_and_update) {
+				await self.getCrosspoints(feedback.options.dest as number)
 			}
 		},
 	}
@@ -144,33 +146,33 @@ export async function updateFeedbacks() {
 	feedbackDefinitions.crosspoint_connected_by_level = {
 		type: 'boolean',
 		name: 'Crosspoint Connected on specific level',
-		description: 'Active when this crosspoint is connected on any level',
+		description: 'Active when self crosspoint is connected on any level',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
-		options: [{ ...feedbackOptions.levels, choices: this.levels }, feedbackOptions.destination, feedbackOptions.source],
+		options: [{ ...feedbackOptions.levels, choices: self.levels }, feedbackOptions.destination, feedbackOptions.source],
 		callback: (feedback) => {
-			// look for this dest in route table
+			// look for self dest in route table
 			console.log(
 				`dest:source feedback ${JSON.stringify(feedback.options.level)}:${feedback.options.dest}:${feedback.options.source}`,
 			)
-			if (feedback.options.level?.length !== 0) {
+			if ((feedback.options.level as number[])?.length !== 0) {
 				let count = 0
-				for (const level of feedback.options.level) {
-					if (this.hasSourceInRoutemap(level, feedback.options.dest, feedback.options.source)) {
+				for (const level of feedback.options.level as number[]) {
+					if (self.hasSourceInRoutemap(level, feedback.options.dest as number, feedback.options.source as number)) {
 						count++
 					}
 				}
-				if (count === feedback.options.level.length) {
+				if (count === (feedback.options.level as number[]).length) {
 					return true
 				}
 			}
 			return false
 		},
-		subscribe: (feedback) => {
-			if (!this.config.tally_dump_and_update) {
-				this.getCrosspoints(feedback.options.dest)
+		subscribe: async (feedback) => {
+			if (!self.config.tally_dump_and_update) {
+				await self.getCrosspoints(feedback.options.dest as number)
 			}
 		},
 	}
@@ -178,7 +180,7 @@ export async function updateFeedbacks() {
 	feedbackDefinitions.crosspoint_connected_by_name = {
 		type: 'boolean',
 		name: 'Crosspoint Connected By Name',
-		description: 'Active when this crosspoint is connected on any level',
+		description: 'Active when self crosspoint is connected on any level',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
@@ -186,42 +188,42 @@ export async function updateFeedbacks() {
 		options: [
 			{
 				...feedbackOptions.sourceName,
-				choices: Array.from(this.source_names.values()),
+				choices: Array.from(self.source_names.values()),
 			},
 			{
 				...feedbackOptions.destinationName,
-				choices: Array.from(this.dest_names.values()),
+				choices: Array.from(self.dest_names.values()),
 			},
 		],
 		callback: async (feedback, context) => {
-			const source = Number.parseInt(await context.parseVariablesInString(feedback.options.source))
-			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest))
-			// look for this dest in route table
+			const source = Number.parseInt(await context.parseVariablesInString(feedback.options.source?.toString() ?? ''))
+			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest?.toString() ?? ''))
+			// look for self dest in route table
 			if (Number.isNaN(source) || source < 1 || source > 65536 || Number.isNaN(dest) || dest < 1 || dest > 65536) {
-				this.log(
+				self.log(
 					'warn',
 					`crosspoint_connected_by_name has been passed an out of range variable - src ${source} : dst ${dest}`,
 				)
-				return undefined
+				return false
 			}
 			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
-			return this.hasSourceInAnyLevelRoutemap(dest, source)
+			return self.hasSourceInAnyLevelRoutemap(dest, source)
 		},
 		subscribe: async (feedback, context) => {
-			if (this.config.tally_dump_and_update) {
+			if (self.config.tally_dump_and_update) {
 				return
 			}
-			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest))
+			const dest = Number.parseInt(await context.parseVariablesInString(feedback.options.dest?.toString() ?? ''))
 			if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
-				this.log(
+				self.log(
 					'warn',
 					`crosspoint_connected_by_name:Subscribe has been passed an out of range variable - dst ${dest}`,
 				)
 				return undefined
 			}
-			this.getCrosspoints(dest)
+			await self.getCrosspoints(dest)
 		},
 	}
 
-	this.setFeedbackDefinitions(feedbackDefinitions)
+	self.setFeedbackDefinitions(feedbackDefinitions)
 }
