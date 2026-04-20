@@ -1,6 +1,8 @@
 import { CompanionPresetDefinition } from '@companion-module/base'
 import { colours, presetDefaults } from './consts.js'
 import { SW_P_08 } from './index.js'
+import { ActionIds } from './actions.js'
+import { FeedbackIds } from './feedbacks.js'
 
 export async function UpdatePresets(self: SW_P_08): Promise<void> {
 	const presets: Record<string, CompanionPresetDefinition> = {}
@@ -18,7 +20,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 			{
 				down: [
 					{
-						actionId: 'take',
+						actionId: ActionIds.Take,
 						delay: 0,
 						options: {},
 					},
@@ -41,7 +43,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 			{
 				down: [
 					{
-						actionId: 'get_names',
+						actionId: ActionIds.GetNames,
 						delay: 0,
 						options: {},
 					},
@@ -67,7 +69,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 				{
 					down: [
 						{
-							actionId: 'select_source',
+							actionId: ActionIds.SelectSource,
 							options: {
 								source: i,
 							},
@@ -79,7 +81,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_source',
+					feedbackId: FeedbackIds.SelectedSource,
 					options: {
 						source: i,
 					},
@@ -90,7 +92,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 					isInverted: false,
 				},
 				{
-					feedbackId: 'source_dest_route',
+					feedbackId: FeedbackIds.SourceDestRoute,
 					options: {
 						source: i,
 					},
@@ -115,7 +117,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 				{
 					down: [
 						{
-							actionId: 'select_source',
+							actionId: ActionIds.SelectSource,
 							options: {
 								source: i,
 							},
@@ -127,7 +129,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_source',
+					feedbackId: FeedbackIds.SelectedSource,
 					options: {
 						source: i,
 					},
@@ -138,7 +140,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 					isInverted: false,
 				},
 				{
-					feedbackId: 'source_dest_route',
+					feedbackId: FeedbackIds.SourceDestRoute,
 					options: {
 						source: i,
 					},
@@ -165,7 +167,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 				{
 					down: [
 						{
-							actionId: 'select_dest',
+							actionId: ActionIds.SelectDest,
 							options: {
 								dest: i,
 							},
@@ -177,7 +179,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_dest',
+					feedbackId: FeedbackIds.SelectedDest,
 					options: {
 						dest: i,
 					},
@@ -202,7 +204,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 				{
 					down: [
 						{
-							actionId: 'select_dest',
+							actionId: ActionIds.SelectDest,
 							options: {
 								dest: i,
 							},
@@ -214,7 +216,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_dest',
+					feedbackId: FeedbackIds.SelectedDest,
 					options: {
 						dest: i,
 					},

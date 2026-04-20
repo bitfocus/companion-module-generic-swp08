@@ -1,11 +1,29 @@
 import { type CompanionActionDefinition } from '@companion-module/base'
 import { actionOptions } from './consts.js'
 import { SW_P_08 } from './index.js'
+import { FeedbackIds } from './feedbacks.js'
+
+export enum ActionIds {
+	SelectLevel = 'select_level',
+	DeselectLevel = 'deselect_level',
+	ToggleLevel = 'toggle_level',
+	SelectDest = 'select_dest',
+	SelectDestName = 'select_dest_name',
+	SelectSource = 'select_source',
+	SelectSourceName = 'select_source_name',
+	RouteSource = 'route_source',
+	RouteSourceName = 'route_source_name',
+	Take = 'take',
+	Clear = 'clear',
+	SetCrosspoint = 'set_crosspoint',
+	SetCrosspointName = 'set_crosspoint_name',
+	GetNames = 'get_names',
+}
 
 export async function UpdateActions(self: SW_P_08): Promise<void> {
-	const actionDefinitions: Record<string, CompanionActionDefinition> = {}
+	const actionDefinitions: Partial<Record<ActionIds, CompanionActionDefinition>> = {}
 
-	actionDefinitions.select_level = {
+	actionDefinitions[ActionIds.SelectLevel] = {
 		name: 'Select Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: ({ options }) => {
@@ -13,7 +31,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.deselect_level = {
+	actionDefinitions[ActionIds.DeselectLevel] = {
 		name: 'De-Select Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: ({ options }) => {
@@ -21,7 +39,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.toggle_level = {
+	actionDefinitions[ActionIds.ToggleLevel] = {
 		name: 'Toggle Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: ({ options }) => {
@@ -29,14 +47,14 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.select_dest = {
+	actionDefinitions[ActionIds.SelectDest] = {
 		name: 'Select Destination',
 		options: [actionOptions.destination],
 		callback: async ({ options }) => {
 			self.selected_dest = Math.round(options.dest as number)
 			console.log(`set destination ${self.selected_dest}`)
 			self.setVariableValuesCached({ Destination: self.selected_dest })
-			self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+			self.checkFeedbacks(FeedbackIds.SelectedDest, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
 			if (!self.config.tally_dump_and_update) {
 				await self.getCrosspoints(self.selected_dest)
 			}
@@ -48,7 +66,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.select_dest_name = {
+	actionDefinitions[ActionIds.SelectDestName] = {
 		name: 'Select Destination name',
 		options: [{ ...actionOptions.destinationName, choices: Array.from(self.dest_names.values()) }],
 		callback: async ({ options }, context) => {
@@ -60,7 +78,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 			self.selected_dest = dest
 			console.log(`set destination ${self.selected_dest}`)
 			self.setVariableValuesCached({ Destination: self.selected_dest })
-			self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+			self.checkFeedbacks(FeedbackIds.SelectedDest, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
 			if (!self.config.tally_dump_and_update) {
 				await self.getCrosspoints(dest)
 			}
@@ -77,18 +95,18 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.select_source = {
+	actionDefinitions[ActionIds.SelectSource] = {
 		name: 'Select Source',
 		options: [actionOptions.source],
 		callback: ({ options }) => {
 			self.selected_source = Math.round(options.source as number)
 			console.log(`set source ${self.selected_source}`)
 			self.setVariableValuesCached({ Source: self.selected_source })
-			self.checkFeedbacks('selected_source')
+			self.checkFeedbacks(FeedbackIds.SelectedSource)
 		},
 	}
 
-	actionDefinitions.select_source_name = {
+	actionDefinitions[ActionIds.SelectSourceName] = {
 		name: 'Select Source name',
 		options: [{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) }],
 		callback: async ({ options }, context) => {
@@ -100,11 +118,11 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 			self.selected_source = source
 			console.log(`set source ${self.selected_source}`)
 			self.setVariableValuesCached({ Source: self.selected_source })
-			self.checkFeedbacks('selected_source')
+			self.checkFeedbacks(FeedbackIds.SelectedSource)
 		},
 	}
 
-	actionDefinitions.route_source = {
+	actionDefinitions[ActionIds.RouteSource] = {
 		name: 'Route Source to selected Levels and Destination',
 		options: [actionOptions.source],
 		callback: async ({ options }) => {
@@ -118,7 +136,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.route_source_name = {
+	actionDefinitions[ActionIds.RouteSourceName] = {
 		name: 'Route Source name to selected Levels and Destination',
 		options: [{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) }],
 		callback: async ({ options }, context) => {
@@ -137,7 +155,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.take = {
+	actionDefinitions[ActionIds.Take] = {
 		name: 'Take',
 		options: [],
 		callback: async () => {
@@ -151,7 +169,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.clear = {
+	actionDefinitions[ActionIds.Clear] = {
 		name: 'Clear',
 		options: [actionOptions.clear, actionOptions.clearEnableLevels],
 		callback: ({ options }) => {
@@ -160,7 +178,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 				for (let i = 1; i <= self.config.max_levels; i++) {
 					self.selected_level.push({ id: i, enabled: options.clear_enable_levels as boolean })
 				}
-				self.checkFeedbacks('selected_level', 'selected_level_dest', 'source_dest_route')
+				self.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
 				console.log('clear levels')
 				console.log(self.selected_level)
 			}
@@ -168,19 +186,19 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 			if (options.clear === 'all' || options.clear === 'dest') {
 				self.selected_dest = 0
 				self.setVariableValuesCached({ Destination: self.selected_dest })
-				self.checkFeedbacks('selected_dest', 'selected_level_dest', 'source_dest_route')
+				self.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
 				console.log('clear dest')
 			}
 
 			if (options.clear === 'all' || options.clear === 'source') {
 				self.selected_source = 0
 				self.setVariableValuesCached({ Source: self.selected_source })
-				self.checkFeedbacks('selected_source', 'clear source')
+				self.checkFeedbacks(FeedbackIds.SelectedSource) // Was checking 'clear source' but this does not exist
 			}
 		},
 	}
 
-	actionDefinitions.set_crosspoint = {
+	actionDefinitions[ActionIds.SetCrosspoint] = {
 		name: 'Set crosspoint',
 		options: [{ ...actionOptions.levels, choices: self.levels }, actionOptions.source, actionOptions.destination],
 		callback: async ({ options }) => {
@@ -190,7 +208,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.set_crosspoint_name = {
+	actionDefinitions[ActionIds.SetCrosspointName] = {
 		name: 'Set crosspoint by name',
 		options: [
 			{ ...actionOptions.levels, choices: self.levels },
@@ -210,7 +228,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	actionDefinitions.get_names = {
+	actionDefinitions[ActionIds.GetNames] = {
 		name: 'Refresh Source and Destination names',
 		options: [],
 		callback: async () => {

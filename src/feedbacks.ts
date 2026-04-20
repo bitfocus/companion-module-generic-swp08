@@ -2,10 +2,21 @@ import { CompanionFeedbackDefinition } from '@companion-module/base'
 import { colours, feedbackOptions } from './consts.js'
 import { SW_P_08 } from './index.js'
 
-export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
-	const feedbackDefinitions: Record<string, CompanionFeedbackDefinition> = {}
+export enum FeedbackIds {
+	SelectedLevel = 'selected_level',
+	SelectedLevelDest = 'selected_level_dest',
+	SelectedDest = 'selected_dest',
+	SelectedSource = 'selected_source',
+	SourceDestRoute = 'source_dest_route',
+	CrosspointConnected = 'crosspoint_connected',
+	CrosspointConnectedByLevel = 'crosspoint_connected_by_level',
+	CrosspointConnectedByName = 'crosspoint_connected_by_name',
+}
 
-	feedbackDefinitions.selected_level = {
+export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
+	const feedbackDefinitions: Partial<Record<FeedbackIds, CompanionFeedbackDefinition>> = {}
+
+	feedbackDefinitions[FeedbackIds.SelectedLevel] = {
 		name: 'Selected Levels',
 		type: 'boolean',
 		description: 'Active on selected levels',
@@ -34,7 +45,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.selected_level_dest = {
+	feedbackDefinitions[FeedbackIds.SelectedLevelDest] = {
 		name: 'Selected Levels and Destination',
 		type: 'boolean',
 		description: 'Active on selected levels and destination',
@@ -67,7 +78,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.selected_dest = {
+	feedbackDefinitions[FeedbackIds.SelectedDest] = {
 		type: 'boolean',
 		name: 'Selected Destination',
 		description: 'Active on selected destination',
@@ -84,7 +95,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.selected_source = {
+	feedbackDefinitions[FeedbackIds.SelectedSource] = {
 		type: 'boolean',
 		name: 'Selected Source',
 		description: 'Active on selected source',
@@ -101,7 +112,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.source_dest_route = {
+	feedbackDefinitions[FeedbackIds.SourceDestRoute] = {
 		type: 'boolean',
 		name: 'Source Routed to Destination',
 		description: 'Active when self source is routed to selected destination on any level',
@@ -122,7 +133,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.crosspoint_connected = {
+	feedbackDefinitions[FeedbackIds.CrosspointConnected] = {
 		type: 'boolean',
 		name: 'Crosspoint Connected',
 		description: 'Active when self crosspoint is connected on any level',
@@ -143,7 +154,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.crosspoint_connected_by_level = {
+	feedbackDefinitions[FeedbackIds.CrosspointConnectedByLevel] = {
 		type: 'boolean',
 		name: 'Crosspoint Connected on specific level',
 		description: 'Active when self crosspoint is connected on any level',
@@ -177,7 +188,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		},
 	}
 
-	feedbackDefinitions.crosspoint_connected_by_name = {
+	feedbackDefinitions[FeedbackIds.CrosspointConnectedByName] = {
 		type: 'boolean',
 		name: 'Crosspoint Connected By Name',
 		description: 'Active when self crosspoint is connected on any level',

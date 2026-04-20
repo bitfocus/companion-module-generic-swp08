@@ -22,7 +22,7 @@ import { UpgradeScripts } from './upgrades.js'
 import { GetConfigFields, type SwP08Config } from './config.js'
 import { ACK, NAK, DLE, STX, ETX, cmds, getCommandName, keepAliveTime } from './consts.js'
 import { UpdateActions } from './actions.js'
-import { UpdateFeedbacks } from './feedbacks.js'
+import { UpdateFeedbacks, FeedbackIds } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import type { AckCallback, Level, ProcessLabelsOptions, VarList } from './types.js'
 import { stripNumber, getRouteVariableName } from './util.js'
@@ -75,6 +75,11 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		},
 	)
 
+	// Override base types to make types stricter
+	public checkFeedbacks(...feedbackTypes: FeedbackIds[]): void {
+		super.checkFeedbacks(...feedbackTypes)
+	}
+
 	constructor(internal: unknown) {
 		super(internal)
 	}
@@ -126,13 +131,13 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		await this.updatePresets()
 		this.init_tcp()
 		this.checkFeedbacks(
-			'selected_level',
-			'selected_level_dest',
-			'selected_dest',
-			'selected_source',
-			'crosspoint_connected',
-			'crosspoint_connected_by_name',
-			'crosspoint_connected_by_level',
+			FeedbackIds.SelectedLevel,
+			FeedbackIds.SelectedLevelDest,
+			FeedbackIds.SelectedDest,
+			FeedbackIds.SelectedSource,
+			FeedbackIds.CrosspointConnected,
+			FeedbackIds.CrosspointConnectedByLevel,
+			FeedbackIds.CrosspointConnectedByName,
 		)
 	}
 
@@ -619,10 +624,10 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 		// TODO: separate id for each destination, and only send source_dest_route if any of them have changed
 		this.checkFeedbacks(
-			'source_dest_route',
-			'crosspoint_connected',
-			'crosspoint_connected_by_name',
-			'crosspoint_connected_by_level',
+			FeedbackIds.SourceDestRoute,
+			FeedbackIds.CrosspointConnected,
+			FeedbackIds.CrosspointConnectedByName,
+			FeedbackIds.CrosspointConnectedByLevel,
 		)
 	}
 
@@ -657,10 +662,10 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.setVariableValuesCached({ [getRouteVariableName(level, dest)]: source })
 		this.setRoutemap(source, dest, level)
 		this.checkFeedbacks(
-			'source_dest_route',
-			'crosspoint_connected',
-			'crosspoint_connected_by_name',
-			'crosspoint_connected_by_level',
+			FeedbackIds.SourceDestRoute,
+			FeedbackIds.CrosspointConnected,
+			FeedbackIds.CrosspointConnectedByName,
+			FeedbackIds.CrosspointConnectedByLevel,
 		)
 		this.record_crosspoint(source, dest, level)
 	}
@@ -1093,7 +1098,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 			}
 		}
 		console.log(this.selected_level)
-		this.checkFeedbacks('selected_level', 'selected_level_dest')
+		this.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest)
 	}
 
 	// names.js functions
