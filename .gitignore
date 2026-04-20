@@ -1,6 +1,7 @@
 .vscode/
 .yarn/
 node_modules/
+dist/
 package-lock.json
 /pkg
 /pkg.tgz
