@@ -352,6 +352,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 			this.socket.on('end', () => {
 				this.stopKeepAliveTimer()
+				this.log('warn', `Connection to ${this.config.host} ended`)
 			})
 
 			this.socket.on('connect', () => {
@@ -389,7 +390,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 					if (bytesConsumed === 0) {
 						break
 					}
-					receivebuffer = receivebuffer.slice(bytesConsumed)
+					receivebuffer = receivebuffer.subarray(bytesConsumed)
 				}
 			})
 		}
@@ -852,7 +853,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				}
 
 				// Trim the packet to the correct size
-				packet = packet.slice(0, packetIndex)
+				packet = packet.subarray(0, packetIndex)
 
 				// Check packet size
 				if (packet[packet.length - 2] !== packet.length - 2) {
@@ -882,7 +883,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				void this.sendAck()
 
 				// Process the message
-				this.processMessage(packet.slice(0, packet.length - 2))
+				this.processMessage(packet.subarray(0, packet.length - 2))
 
 				return j + 2
 			}
@@ -1040,7 +1041,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				this.dest_names.set(labelId, {
 					id: labelId + 1,
 					label: data
-						.slice(start + pos, start + pos + char_length)
+						.subarray(start + pos, start + pos + char_length)
 						.toString('utf8')
 						.replace(/\0/g, '')
 						.trim(),
@@ -1049,7 +1050,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				this.source_names.set(labelId, {
 					id: labelId + 1,
 					label: data
-						.slice(start + pos, start + pos + char_length)
+						.subarray(start + pos, start + pos + char_length)
 						.toString('utf8')
 						.replace(/\0/g, '')
 						.trim(),
