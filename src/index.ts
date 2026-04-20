@@ -999,7 +999,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				}
 			}
 			if (options.hasLevels) {
-				//level = data[idx] & 0x0f
+				idx++ //level = data[idx] & 0x0f - advance past unused level byte
 			}
 			idx++
 			char_length = char_length_table[data[idx++]]
@@ -1016,7 +1016,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				}
 			}
 			if (options.hasLevels) {
-				//level = data[idx++]
+				idx++ //level = data[idx++] - advance past unused level byte
 			}
 			char_length = char_length_table[data[idx++]]
 			label_number = (data[idx++] << 8) | data[idx++]
