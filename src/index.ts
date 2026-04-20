@@ -967,8 +967,14 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				break
 
 			default:
-				this.log('warn', `Unsupported response code ${message[0]}: ${getCommandName(message[0])}`)
-				this.log('debug', `Unsupported response code ${message[0]} in response: ${message.toString('hex')}`)
+				this.log(
+					'warn',
+					`Unsupported response code 0x${message[0].toString(16).padStart(2, '0')}: ${getCommandName(message[0])}`,
+				)
+				this.log(
+					'debug',
+					`Unsupported response code 0x${message[0].toString(16).padStart(2, '0')} in response: ${message.toString('hex')}`,
+				)
 				break
 		}
 	}
