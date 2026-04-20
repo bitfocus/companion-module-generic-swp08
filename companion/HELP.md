@@ -157,4 +157,21 @@ Tally and connected messages recieved from the router will create new set crossp
 - Use interval for keepalive timer, and fix the invalid dummy packet we were sending.
 - Make sure names are cached, fix bug in definition caching, and move source/dest count to same throttling
 - Make sure the number of levels in dropdowns in actions/feedbacks represent the current config settings
-- Update manifest with kewywords
+- Update manifest with keywords
+
+### Version 2.0.9
+
+- Fix: some issues with label pulling
+
+### Version 2.0.10
+
+- Fix: tally dump response handling for byte type responses
+
+### Version 2.0.11
+
+- Fix: Select destination by name action
+
+### Version 3.0.0
+
+- Convert to Typescript
+- Send `crosspoint interrogate` as keepalive

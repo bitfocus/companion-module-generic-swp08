@@ -1,6 +1,21 @@
-import { Regex } from '@companion-module/base'
+import { Regex, SomeCompanionConfigField } from '@companion-module/base'
 
-export function getConfigFields() {
+export interface SwP08Config {
+	host: string
+	port: string
+	matrix: number
+	matrix_ext: number
+	max_levels: number
+	max_levels_ext: number
+	tally_dump_and_update: boolean
+	tally_dump_variables: boolean
+	supported_commands_on_connect: boolean
+	read_names_on_connect: boolean
+	extended_support: boolean
+	name_chars: '00' | '01' | '02'
+}
+
+export function GetConfigFields(): SomeCompanionConfigField[] {
 	return [
 		{
 			type: 'static-text',
@@ -25,7 +40,6 @@ export function getConfigFields() {
 			regex: Regex.PORT,
 		},
 		{
-			isVisible: (config) => !config.extended_support,
 			type: 'number',
 			label: 'Matrix Number (Default 1) (normal mode)',
 			id: 'matrix',
@@ -35,9 +49,9 @@ export function getConfigFields() {
 			max: 16,
 			range: true,
 			step: 1,
+			isVisibleExpression: '!$(options:extended_support)',
 		},
 		{
-			isVisible: (config) => config.extended_support,
 			type: 'number',
 			label: 'Matrix Number (Default 1) (extended mode)',
 			id: 'matrix_ext',
@@ -47,9 +61,9 @@ export function getConfigFields() {
 			max: 256,
 			range: true,
 			step: 1,
+			isVisibleExpression: '$(options:extended_support)',
 		},
 		{
-			isVisible: (config) => !config.extended_support,
 			type: 'number',
 			label: 'Number of levels defined in route (normal mode)',
 			id: 'max_levels',
@@ -59,9 +73,9 @@ export function getConfigFields() {
 			max: 16,
 			range: true,
 			step: 1,
+			isVisibleExpression: '!$(options:extended_support)',
 		},
 		{
-			isVisible: (config) => config.extended_support,
 			type: 'number',
 			label: 'Number of levels defined in router (extended mode)',
 			id: 'max_levels_ext',
@@ -71,6 +85,7 @@ export function getConfigFields() {
 			max: 256,
 			range: true,
 			step: 1,
+			isVisibleExpression: '$(options:extended_support)',
 		},
 		{
 			type: 'checkbox',

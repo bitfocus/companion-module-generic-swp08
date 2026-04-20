@@ -1,7 +1,11 @@
+import { CompanionPresetDefinition } from '@companion-module/base'
 import { colours, presetDefaults } from './consts.js'
+import { SW_P_08 } from './index.js'
+import { ActionIds } from './actions.js'
+import { FeedbackIds } from './feedbacks.js'
 
-export async function updatePresets() {
-	const presets = []
+export async function UpdatePresets(self: SW_P_08): Promise<void> {
+	const presets: Record<string, CompanionPresetDefinition> = {}
 
 	presets.take = {
 		category: 'Actions',
@@ -16,12 +20,15 @@ export async function updatePresets() {
 			{
 				down: [
 					{
-						actionId: 'take',
+						actionId: ActionIds.Take,
 						delay: 0,
+						options: {},
 					},
 				],
+				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	presets.refresh = {
@@ -36,16 +43,19 @@ export async function updatePresets() {
 			{
 				down: [
 					{
-						actionId: 'get_names',
+						actionId: ActionIds.GetNames,
 						delay: 0,
+						options: {},
 					},
 				],
+				up: [],
 			},
 		],
+		feedbacks: [],
 	}
 
 	const srcLength =
-		this.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : this.source_names.size
+		self.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.size
 	for (let i = 1; i <= srcLength; i++) {
 		presets[`source_number_${i}`] = {
 			category: 'Sources (by number)',
@@ -59,18 +69,19 @@ export async function updatePresets() {
 				{
 					down: [
 						{
-							actionId: 'select_source',
+							actionId: ActionIds.SelectSource,
 							options: {
 								source: i,
 							},
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_source',
+					feedbackId: FeedbackIds.SelectedSource,
 					options: {
 						source: i,
 					},
@@ -81,7 +92,7 @@ export async function updatePresets() {
 					isInverted: false,
 				},
 				{
-					feedbackId: 'source_dest_route',
+					feedbackId: FeedbackIds.SourceDestRoute,
 					options: {
 						source: i,
 					},
@@ -106,18 +117,19 @@ export async function updatePresets() {
 				{
 					down: [
 						{
-							actionId: 'select_source',
+							actionId: ActionIds.SelectSource,
 							options: {
 								source: i,
 							},
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_source',
+					feedbackId: FeedbackIds.SelectedSource,
 					options: {
 						source: i,
 					},
@@ -128,7 +140,7 @@ export async function updatePresets() {
 					isInverted: false,
 				},
 				{
-					feedbackId: 'source_dest_route',
+					feedbackId: FeedbackIds.SourceDestRoute,
 					options: {
 						source: i,
 					},
@@ -141,7 +153,7 @@ export async function updatePresets() {
 			],
 		}
 	}
-	const destLength = this.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : this.dest_names.size
+	const destLength = self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
 	for (let i = 1; i <= destLength; i++) {
 		presets[`destination_number_${i}`] = {
 			category: 'Destinations (by number)',
@@ -155,18 +167,19 @@ export async function updatePresets() {
 				{
 					down: [
 						{
-							actionId: 'select_dest',
+							actionId: ActionIds.SelectDest,
 							options: {
 								dest: i,
 							},
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_dest',
+					feedbackId: FeedbackIds.SelectedDest,
 					options: {
 						dest: i,
 					},
@@ -191,18 +204,19 @@ export async function updatePresets() {
 				{
 					down: [
 						{
-							actionId: 'select_dest',
+							actionId: ActionIds.SelectDest,
 							options: {
 								dest: i,
 							},
 							delay: 0,
 						},
 					],
+					up: [],
 				},
 			],
 			feedbacks: [
 				{
-					feedbackId: 'selected_dest',
+					feedbackId: FeedbackIds.SelectedDest,
 					options: {
 						dest: i,
 					},
@@ -216,5 +230,5 @@ export async function updatePresets() {
 		}
 	}
 
-	this.setPresetDefinitions(presets)
+	self.setPresetDefinitions(presets)
 }

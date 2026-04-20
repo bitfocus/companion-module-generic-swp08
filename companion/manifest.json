@@ -22,21 +22,10 @@
 		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
-		"entrypoint": "../src/index.js"
+		"entrypoint": "../dist/index.js"
 	},
 	"legacyIds": [],
 	"manufacturer": "Generic",
-	"products": [
-		"SW-P-08",
-		"Ross Router",
-		"Snell ProBel Router",
-		"Grass Valley Router",
-		"Lawo VSM",
-		"Calrec Router",
-		"NVision Router",
-		"Sony Broadcast Router",
-		"BNCS",
-		"DirectOut M.1k2"
-	],
+	"products": ["SW-P-08"],
 	"keywords": ["Router", "Matrix", "Broadcast", "Production", "SWP-08", "SW-P08", "SWP08"]
 }
