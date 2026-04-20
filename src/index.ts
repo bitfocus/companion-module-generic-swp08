@@ -264,8 +264,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 			const cmdCode = msg[0]
 
 			if (
-				cmdCode !== 97 &&
-				cmdCode !== 0 &&
+				cmdCode !== cmds.protocolImplementation &&
+				cmdCode !== cmds.commandEnable &&
 				this.config.supported_commands_on_connect === true &&
 				this.commands.length > 0
 			) {
