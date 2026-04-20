@@ -998,9 +998,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 					return
 				}
 			}
-			if (options.hasLevels) {
-				idx++ //level = data[idx] & 0x0f - advance past unused level byte
-			}
+			// matrix and level share one byte
 			idx++
 			char_length = char_length_table[data[idx++]]
 			label_number = (data[idx++] << 8) | data[idx++]
