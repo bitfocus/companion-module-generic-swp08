@@ -123,7 +123,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		options: [feedbackOptions.source],
 		callback: (feedback) => {
 			// look for self dest in route table
-			console.log(`dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
+			self.log('debug', `dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
 			return self.hasSourceInAnyLevelRoutemap(self.selected_dest, feedback.options.source as number)
 		},
 		subscribe: async () => {
@@ -144,7 +144,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		options: [feedbackOptions.destination, feedbackOptions.source],
 		callback: (feedback) => {
 			// look for self dest in route table
-			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
+			self.log('debug', `dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
 			return self.hasSourceInAnyLevelRoutemap(feedback.options.dest as number, feedback.options.source as number)
 		},
 		subscribe: async (feedback) => {
@@ -165,7 +165,8 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 		options: [{ ...feedbackOptions.levels, choices: self.levels }, feedbackOptions.destination, feedbackOptions.source],
 		callback: (feedback) => {
 			// look for self dest in route table
-			console.log(
+			self.log(
+				'debug',
 				`dest:source feedback ${JSON.stringify(feedback.options.level)}:${feedback.options.dest}:${feedback.options.source}`,
 			)
 			if ((feedback.options.level as number[])?.length !== 0) {
@@ -217,7 +218,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 				)
 				return false
 			}
-			console.log(`dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
+			self.log('debug', `dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
 			return self.hasSourceInAnyLevelRoutemap(dest, source)
 		},
 		subscribe: async (feedback, context) => {

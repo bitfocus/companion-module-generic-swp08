@@ -52,7 +52,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		options: [actionOptions.destination],
 		callback: async ({ options }) => {
 			self.selected_dest = Math.round(options.dest as number)
-			console.log(`set destination ${self.selected_dest}`)
+			self.log('info', `set destination ${self.selected_dest}`)
 			self.setVariableValuesCached({ Destination: self.selected_dest })
 			self.checkFeedbacks(FeedbackIds.SelectedDest, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
 			if (!self.config.tally_dump_and_update) {
@@ -76,7 +76,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 				return undefined
 			}
 			self.selected_dest = dest
-			console.log(`set destination ${self.selected_dest}`)
+			self.log('info', `set destination ${self.selected_dest}`)
 			self.setVariableValuesCached({ Destination: self.selected_dest })
 			self.checkFeedbacks(FeedbackIds.SelectedDest, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
 			if (!self.config.tally_dump_and_update) {
@@ -100,7 +100,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		options: [actionOptions.source],
 		callback: ({ options }) => {
 			self.selected_source = Math.round(options.source as number)
-			console.log(`set source ${self.selected_source}`)
+			self.log('info', `set source ${self.selected_source}`)
 			self.setVariableValuesCached({ Source: self.selected_source })
 			self.checkFeedbacks(FeedbackIds.SelectedSource)
 		},
@@ -116,7 +116,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 				return undefined
 			}
 			self.selected_source = source
-			console.log(`set source ${self.selected_source}`)
+			self.log('info', `set source ${self.selected_source}`)
 			self.setVariableValuesCached({ Source: self.selected_source })
 			self.checkFeedbacks(FeedbackIds.SelectedSource)
 		},
@@ -126,7 +126,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		name: 'Route Source to selected Levels and Destination',
 		options: [actionOptions.source],
 		callback: async ({ options }) => {
-			console.log(self.selected_level)
+			self.log('debug', `Selected Levels: ${JSON.stringify(self.selected_level)}`)
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
@@ -145,7 +145,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 				self.log('warn', `route_source_name has been passed an out of range variable ${source}`)
 				return undefined
 			}
-			console.log(self.selected_level)
+			self.log('debug', `Selected levels: ${JSON.stringify(self.selected_level)}`)
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
@@ -159,7 +159,7 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 		name: 'Take',
 		options: [],
 		callback: async () => {
-			console.log(self.selected_level)
+			self.log('debug', `Selected levels: ${JSON.stringify(self.selected_level)}`)
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
@@ -179,15 +179,14 @@ export async function UpdateActions(self: SW_P_08): Promise<void> {
 					self.selected_level.push({ id: i, enabled: options.clear_enable_levels as boolean })
 				}
 				self.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
-				console.log('clear levels')
-				console.log(self.selected_level)
+				self.log('debug', `Clear Levels\nSelected levels: ${JSON.stringify(self.selected_level)}`)
 			}
 
 			if (options.clear === 'all' || options.clear === 'dest') {
 				self.selected_dest = 0
 				self.setVariableValuesCached({ Destination: self.selected_dest })
 				self.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest, FeedbackIds.SourceDestRoute)
-				console.log('clear dest')
+				self.log('debug', 'clear dest')
 			}
 
 			if (options.clear === 'all' || options.clear === 'source') {

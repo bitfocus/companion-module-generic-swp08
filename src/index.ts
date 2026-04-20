@@ -355,7 +355,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 			})
 
 			this.socket.on('connect', () => {
-				console.log(`Connected to ${this.config.host}:${this.config.port}`)
+				this.log('info', `Connected to ${this.config.host}:${this.config.port}`)
 				this.ackCallbacks = []
 				this.commands = []
 				this.routeMap = new Map()
@@ -435,7 +435,6 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 			return
 		}
 
-		//console.log(`Source ${source} routed to ${dest} on level ${level}`)
 		this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
 
 		this.update_crosspoints(source, dest, level)
@@ -451,7 +450,6 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 			return
 		}
 
-		//console.log(`Source ${source} routed to ${dest} on level ${level}`)
 		this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
 
 		this.update_crosspoints(source, dest, level)
@@ -673,7 +671,6 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	async SetCrosspoint(sourceN: number, destN: number, levelN: number): Promise<void> {
 		const cmd = []
 		this.log('debug', `Crosspoint ${sourceN}>${destN} level ${levelN}`)
-		console.log(`SetCrosspoint ${sourceN}>${destN} level ${levelN}`)
 
 		if (Number.isNaN(sourceN) || sourceN <= 0 || sourceN > 65536) {
 			this.log('warn', `Unable to route source ${sourceN}`)
@@ -744,7 +741,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	}
 
 	async getCrosspoints(destN: number): Promise<void> {
-		console.log(`GetCrosspoint ${destN}`)
+		this.log('debug', `GetCrosspoint ${destN}`)
 
 		if (destN <= 0 || destN > 65536) {
 			this.log('warn', `Unable to get crosspoint destination ${destN}`)
@@ -969,8 +966,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				break
 
 			default:
-				this.log('warn', `Unknown response code ${message[0]}`)
-				this.log('debug', `Unknown response code ${message[0]} in response: ${message.toString('hex')}`)
+				this.log('warn', `Unsupported response code ${message[0]}: ${getCommandName(message[0])}`)
+				this.log('debug', `Unsupported response code ${message[0]} in response: ${message.toString('hex')}`)
 				break
 		}
 	}
@@ -1032,9 +1029,9 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 	extractLabels(data: Buffer, char_length: number, label_number: number, labels_in_part: number, start: number): void {
 		/*
-	console.log(`label chars: ${char_length}`)
-	console.log(`label number: ${label_number}`)
-	console.log(`labels in part: ${labels_in_part}`)
+	this.log('debug', `label chars: ${char_length}`)
+	this.log('debug', `label number: ${label_number}`)
+	this.log('debug', `labels in part: ${labels_in_part}`)
 	*/
 
 		for (let l = 0; l < labels_in_part; l++) {
@@ -1091,7 +1088,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	// levels.js functions
 
 	processLevelsSelection(selection: number[], state: boolean | 'toggle'): void {
-		console.log(selection)
+		this.log('debug', `Processing Levels Selection: ${selection}`)
 
 		for (const level of selection) {
 			if (state === 'toggle') {
@@ -1100,14 +1097,14 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 				this.selected_level[level - 1].enabled = state
 			}
 		}
-		console.log(this.selected_level)
+		this.log('debug', `Selected levels: ${JSON.stringify(this.selected_level)}`)
 		this.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest)
 	}
 
 	// names.js functions
 
 	async readNames(): Promise<void> {
-		console.log('Reading names')
+		this.log('info', 'Reading names...')
 		// reset
 		const cmdGetSources = []
 		const cmdGetDestinations = []
