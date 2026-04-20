@@ -924,7 +924,10 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 					this.commands.push(message[j])
 				}
 
-				this.log('debug', `This router implements: ${this.commands.map(getCommandName).join(', ')}`)
+				this.log(
+					'debug',
+					`This router implements: ${this.commands.map((c) => `0x${c.toString(16).padStart(2, '0')}: ${getCommandName(c)}`).join(', ')}`,
+				)
 
 				// request names
 				if (this.config.read_names_on_connect) {
