@@ -1106,8 +1106,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	async readNames(): Promise<void> {
 		this.log('info', 'Reading names...')
 		// reset
-		const cmdGetSources = []
-		const cmdGetDestinations = []
+		const cmdGetSources: number[] = []
+		const cmdGetDestinations: number[] = []
 		this.source_names = new Map()
 		this.dest_names = new Map()
 		this.setVariableValuesCached({ Sources: 0, Destinations: 0 })
