@@ -1,6 +1,6 @@
 import { Regex, SomeCompanionConfigField } from '@companion-module/base'
 
-export interface SwP08Config {
+export type SwP08Config = {
 	host: string
 	port: string
 	matrix: number
@@ -14,6 +14,8 @@ export interface SwP08Config {
 	extended_support: boolean
 	name_chars: '00' | '01' | '02'
 }
+
+export type SwP08Secrets = undefined
 
 export function GetConfigFields(): SomeCompanionConfigField[] {
 	return [
@@ -89,14 +91,14 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'checkbox',
-			label: 'Enable',
+			label: 'My router supports tally dump, and sends tally updates',
 			id: 'tally_dump_and_update',
 			width: 1,
 			default: false,
 		},
 		{
 			type: 'static-text',
-			label: 'My router supports tally dump, and sends tally updates',
+			label: '',
 			id: 'tally_dump_and_update_txt',
 			value:
 				'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
@@ -104,14 +106,14 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'checkbox',
-			label: 'Enable',
+			label: 'Advanced tally/routing variables',
 			id: 'tally_dump_variables',
 			width: 1,
 			default: false,
 		},
 		{
 			type: 'static-text',
-			label: 'Advanced tally/routing variables',
+			label: '',
 			id: 'tally_dump_variables_txt',
 			value:
 				'If enabled, there will be generated variables for each destination on each level. Should only be enabled if you need them specifically.',
@@ -119,42 +121,42 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'checkbox',
-			label: 'Enable',
+			label: 'Request supported commands on connection',
 			id: 'supported_commands_on_connect',
 			width: 1,
 			default: true,
 		},
 		{
 			type: 'static-text',
-			label: 'Request supported commands on connection',
+			label: '',
 			id: 'supported_commands_on_connect_txt',
 			value: 'Not supported by all router controllers. Try disabling this feature if you encounter problems',
 			width: 11,
 		},
 		{
 			type: 'checkbox',
-			label: 'Enable',
+			label: 'Request names on connection',
 			id: 'read_names_on_connect',
 			width: 1,
 			default: false,
 		},
 		{
 			type: 'static-text',
-			label: 'Request names on connection',
+			label: '',
 			id: 'read_names_on_connect_txt',
 			value: 'Not supported by all router controllers',
 			width: 11,
 		},
 		{
 			type: 'checkbox',
-			label: 'Enable',
+			label: 'Router has more than 1024 source or destinations or has more than 16 levels',
 			id: 'extended_support',
 			width: 1,
 			default: false,
 		},
 		{
 			type: 'static-text',
-			label: 'Router has more than 1024 source or destinations or has more than 16 levels',
+			label: '',
 			id: 'extended_support_txt',
 			value: 'Use extended command set. Not supported by all router controllers',
 			width: 11,

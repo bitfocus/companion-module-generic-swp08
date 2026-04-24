@@ -6,15 +6,15 @@
 //
 // Updated for Companion v3 July 2024, Phillip Ivan Pietruschka
 // Converted to Typescript April 2026, Phillip Ivan Pietruschka
+// Updated to Companion API 2.0 April/May 2026, Phillip Ivan Pietruschka
 
 import {
 	InstanceBase,
-	runEntrypoint,
 	InstanceStatus,
 	TCPHelper,
 	type SomeCompanionConfigField,
 	DropdownChoice,
-	CompanionVariableValues,
+	CompanionVariableDefinitions,
 	CompanionVariableDefinition,
 } from '@companion-module/base'
 import { Buffer } from 'node:buffer'
@@ -24,38 +24,41 @@ import { ACK, NAK, DLE, STX, ETX, cmds, getCommandName, keepAliveTime } from './
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks, FeedbackIds } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
-import type { AckCallback, Level, ProcessLabelsOptions, VarList } from './types.js'
+import type { AckCallback, Level, ProcessLabelsOptions, VarList, InstanceBaseExt, SWP08Types } from './types.js'
 import { stripNumber, getRouteVariableName } from './util.js'
 import _ from 'lodash'
 import PQueue from 'p-queue'
 
-export class SW_P_08 extends InstanceBase<SwP08Config> {
+export { UpgradeScripts }
+
+export default class SW_P_08 extends InstanceBase<SWP08Types> implements InstanceBaseExt {
 	config!: SwP08Config
-	queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })
-	ackCallbacks: AckCallback[] = []
-	commands: number[] = []
-	routeMap: Map<number, Map<number, number>> = new Map()
-	lastVariables: Map<string, number | string> = new Map()
-	lastVariableDefinitions: Map<string, CompanionVariableDefinition> = new Map()
-	isRecordingActions = false
-	socket: TCPHelper | null = null
-	keepAliveTimer: NodeJS.Timeout | undefined
+	private queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })
+	private ackCallbacks: AckCallback[] = []
+	private commands: number[] = []
+	private routeMap: Map<number, Map<number, number>> = new Map()
+	private lastVariables: Map<string, number | string> = new Map()
+	private lastVariableDefinitions: Map<string, CompanionVariableDefinition<Record<string, string | number>>> = new Map()
+	private isRecordingActions = false
+	private socket: TCPHelper | null = null
+	private keepAliveTimer: NodeJS.Timeout | undefined
+	private feedbacksToCheck: Set<FeedbackIds> = new Set()
 
-	dest_names: Map<number, DropdownChoice> = new Map()
-	source_names: Map<number, DropdownChoice> = new Map()
-	levels: DropdownChoice[] = []
+	public dest_names: Map<number, DropdownChoice> = new Map()
+	public source_names: Map<number, DropdownChoice> = new Map()
+	public levels: DropdownChoice[] = []
 
-	selected_source: number = 0
-	selected_dest: number = 0
-	selected_level: Level[] = []
+	public selected_source: number = 0
+	public selected_dest: number = 0
+	public selected_level: Level[] = []
 
-	debouncedUpdate = _.debounce(
+	private debouncedUpdate = _.debounce(
 		async () => {
 			this.updateVariableDefinitions()
 			this.updateAllNames()
-			await this.updateActions()
-			await this.updateFeedbacks()
-			await this.updatePresets()
+			this.updateActions()
+			this.updateFeedbacks()
+			this.updatePresets()
 		},
 		200,
 		{
@@ -63,7 +66,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		},
 	)
 
-	debouncedCrosspointUpdate = _.debounce(
+	private debouncedCrosspointUpdate = _.debounce(
 		() => {
 			this.updateVariableDefinitions()
 			this.updateAllNames()
@@ -75,22 +78,25 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		},
 	)
 
-	// Override base types to make types stricter
-	public checkFeedbacks(...feedbackTypes: FeedbackIds[]): void {
-		super.checkFeedbacks(...feedbackTypes)
-	}
+	private throttledFeedbackCheck = _.throttle(() => {
+		if (this.feedbacksToCheck.size == 0) return
+		this.checkFeedbacks(...([...this.feedbacksToCheck] as [FeedbackIds, ...FeedbackIds[]]))
+		this.feedbacksToCheck.clear()
+	}, 25)
 
 	constructor(internal: unknown) {
 		super(internal)
 	}
 
-	async init(config: SwP08Config): Promise<void> {
-		this.queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })
+	public async init(config: SwP08Config): Promise<void> {
 		void this.configUpdated(config)
 	}
 
-	async configUpdated(config: SwP08Config): Promise<void> {
+	public async configUpdated(config: SwP08Config): Promise<void> {
 		this.queue.clear()
+		this.throttledFeedbackCheck.cancel()
+		this.debouncedCrosspointUpdate.cancel()
+		this.debouncedUpdate.cancel()
 		this.updateStatus(InstanceStatus.Connecting)
 
 		if (config.max_levels === undefined) {
@@ -126,24 +132,19 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 		this.config = config
 		this.setupVariables()
-		await this.updateFeedbacks()
-		await this.updateActions()
-		await this.updatePresets()
+		this.updateFeedbacks()
+		this.updateActions()
+		this.updatePresets()
 		this.init_tcp()
-		this.checkFeedbacks(
-			FeedbackIds.SelectedLevel,
-			FeedbackIds.SelectedLevelDest,
-			FeedbackIds.SelectedDest,
-			FeedbackIds.SelectedSource,
-			FeedbackIds.CrosspointConnected,
-			FeedbackIds.CrosspointConnectedByLevel,
-			FeedbackIds.CrosspointConnectedByName,
-		)
+		this.checkAllFeedbacks()
 	}
 
-	async destroy(): Promise<void> {
+	public async destroy(): Promise<void> {
 		this.log('debug', `destroy. ID: ${this.id}`)
 		this.queue.clear()
+		this.throttledFeedbackCheck.cancel()
+		this.debouncedCrosspointUpdate.cancel()
+		this.debouncedUpdate.cancel()
 		this.stopKeepAliveTimer()
 		if (this.socket) {
 			this.socket.destroy()
@@ -151,39 +152,39 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
-	handleStartStopRecordActions(isRecording: boolean): void {
+	public handleStartStopRecordActions(isRecording: boolean): void {
 		this.isRecordingActions = isRecording
 	}
 
-	getConfigFields(): SomeCompanionConfigField[] {
+	public getConfigFields(): SomeCompanionConfigField[] {
 		return GetConfigFields()
 	}
 
-	async updateActions(): Promise<void> {
-		await UpdateActions(this)
+	private updateActions(): void {
+		UpdateActions(this)
 	}
 
-	async updateFeedbacks(): Promise<void> {
-		await UpdateFeedbacks(this)
+	private updateFeedbacks(): void {
+		UpdateFeedbacks(this)
 	}
 
-	async updatePresets(): Promise<void> {
-		await UpdatePresets(this)
+	private updatePresets(): void {
+		UpdatePresets(this)
 	}
 
 	// tcp.js functions
 
-	async sendNak(): Promise<void> {
+	private async sendNak(): Promise<void> {
 		this.log('debug', 'Sending NAK')
 		await this.queue.add(async () => {
-			if (this.socket?.isConnected) await this.socket.send(Buffer.from([DLE, NAK]))
+			if (this.socket?.isConnected) await this.socket.sendAsync(Buffer.from([DLE, NAK]))
 		})
 	}
 
-	async sendAck(): Promise<void> {
+	private async sendAck(): Promise<void> {
 		//this.log('debug', 'Sending ACK')
 		await this.queue.add(async () => {
-			if (this.socket?.isConnected) await this.socket.send(Buffer.from([DLE, ACK]))
+			if (this.socket?.isConnected) await this.socket.sendAsync(Buffer.from([DLE, ACK]))
 		})
 	}
 
@@ -192,7 +193,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * @param {Array<number>} data
 	 * @returns {Array<number>}
 	 */
-	stuffDLE(data: number[]): number[] {
+	private stuffDLE(data: number[]): number[] {
 		const output = new Array<number>()
 		// replace byte value 10 (DLE) in data with 1010
 		for (let j = 0; j < data.length; ++j) {
@@ -204,7 +205,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		return output
 	}
 
-	addAckCallback(retryCb: () => void): void {
+	private addAckCallback(retryCb: () => void): void {
 		this.ackCallbacks.push({
 			resolve: () => {
 				//this.log('debug', 'ACK received')
@@ -228,7 +229,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		})
 	}
 
-	async readTally(): Promise<void> {
+	private async readTally(): Promise<void> {
 		if (this.config.extended_support) {
 			for (let i = 0; i < this.config.max_levels_ext; i++) {
 				await this.sendMessage([cmds.extendedCrosspointTallyDump, this.config.matrix - 1, i])
@@ -240,7 +241,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		}
 	}
 
-	hasCommand(cmdCode: number): boolean {
+	private hasCommand(cmdCode: number): boolean {
 		if (!this.config.supported_commands_on_connect || this.commands.length === 0) {
 			return true
 		}
@@ -256,7 +257,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * @param {Buffer|Array} message
 	 * @returns { Promise<boolean> }
 	 */
-	async sendMessage(message: Buffer | Array<number>): Promise<void> {
+	public async sendMessage(message: Buffer | Array<number>): Promise<void> {
 		const msg = message instanceof Buffer ? message : Buffer.from(message)
 
 		if (msg.length > 0) {
@@ -312,12 +313,12 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 		await this.queue.add(async () => {
 			if (this.socket?.isConnected) {
-				await this.socket.send(packetBuffer)
+				await this.socket.sendAsync(packetBuffer)
 
 				this.addAckCallback(() => {
 					// Retry sending the command if it fails
 					this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
-					this.socket?.send(packetBuffer).catch(() => {})
+					this.socket?.sendAsync(packetBuffer).catch(() => {})
 				})
 			} else {
 				this.log('warn', 'Socket not connected')
@@ -325,7 +326,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		})
 	}
 
-	init_tcp(): void {
+	private init_tcp(): void {
 		let receivebuffer = Buffer.alloc(0)
 
 		if (this.socket !== null) {
@@ -376,9 +377,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 					}
 				}
 				this.subscribeActions()
-				this.subscribeFeedbacks()
+				this.checkAllFeedbacks()
 				this.startKeepAliveTimer()
-				this.checkFeedbacks()
 			})
 
 			this.socket.on('data', (chunk) => {
@@ -398,7 +398,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 	// keepalive.js functions
 
-	startKeepAliveTimer(): void {
+	private startKeepAliveTimer(): void {
 		if (this.keepAliveTimer) {
 			clearInterval(this.keepAliveTimer)
 		}
@@ -407,7 +407,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		}, keepAliveTime)
 	}
 
-	stopKeepAliveTimer(): void {
+	private stopKeepAliveTimer(): void {
 		if (this.keepAliveTimer) {
 			clearInterval(this.keepAliveTimer)
 			// biome-ignore lint/performance/noDelete: not really a performance issue
@@ -415,7 +415,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		}
 	}
 
-	async keepAlive(): Promise<void> {
+	private async keepAlive(): Promise<void> {
 		if (this.socket?.isConnected) {
 			// Send dummy message if the queue is empty
 			if (this.queue.size === 0) {
@@ -426,7 +426,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 	// crosspoints.js functions
 
-	crosspointConnected(data: number[] | Buffer): void {
+	private crosspointConnected(data: number[] | Buffer): void {
 		const matrix = ((data[1] & 0xf0) >> 4) + 1
 		const level = (data[1] & 0x0f) + 1
 		const dest = ((data[2] & 0x70) << 3) + data[3] + 1
@@ -441,7 +441,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.update_crosspoints(source, dest, level)
 	}
 
-	ext_crosspointConnected(data: number[] | Buffer): void {
+	private ext_crosspointConnected(data: number[] | Buffer): void {
 		const matrix = data[1] + 1
 		const level = data[2] + 1
 		const dest = ((data[3] << 8) | data[4]) + 1
@@ -456,7 +456,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.update_crosspoints(source, dest, level)
 	}
 
-	setRoutemap(source: number, dest: number, level: number): void {
+	private setRoutemap(source: number, dest: number, level: number): void {
 		let map = this.routeMap.get(dest)
 		if (!map) {
 			map = new Map()
@@ -466,7 +466,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		map.set(level, source)
 	}
 
-	getRoutemapEntries(dest: number): {
+	public getRoutemapEntries(dest: number): {
 		[k: string]: number
 	} {
 		const map = this.routeMap.get(dest)
@@ -477,19 +477,24 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		return {}
 	}
 
-	hasSourceInAnyLevelRoutemap(dest: number, source: number): boolean {
+	public hasSourceInAnyLevelRoutemap(dest: number, source: number): boolean {
 		return Object.values(this.getRoutemapEntries(dest)).some((entry) => entry === source)
 	}
 
-	hasSourceInRoutemap(level: number, dest: number, source: number): boolean {
+	public hasSourceInRoutemap(level: number, dest: number, source: number): boolean {
 		return this.getRoutemapEntries(dest)[level] === source
+	}
+
+	// Utility function ie lieu of Feedback subscribe
+	public hasDestInRoutemap(dest: number): boolean {
+		return Object.keys(this.getRoutemapEntries(dest)).length > 0
 	}
 
 	/**
 	 * Process crosspoint tally dump
 	 * @param {Buffer} data
 	 */
-	processCrosspointTallyDump(data: Buffer): void {
+	private processCrosspointTallyDump(data: Buffer): void {
 		const type = data[0] === cmds.crosspointTallyDumpByteResponse ? 'byte' : 'word'
 		const matrix = ((data[1] & 0xf0) >> 4) + 1
 		const level = (data[1] & 0x0f) + 1
@@ -505,7 +510,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * @param {'byte'|'word'} type Type of data (byte or word)
 	 * @param {number} offset Offset in the buffer where the data starts
 	 */
-	processCrosspointTallyDumpData(
+	private processCrosspointTallyDumpData(
 		data: Buffer,
 		matrix: number,
 		level: number,
@@ -570,7 +575,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * Process extended crosspoint tally dump (word)
 	 * @param {Buffer} data
 	 */
-	processExtCrosspointTallyDump(data: Buffer): void {
+	private processExtCrosspointTallyDump(data: Buffer): void {
 		const matrix = data[1] + 1
 		const level = data[2] + 1
 
@@ -578,7 +583,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.processCrosspointTallyDumpData(data, matrix, level, 'word', 3)
 	}
 
-	updateAllCrosspoints(): void {
+	private updateAllCrosspoints(): void {
 		const variables = new Map()
 		const numDests = this.dest_names.size > 0 ? this.dest_names.size : 256
 		for (let dest = 1; dest <= numDests; dest++) {
@@ -622,15 +627,15 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.setVariableValuesCached(Object.fromEntries(variables))
 
 		// TODO: separate id for each destination, and only send source_dest_route if any of them have changed
-		this.checkFeedbacks(
-			FeedbackIds.SourceDestRoute,
-			FeedbackIds.CrosspointConnected,
-			FeedbackIds.CrosspointConnectedByName,
-			FeedbackIds.CrosspointConnectedByLevel,
-		)
+		this.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
+		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnected)
+		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByName)
+		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByLevel)
+		this.feedbacksToCheck.add(FeedbackIds.DestinationSourceName)
+		this.throttledFeedbackCheck()
 	}
 
-	record_crosspoint(source: number, dest: number, level: number): void {
+	private record_crosspoint(source: number, dest: number, level: number): void {
 		if (this.isRecordingActions) {
 			this.recordAction(
 				{
@@ -642,7 +647,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		}
 	}
 
-	update_crosspoints(source: number, dest: number, level: number): void {
+	private update_crosspoints(source: number, dest: number, level: number): void {
 		if (dest === this.selected_dest) {
 			// update variables for selected dest source
 			this.setVariableValuesCached({ [`Sel_Dest_Source_Level_${level}`]: source })
@@ -660,16 +665,16 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 		this.setVariableValuesCached({ [getRouteVariableName(level, dest)]: source })
 		this.setRoutemap(source, dest, level)
-		this.checkFeedbacks(
-			FeedbackIds.SourceDestRoute,
-			FeedbackIds.CrosspointConnected,
-			FeedbackIds.CrosspointConnectedByName,
-			FeedbackIds.CrosspointConnectedByLevel,
-		)
+		this.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
+		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnected)
+		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByName)
+		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByLevel)
+		this.feedbacksToCheck.add(FeedbackIds.DestinationSourceName)
+		this.throttledFeedbackCheck()
 		this.record_crosspoint(source, dest, level)
 	}
 
-	async SetCrosspoint(sourceN: number, destN: number, levelN: number): Promise<void> {
+	public async SetCrosspoint(sourceN: number, destN: number, levelN: number): Promise<void> {
 		const cmd = []
 		this.log('debug', `Crosspoint ${sourceN}>${destN} level ${levelN}`)
 
@@ -741,7 +746,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		await this.sendMessage(cmd)
 	}
 
-	async getCrosspoints(destN: number): Promise<void> {
+	public async getCrosspoints(destN: number): Promise<void> {
 		this.log('debug', `GetCrosspoint ${destN}`)
 
 		if (destN <= 0 || destN > 65536) {
@@ -795,7 +800,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * Decode one message, handling DLE escaping, packet length and checksum
 	 * @param {Buffer} data
 	 */
-	decode(data: Buffer): number {
+	private decode(data: Buffer): number {
 		if (data.length < 2) {
 			return 0
 		}
@@ -899,7 +904,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * Process one message, handling the response
 	 * @param {Buffer} message
 	 */
-	processMessage(message: Buffer): void {
+	private processMessage(message: Buffer): void {
 		switch (message[0]) {
 			// Command
 			case cmds.crosspointTally:
@@ -986,7 +991,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * @param {Buffer} data - Data section of packet
 	 * @param {ProcessLabelsOptions} options - Options for label parser
 	 */
-	processLabels(data: Buffer, options: ProcessLabelsOptions): void {
+	private processLabels(data: Buffer, options: ProcessLabelsOptions): void {
 		const char_length_table = [4, 8, 12]
 		//let level = 0
 		let matrix = 0
@@ -1032,7 +1037,13 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.extractLabels(data, char_length, label_number, labels_in_part, start)
 	}
 
-	extractLabels(data: Buffer, char_length: number, label_number: number, labels_in_part: number, start: number): void {
+	private extractLabels(
+		data: Buffer,
+		char_length: number,
+		label_number: number,
+		labels_in_part: number,
+		start: number,
+	): void {
 		/*
 	this.log('debug', `label chars: ${char_length}`)
 	this.log('debug', `label number: ${label_number}`)
@@ -1071,7 +1082,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		void this.debouncedUpdate()
 	}
 
-	updateAllNames(): void {
+	private updateAllNames(): void {
 		const variables = new Map()
 
 		// biome-ignore lint/complexity/noForEach: better for maps
@@ -1088,6 +1099,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		variables.set('Destinations', this.dest_names.size)
 
 		this.setVariableValuesCached(Object.fromEntries(variables))
+		this.feedbacksToCheck.add(FeedbackIds.DestinationSourceName)
+		this.throttledFeedbackCheck()
 	}
 
 	// levels.js functions
@@ -1104,11 +1117,14 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		}
 		this.log('debug', `Selected levels: ${JSON.stringify(this.selected_level)}`)
 		this.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest)
+		this.feedbacksToCheck.add(FeedbackIds.SelectedLevel)
+		this.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
+		this.throttledFeedbackCheck()
 	}
 
 	// names.js functions
 
-	async readNames(): Promise<void> {
+	public async readNames(): Promise<void> {
 		this.log('info', 'Reading names...')
 		// reset
 		const cmdGetSources: number[] = []
@@ -1148,7 +1164,7 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 	// variables.js functions
 
-	setupVariables(): void {
+	private setupVariables(): void {
 		// Implemented Commands
 		const varList: Partial<VarList> = {}
 		this.commands = []
@@ -1185,8 +1201,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 	 * Only set variable values if they have changed, easing the load on companion
 	 * @param {VarList} object - Object with variable values to set
 	 */
-	setVariableValuesCached(object: VarList): void {
-		const variablesToUpdate: CompanionVariableValues = {}
+	public setVariableValuesCached(object: VarList): void {
+		const variablesToUpdate: Record<string, string | number> = {}
 		for (const [key, value] of Object.entries(object)) {
 			if (this.lastVariables.get(key) !== value) {
 				this.lastVariables.set(key, value)
@@ -1199,71 +1215,60 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 		this.setVariableValues(variablesToUpdate)
 	}
 
-	updateVariableDefinitions(): void {
-		const coreVariables = []
+	private updateVariableDefinitions(): void {
+		const coreVariables: CompanionVariableDefinitions<Record<string, string | number>> = {}
 		const sourceValues = Array.from(this.source_names.values())
 		const destValues = Array.from(this.dest_names.values())
 
-		coreVariables.push(
-			{
-				name: 'Number of source names returned by router',
-				variableId: 'Sources',
-			},
-			{
-				name: 'Number of destination names returned by router',
-				variableId: 'Destinations',
-			},
-			{
-				name: 'Selected destination',
-				variableId: 'Destination',
-			},
-			{
-				name: 'Selected source',
-				variableId: 'Source',
-			},
-		)
+		coreVariables['Sources'] = {
+			name: 'Number of source names returned by router',
+		}
+		coreVariables['Destinations'] = {
+			name: 'Number of source names returned by router',
+		}
+		coreVariables['Source'] = {
+			name: 'Selected source',
+		}
+		coreVariables['Destination'] = {
+			name: 'Selected destination',
+		}
 
 		for (let i = 1; i <= this.config.max_levels; i++) {
-			coreVariables.push({
+			coreVariables[`Sel_Dest_Source_Level_${i}`] = {
 				name: `Selected destination source for level ${i}`,
-				variableId: `Sel_Dest_Source_Level_${i}`,
-			})
-			coreVariables.push({
+			}
+			coreVariables[`Sel_Dest_Source_Name_Level_${i}`] = {
 				name: `Selected destination source name for level ${i}`,
-				variableId: `Sel_Dest_Source_Name_Level_${i}`,
-			})
+			}
 		}
 
 		for (let i = 1; i <= sourceValues.length; i++) {
-			coreVariables.push({
+			coreVariables[`Source_${i}`] = {
 				name: `Source ${i}`,
-				variableId: `Source_${i}`,
-			})
+			}
 		}
 
 		for (let i = 1; i <= destValues.length; i++) {
-			coreVariables.push({
+			coreVariables[`Destination_${i}`] = {
 				name: `Destination ${i}`,
-				variableId: `Destination_${i}`,
-			})
+			}
 		}
 
 		if (this.config.tally_dump_variables) {
 			this.routeMap.forEach((levels, index) => {
 				for (const level of levels?.keys() ?? []) {
-					coreVariables.push({
+					coreVariables[getRouteVariableName(level, index)] = {
 						name: `Source for destination ${index} at level ${level}`,
-						variableId: getRouteVariableName(level, index),
-					})
+					}
 				}
 			})
 		}
 
 		// Only update if there are changes to the variable definitions
 		let changes = false
-		for (const variable of coreVariables) {
-			if (!_.isEqual(this.lastVariableDefinitions.get(variable.variableId), variable)) {
-				this.lastVariableDefinitions.set(variable.variableId, variable)
+		for (const [key, value] of Object.entries(coreVariables)) {
+			if (!_.isEqual(this.lastVariableDefinitions.get(key), value)) {
+				this.lastVariableDefinitions.set(key, value)
 				changes = true
 			}
 		}
@@ -1281,9 +1286,8 @@ export class SW_P_08 extends InstanceBase<SwP08Config> {
 
 		// Rebuild definition cache to remove stale entries
 		this.lastVariableDefinitions.clear()
-		for (const variable of coreVariables) {
-			this.lastVariableDefinitions.set(variable.variableId, variable)
+		for (const [key, value] of Object.entries(coreVariables)) {
+			this.lastVariableDefinitions.set(key, value)
 		}
 	}
 }
-runEntrypoint(SW_P_08, UpgradeScripts)

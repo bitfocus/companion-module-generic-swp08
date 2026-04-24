@@ -1,15 +1,43 @@
-import { CompanionPresetDefinition } from '@companion-module/base'
+import { CompanionPresetDefinitions, CompanionPresetGroup, CompanionPresetSection } from '@companion-module/base'
 import { colours, presetDefaults } from './consts.js'
-import { SW_P_08 } from './index.js'
+import SW_P_08 from './index.js'
 import { ActionIds } from './actions.js'
 import { FeedbackIds } from './feedbacks.js'
+import type { SWP08Types } from './types.js'
+import { mapNamesToTemplateValues } from './util.js'
 
-export async function UpdatePresets(self: SW_P_08): Promise<void> {
-	const presets: Record<string, CompanionPresetDefinition> = {}
+export function UpdatePresets(self: SW_P_08): void {
+	const presets: CompanionPresetDefinitions<SWP08Types> = {}
+	const sourceGroups: CompanionPresetGroup<SWP08Types>[] = []
+	const destGroups: CompanionPresetGroup<SWP08Types>[] = []
+	const structure: CompanionPresetSection[] = [
+		{
+			id: 'section1',
+			name: 'Action',
+			definitions: [
+				{
+					id: 'actions',
+					name: 'Actions',
+					description: '',
+					type: 'simple',
+					presets: ['take', 'refresh'],
+				},
+			],
+		},
+		{
+			id: 'section2',
+			name: 'Sources',
+			definitions: sourceGroups,
+		},
+		{
+			id: 'section3',
+			name: 'Destinations',
+			definitions: destGroups,
+		},
+	]
 
 	presets.take = {
-		category: 'Actions',
-		type: 'button',
+		type: 'simple',
 		name: 'Take',
 		style: {
 			...presetDefaults.style,
@@ -32,8 +60,7 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 	}
 
 	presets.refresh = {
-		category: 'Actions',
-		type: 'button',
+		type: 'simple',
 		name: 'Refresh Names',
 		style: {
 			...presetDefaults.style,
@@ -53,182 +80,209 @@ export async function UpdatePresets(self: SW_P_08): Promise<void> {
 		],
 		feedbacks: [],
 	}
-
-	const srcLength =
-		self.source_names.size > presetDefaults.sourceCount ? presetDefaults.sourceCount : self.source_names.size
-	for (let i = 1; i <= srcLength; i++) {
-		presets[`source_number_${i}`] = {
-			category: 'Sources (by number)',
-			type: 'button',
-			name: `Source ${i}`,
-			style: {
-				...presetDefaults.style,
-				text: `S${i}`,
-			},
-			steps: [
-				{
-					down: [
-						{
-							actionId: ActionIds.SelectSource,
-							options: {
-								source: i,
-							},
-							delay: 0,
+	presets[`source_number_template`] = {
+		type: 'simple',
+		name: `Source X`,
+		style: {
+			...presetDefaults.style,
+			text: `S$(local:source)`,
+		},
+		localVariables: [{ variableType: 'simple', variableName: 'source', startupValue: 1 }],
+		steps: [
+			{
+				down: [
+					{
+						actionId: ActionIds.SelectSource,
+						options: {
+							source: { isExpression: true, value: '$(local:source)' },
 						},
-					],
-					up: [],
-				},
-			],
-			feedbacks: [
-				{
-					feedbackId: FeedbackIds.SelectedSource,
-					options: {
-						source: i,
+						delay: 0,
 					},
-					style: {
-						color: colours.black,
-						bgcolor: colours.cyan,
-					},
-					isInverted: false,
-				},
-				{
-					feedbackId: FeedbackIds.SourceDestRoute,
-					options: {
-						source: i,
-					},
-					style: {
-						color: colours.black,
-						bgcolor: colours.red,
-					},
-					isInverted: false,
-				},
-			],
-		}
-
-		presets[`source_name_${i}`] = {
-			category: 'Sources (by name)',
-			type: 'button',
-			name: `$(generic-module:Source_${i})`,
-			style: {
-				...presetDefaults.style,
-				text: `$(generic-module:Source_${i})`,
+				],
+				up: [],
 			},
-			steps: [
-				{
-					down: [
-						{
-							actionId: ActionIds.SelectSource,
-							options: {
-								source: i,
-							},
-							delay: 0,
-						},
-					],
-					up: [],
+		],
+		feedbacks: [
+			{
+				feedbackId: FeedbackIds.SelectedSource,
+				options: {
+					source: { isExpression: true, value: '$(local:source)' },
 				},
-			],
-			feedbacks: [
-				{
-					feedbackId: FeedbackIds.SelectedSource,
-					options: {
-						source: i,
-					},
-					style: {
-						color: colours.black,
-						bgcolor: colours.cyan,
-					},
-					isInverted: false,
+				style: {
+					color: colours.black,
+					bgcolor: colours.cyan,
 				},
-				{
-					feedbackId: FeedbackIds.SourceDestRoute,
-					options: {
-						source: i,
-					},
-					style: {
-						color: colours.black,
-						bgcolor: colours.red,
-					},
-					isInverted: false,
-				},
-			],
-		}
-	}
-	const destLength = self.dest_names.size > presetDefaults.destCount ? presetDefaults.destCount : self.dest_names.size
-	for (let i = 1; i <= destLength; i++) {
-		presets[`destination_number_${i}`] = {
-			category: 'Destinations (by number)',
-			type: 'button',
-			name: `Destination ${i}`,
-			style: {
-				...presetDefaults.style,
-				text: `D${i}`,
+				isInverted: false,
 			},
-			steps: [
-				{
-					down: [
-						{
-							actionId: ActionIds.SelectDest,
-							options: {
-								dest: i,
-							},
-							delay: 0,
-						},
-					],
-					up: [],
+			{
+				feedbackId: FeedbackIds.SourceDestRoute,
+				options: {
+					source: { isExpression: true, value: '$(local:source)' },
 				},
-			],
-			feedbacks: [
-				{
-					feedbackId: FeedbackIds.SelectedDest,
-					options: {
-						dest: i,
-					},
-					style: {
-						color: colours.black,
-						bgcolor: colours.green,
-					},
-					isInverted: false,
+				style: {
+					color: colours.black,
+					bgcolor: colours.red,
 				},
-			],
-		}
-
-		presets[`destination_name_${i}`] = {
-			category: 'Destinations (by name)',
-			type: 'button',
-			name: `$(generic-module:Destination_${i})`,
-			style: {
-				...presetDefaults.style,
-				text: `$(generic-module:Destination_${i})`,
+				isInverted: false,
 			},
-			steps: [
-				{
-					down: [
-						{
-							actionId: ActionIds.SelectDest,
-							options: {
-								dest: i,
-							},
-							delay: 0,
-						},
-					],
-					up: [],
-				},
-			],
-			feedbacks: [
-				{
-					feedbackId: FeedbackIds.SelectedDest,
-					options: {
-						dest: i,
-					},
-					style: {
-						color: colours.black,
-						bgcolor: colours.green,
-					},
-					isInverted: false,
-				},
-			],
-		}
+		],
 	}
 
-	self.setPresetDefinitions(presets)
+	presets[`source_name_template`] = {
+		type: 'simple',
+		name: `$(generic-module:Source_$(local:source))`,
+		style: {
+			...presetDefaults.style,
+			text: `$(generic-module:Source_$(local:source))`,
+		},
+		localVariables: [{ variableType: 'simple', variableName: 'source', startupValue: 1 }],
+		steps: [
+			{
+				down: [
+					{
+						actionId: ActionIds.SelectSource,
+						options: {
+							source: { isExpression: true, value: '$(local:source)' },
+						},
+						delay: 0,
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [
+			{
+				feedbackId: FeedbackIds.SelectedSource,
+				options: {
+					source: { isExpression: true, value: '$(local:source)' },
+				},
+				style: {
+					color: colours.black,
+					bgcolor: colours.cyan,
+				},
+				isInverted: false,
+			},
+			{
+				feedbackId: FeedbackIds.SourceDestRoute,
+				options: {
+					source: { isExpression: true, value: '$(local:source)' },
+				},
+				style: {
+					color: colours.black,
+					bgcolor: colours.red,
+				},
+				isInverted: false,
+			},
+		],
+	}
+
+	presets[`destination_number_template`] = {
+		type: 'simple',
+		name: `Destination $(local:destination)`,
+		style: {
+			...presetDefaults.style,
+			text: `D$(local:destination)`,
+		},
+		localVariables: [{ variableType: 'simple', variableName: 'destination', startupValue: 1 }],
+		steps: [
+			{
+				down: [
+					{
+						actionId: ActionIds.SelectDest,
+						options: {
+							dest: { isExpression: true, value: '$(local:destination)' },
+						},
+						delay: 0,
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [
+			{
+				feedbackId: FeedbackIds.SelectedDest,
+				options: {
+					dest: { isExpression: true, value: '$(local:destination)' },
+				},
+				style: {
+					color: colours.black,
+					bgcolor: colours.green,
+				},
+				isInverted: false,
+			},
+		],
+	}
+
+	presets[`destination_name_template`] = {
+		type: 'simple',
+		name: `$(generic-module:Destination_$(local:destination))`,
+		style: {
+			...presetDefaults.style,
+			text: `$(generic-module:Destination_$(local:destination))`,
+		},
+		localVariables: [{ variableType: 'simple', variableName: 'destination', startupValue: 1 }],
+		steps: [
+			{
+				down: [
+					{
+						actionId: ActionIds.SelectDest,
+						options: {
+							dest: { isExpression: true, value: '$(local:destination)' },
+						},
+						delay: 0,
+					},
+				],
+				up: [],
+			},
+		],
+		feedbacks: [
+			{
+				feedbackId: FeedbackIds.SelectedDest,
+				options: {
+					dest: { isExpression: true, value: '$(local:destination)' },
+				},
+				style: {
+					color: colours.black,
+					bgcolor: colours.green,
+				},
+				isInverted: false,
+			},
+		],
+	}
+
+	sourceGroups.push({
+		id: `select_source_number`,
+		name: 'Select Source by Number',
+		type: 'template',
+		presetId: 'source_number_template',
+		templateVariableName: 'source',
+		templateValues: mapNamesToTemplateValues(self.source_names, 'Source'),
+	})
+	sourceGroups.push({
+		id: `select_source_name`,
+		name: 'Select Source by Name',
+		type: 'template',
+		presetId: 'source_name_template',
+		templateVariableName: 'source',
+		templateValues: mapNamesToTemplateValues(self.source_names, 'Source'),
+	})
+
+	destGroups.push({
+		id: `select_destination_number`,
+		name: 'Select Destination by Number',
+		type: 'template',
+		presetId: 'destination_number_template',
+		templateVariableName: 'destination',
+		templateValues: mapNamesToTemplateValues(self.dest_names, 'Destination'),
+	})
+	destGroups.push({
+		id: `select_destination_name`,
+		name: 'Select Destination by Name',
+		type: 'template',
+		presetId: 'destination_name_template',
+		templateVariableName: 'destination',
+		templateValues: mapNamesToTemplateValues(self.dest_names, 'Destination'),
+	})
+
+	self.setPresetDefinitions(structure, presets)
 }
