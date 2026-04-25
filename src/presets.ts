@@ -127,13 +127,12 @@ export function UpdatePresets(self: SW_P_08): void {
 			},
 		],
 	}
-
 	presets[`source_name_template`] = {
 		type: 'simple',
-		name: `$(generic-module:Source_$(local:source))`,
+		name: `$(${self.label}:Source_$(local:source))`,
 		style: {
 			...presetDefaults.style,
-			text: `$(generic-module:Source_$(local:source))`,
+			text: `$(${self.label}:Source_$(local:source))`,
 		},
 		localVariables: [{ variableType: 'simple', variableName: 'source', startupValue: 1 }],
 		steps: [
@@ -215,10 +214,10 @@ export function UpdatePresets(self: SW_P_08): void {
 
 	presets[`destination_name_template`] = {
 		type: 'simple',
-		name: `$(generic-module:Destination_$(local:destination))`,
+		name: `$(${self.label}:Destination_$(local:destination))`,
 		style: {
 			...presetDefaults.style,
-			text: `$(generic-module:Destination_$(local:destination))`,
+			text: `$(${self.label}:Destination_$(local:destination))`,
 		},
 		localVariables: [{ variableType: 'simple', variableName: 'destination', startupValue: 1 }],
 		steps: [
