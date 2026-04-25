@@ -42,7 +42,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private isRecordingActions = false
 	private socket: TCPHelper | null = null
 	private keepAliveTimer: NodeJS.Timeout | undefined
-	private feedbacksToCheck: Set<FeedbackIds> = new Set()
+	public feedbacksToCheck: Set<FeedbackIds> = new Set()
 
 	public dest_names: Map<number, DropdownChoice> = new Map()
 	public source_names: Map<number, DropdownChoice> = new Map()
@@ -78,7 +78,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		},
 	)
 
-	private throttledFeedbackCheck = _.throttle(() => {
+	public throttledFeedbackCheck = _.throttle(() => {
 		if (this.feedbacksToCheck.size == 0) return
 		this.checkFeedbacks(...([...this.feedbacksToCheck] as [FeedbackIds, ...FeedbackIds[]]))
 		this.feedbacksToCheck.clear()
@@ -1116,9 +1116,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			}
 		}
 		this.log('debug', `Selected levels: ${JSON.stringify(this.selected_level)}`)
-		this.checkFeedbacks(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest)
 		this.feedbacksToCheck.add(FeedbackIds.SelectedLevel)
 		this.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
+		this.feedbacksToCheck.add(FeedbackIds.CanTake)
 		this.throttledFeedbackCheck()
 	}
 
