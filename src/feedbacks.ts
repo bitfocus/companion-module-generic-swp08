@@ -79,7 +79,7 @@ export type FeedbackSchema = {
 }
 
 export function UpdateFeedbacks(self: SW_P_08): void {
-	let feedbackDefinitions!: CompanionFeedbackDefinitions<FeedbackSchema>
+	const feedbackDefinitions: Partial<CompanionFeedbackDefinitions<FeedbackSchema>> = {}
 	const logger = createModuleLogger('SWP08_Feedbacks')
 	const destMax = getHighestKey(self.dest_names) ?? 0xffff
 	const sourceMax = getHighestKey(self.source_names) ?? 0xffff
@@ -310,5 +310,5 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 		},
 	}
 
-	self.setFeedbackDefinitions(feedbackDefinitions)
+	self.setFeedbackDefinitions(feedbackDefinitions as CompanionFeedbackDefinitions<FeedbackSchema>)
 }

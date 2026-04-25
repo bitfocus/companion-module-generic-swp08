@@ -98,7 +98,7 @@ export type ActionSchema = {
 }
 
 export function UpdateActions(self: SW_P_08): void {
-	let actionDefinitions!: CompanionActionDefinitions<ActionSchema>
+	const actionDefinitions: Partial<CompanionActionDefinitions<ActionSchema>> = {}
 	const logger = createModuleLogger('SWP08_Actions')
 	const destMax = getHighestKey(self.dest_names) ?? 0xffff
 	const sourceMax = getHighestKey(self.source_names) ?? 0xffff
@@ -129,6 +129,7 @@ export function UpdateActions(self: SW_P_08): void {
 	actionDefinitions[ActionIds.SelectDest] = {
 		name: 'Select Destination',
 		options: [{ ...actionOptions.destination, max: destMax }],
+		optionsToMonitorForSubscribe: ['dest'],
 		callback: async ({ options }) => {
 			self.selected_dest = Math.round(options.dest)
 			logger.info(`set destination ${self.selected_dest}`)
@@ -148,6 +149,7 @@ export function UpdateActions(self: SW_P_08): void {
 	actionDefinitions[ActionIds.SelectDestName] = {
 		name: 'Select Destination name',
 		options: [{ ...actionOptions.destinationName, choices: Array.from(self.dest_names.values()) }],
+		optionsToMonitorForSubscribe: ['dest'],
 		callback: async ({ options }, _context) => {
 			const dest = Math.round(options.dest)
 			checkSourceDestRange(dest, ActionIds.SelectDestName, destMax)
@@ -300,5 +302,5 @@ export function UpdateActions(self: SW_P_08): void {
 		},
 	}
 
-	self.setActionDefinitions(actionDefinitions)
+	self.setActionDefinitions(actionDefinitions as CompanionActionDefinitions<ActionSchema>)
 }
