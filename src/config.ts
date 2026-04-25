@@ -110,14 +110,8 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'tally_dump_variables',
 			width: 1,
 			default: false,
-		},
-		{
-			type: 'static-text',
-			label: '',
-			id: 'tally_dump_variables_txt',
-			value:
+			description:
 				'If enabled, there will be generated variables for each destination on each level. Should only be enabled if you need them specifically.',
-			width: 11,
 		},
 		{
 			type: 'checkbox',
@@ -125,13 +119,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'supported_commands_on_connect',
 			width: 1,
 			default: true,
-		},
-		{
-			type: 'static-text',
-			label: '',
-			id: 'supported_commands_on_connect_txt',
-			value: 'Not supported by all router controllers. Try disabling this feature if you encounter problems',
-			width: 11,
+			description: 'Not supported by all router controllers. Try disabling this feature if you encounter problems',
 		},
 		{
 			type: 'checkbox',
@@ -139,13 +127,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'read_names_on_connect',
 			width: 1,
 			default: false,
-		},
-		{
-			type: 'static-text',
-			label: '',
-			id: 'read_names_on_connect_txt',
-			value: 'Not supported by all router controllers',
-			width: 11,
+			description: 'Not supported by all router controllers',
 		},
 		{
 			type: 'checkbox',
@@ -153,13 +135,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'extended_support',
 			width: 1,
 			default: false,
-		},
-		{
-			type: 'static-text',
-			label: '',
-			id: 'extended_support_txt',
-			value: 'Use extended command set. Not supported by all router controllers',
-			width: 11,
+			description: 'Use extended command set. Not supported by all router controllers',
 		},
 		{
 			type: 'dropdown',
