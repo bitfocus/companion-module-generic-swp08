@@ -43,6 +43,7 @@ export function UpdatePresets(self: SW_P_08): void {
 			...presetDefaults.style,
 			text: 'Take',
 			bgcolor: colours.red,
+			color: colours.black,
 		},
 		steps: [
 			{
