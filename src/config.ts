@@ -95,14 +95,8 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'tally_dump_and_update',
 			width: 1,
 			default: false,
-		},
-		{
-			type: 'static-text',
-			label: '',
-			id: 'tally_dump_and_update_txt',
-			value:
+			description:
 				'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
-			width: 11,
 		},
 		{
 			type: 'checkbox',
