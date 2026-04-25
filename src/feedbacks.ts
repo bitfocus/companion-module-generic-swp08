@@ -13,6 +13,7 @@ export enum FeedbackIds {
 	CrosspointConnectedByLevel = 'crosspoint_connected_by_level',
 	CrosspointConnectedByName = 'crosspoint_connected_by_name',
 	DestinationSourceName = 'dest_source_name',
+	CanTake = 'can_take',
 }
 
 export type FeedbackSchema = {
@@ -75,6 +76,11 @@ export type FeedbackSchema = {
 			level: number
 			dest: number
 		}
+	}
+	[FeedbackIds.CanTake]: {
+		type: 'boolean'
+		// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+		options: {}
 	}
 }
 
@@ -307,6 +313,20 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			logger.debug(`${FeedbackIds.DestinationSourceName} feedback ${feedback.options.dest}:${feedback.options.level}`)
 			const source = self.getRoutemapEntries(dest)[level]
 			return self.source_names.get(source)?.label ?? ''
+		},
+	}
+
+	feedbackDefinitions[FeedbackIds.CanTake] = {
+		type: 'boolean',
+		name: 'Can Take',
+		description: 'True when a take is possible',
+		defaultStyle: {
+			color: colours.black,
+			bgcolor: colours.red,
+		},
+		options: [],
+		callback: (_feedback) => {
+			return self.selected_source !== 0 && self.selected_dest !== 0 && self.selected_level.length > 0
 		},
 	}
 

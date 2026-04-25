@@ -42,8 +42,6 @@ export function UpdatePresets(self: SW_P_08): void {
 		style: {
 			...presetDefaults.style,
 			text: 'Take',
-			bgcolor: colours.red,
-			color: colours.black,
 		},
 		steps: [
 			{
@@ -57,7 +55,17 @@ export function UpdatePresets(self: SW_P_08): void {
 				up: [],
 			},
 		],
-		feedbacks: [],
+		feedbacks: [
+			{
+				feedbackId: FeedbackIds.CanTake,
+				options: {},
+				style: {
+					color: colours.black,
+					bgcolor: colours.red,
+				},
+				isInverted: false,
+			},
+		],
 	}
 
 	presets.refresh = {

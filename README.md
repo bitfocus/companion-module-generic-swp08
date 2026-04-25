@@ -125,5 +125,6 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Upgrade to API `v2.0`
 - Support expressions for all action and feedback options
 - Add **Source name routed to selected Destination** value feedback
+- Add **Can Take** boolean feedback
 - Reformat config options
 - Move version history to `README.md`

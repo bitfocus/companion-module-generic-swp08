@@ -36,6 +36,7 @@ There are multiple ways of making crosspoint buttons to cater for different appl
 
 Button background colours can be changed to show current selection status.
 
+- **Can Take**
 - **Crosspoint Connected**
 - **Crosspoint Connected By Name**
 - **Selected Levels**
