@@ -78,7 +78,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		},
 	)
 
-	public throttledFeedbackCheck = _.throttle(() => {
+	private throttledFeedbackCheck = _.throttle(() => {
 		if (this.feedbacksToCheck.size == 0) return
 		this.checkFeedbacks(...([...this.feedbacksToCheck] as [FeedbackIds, ...FeedbackIds[]]))
 		this.feedbacksToCheck.clear()
@@ -170,6 +170,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private updatePresets(): void {
 		UpdatePresets(this)
+	}
+
+	public addFeedbacksToCheck(...feedbacks: FeedbackIds[]): void {
+		feedbacks.forEach((fb) => {
+			this.feedbacksToCheck.add(fb)
+		})
+		this.throttledFeedbackCheck()
 	}
 
 	// tcp.js functions
@@ -627,12 +634,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.setVariableValuesCached(Object.fromEntries(variables))
 
 		// TODO: separate id for each destination, and only send source_dest_route if any of them have changed
-		this.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
-		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnected)
-		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByName)
-		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByLevel)
-		this.feedbacksToCheck.add(FeedbackIds.DestinationSourceName)
-		this.throttledFeedbackCheck()
+		this.addFeedbacksToCheck(
+			FeedbackIds.SourceDestRoute,
+			FeedbackIds.CrosspointConnected,
+			FeedbackIds.CrosspointConnectedByName,
+			FeedbackIds.CrosspointConnectedByLevel,
+			FeedbackIds.DestinationSourceName,
+		)
 	}
 
 	private record_crosspoint(source: number, dest: number, level: number): void {
@@ -665,12 +673,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		this.setVariableValuesCached({ [getRouteVariableName(level, dest)]: source })
 		this.setRoutemap(source, dest, level)
-		this.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
-		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnected)
-		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByName)
-		this.feedbacksToCheck.add(FeedbackIds.CrosspointConnectedByLevel)
-		this.feedbacksToCheck.add(FeedbackIds.DestinationSourceName)
-		this.throttledFeedbackCheck()
+		this.addFeedbacksToCheck(
+			FeedbackIds.SourceDestRoute,
+			FeedbackIds.CrosspointConnected,
+			FeedbackIds.CrosspointConnectedByName,
+			FeedbackIds.CrosspointConnectedByLevel,
+			FeedbackIds.DestinationSourceName,
+		)
 		this.record_crosspoint(source, dest, level)
 	}
 
@@ -1116,10 +1125,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			}
 		}
 		this.log('debug', `Selected levels: ${JSON.stringify(this.selected_level)}`)
-		this.feedbacksToCheck.add(FeedbackIds.SelectedLevel)
-		this.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
-		this.feedbacksToCheck.add(FeedbackIds.CanTake)
-		this.throttledFeedbackCheck()
+		this.addFeedbacksToCheck(FeedbackIds.SelectedLevel, FeedbackIds.SelectedLevelDest, FeedbackIds.CanTake)
 	}
 
 	// names.js functions

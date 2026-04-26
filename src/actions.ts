@@ -134,11 +134,12 @@ export function UpdateActions(self: SW_P_08): void {
 			self.selected_dest = Math.round(options.dest)
 			logger.info(`set destination ${self.selected_dest}`)
 			self.setVariableValuesCached({ Destination: self.selected_dest })
-			self.feedbacksToCheck.add(FeedbackIds.SelectedDest)
-			self.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
-			self.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
-			self.feedbacksToCheck.add(FeedbackIds.CanTake)
-			self.throttledFeedbackCheck()
+			self.addFeedbacksToCheck(
+				FeedbackIds.SelectedDest,
+				FeedbackIds.SelectedLevelDest,
+				FeedbackIds.SourceDestRoute,
+				FeedbackIds.CanTake,
+			)
 			if (!self.config.tally_dump_and_update) {
 				await self.getCrosspoints(self.selected_dest)
 			}
@@ -160,11 +161,12 @@ export function UpdateActions(self: SW_P_08): void {
 			self.selected_dest = dest
 			logger.info(`set destination ${self.selected_dest}`)
 			self.setVariableValuesCached({ Destination: self.selected_dest })
-			self.feedbacksToCheck.add(FeedbackIds.SelectedDest)
-			self.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
-			self.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
-			self.feedbacksToCheck.add(FeedbackIds.CanTake)
-			self.throttledFeedbackCheck()
+			self.addFeedbacksToCheck(
+				FeedbackIds.SelectedDest,
+				FeedbackIds.SelectedLevelDest,
+				FeedbackIds.SourceDestRoute,
+				FeedbackIds.CanTake,
+			)
 			if (!self.config.tally_dump_and_update) {
 				await self.getCrosspoints(dest)
 			}
@@ -185,9 +187,7 @@ export function UpdateActions(self: SW_P_08): void {
 			self.selected_source = Math.round(options.source)
 			logger.info(`set source ${self.selected_source}`)
 			self.setVariableValuesCached({ Source: self.selected_source })
-			self.feedbacksToCheck.add(FeedbackIds.SelectedSource)
-			self.feedbacksToCheck.add(FeedbackIds.CanTake)
-			self.throttledFeedbackCheck()
+			self.addFeedbacksToCheck(FeedbackIds.SelectedSource, FeedbackIds.CanTake)
 		},
 	}
 
@@ -200,9 +200,7 @@ export function UpdateActions(self: SW_P_08): void {
 			self.selected_source = source
 			logger.info(`set source ${self.selected_source}`)
 			self.setVariableValuesCached({ Source: self.selected_source })
-			self.feedbacksToCheck.add(FeedbackIds.SelectedSource)
-			self.feedbacksToCheck.add(FeedbackIds.CanTake)
-			self.throttledFeedbackCheck()
+			self.addFeedbacksToCheck(FeedbackIds.SelectedSource, FeedbackIds.CanTake)
 		},
 	}
 
@@ -259,30 +257,31 @@ export function UpdateActions(self: SW_P_08): void {
 				for (let i = 1; i <= self.config.max_levels; i++) {
 					self.selected_level.push({ id: i, enabled: options.clear_enable_levels })
 				}
-				self.feedbacksToCheck.add(FeedbackIds.SelectedLevel)
-				self.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
-				self.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
-				self.feedbacksToCheck.add(FeedbackIds.CanTake)
-				self.throttledFeedbackCheck()
+				self.addFeedbacksToCheck(
+					FeedbackIds.SelectedDest,
+					FeedbackIds.SelectedLevelDest,
+					FeedbackIds.SourceDestRoute,
+					FeedbackIds.CanTake,
+				)
 				logger.debug(`Clear Levels\nSelected levels: ${JSON.stringify(self.selected_level)}`)
 			}
 
 			if (options.clear === 'all' || options.clear === 'dest') {
 				self.selected_dest = 0
 				self.setVariableValuesCached({ Destination: self.selected_dest })
-				self.feedbacksToCheck.add(FeedbackIds.SelectedLevel)
-				self.feedbacksToCheck.add(FeedbackIds.SelectedLevelDest)
-				self.feedbacksToCheck.add(FeedbackIds.SourceDestRoute)
-				self.feedbacksToCheck.add(FeedbackIds.CanTake)
-				self.throttledFeedbackCheck()
+				self.addFeedbacksToCheck(
+					FeedbackIds.SelectedDest,
+					FeedbackIds.SelectedLevelDest,
+					FeedbackIds.SourceDestRoute,
+					FeedbackIds.CanTake,
+				)
 				logger.debug('clear dest')
 			}
 
 			if (options.clear === 'all' || options.clear === 'source') {
 				self.selected_source = 0
 				self.setVariableValuesCached({ Source: self.selected_source })
-				self.feedbacksToCheck.add(FeedbackIds.SelectedSource)
-				self.throttledFeedbackCheck()
+				self.addFeedbacksToCheck(FeedbackIds.SelectedSource, FeedbackIds.SourceDestRoute, FeedbackIds.CanTake)
 			}
 		},
 	}
