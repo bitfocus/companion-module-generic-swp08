@@ -132,7 +132,7 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 ### Version 4.0.1
 
 - Refactor feedback checks
-- Check `Can Take` feedback is more places
+- Check `Can Take` feedback in more places
 
 ### Version 4.0.2
 
