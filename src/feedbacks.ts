@@ -223,7 +223,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 	feedbackDefinitions[FeedbackIds.CrosspointConnectedByLevel] = {
 		type: 'boolean',
 		name: 'Crosspoint Connected on specific level',
-		description: 'Active when self crosspoint is connected on any level',
+		description: 'Active when self crosspoint is connected on specific levels',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
