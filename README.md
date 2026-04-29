@@ -128,3 +128,12 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Add **Can Take** boolean feedback
 - Reformat config options
 - Move version history to `README.md`
+
+### Version 4.0.1
+
+- Refactor feedback checks
+- Check `Can Take` feedback is more scenarions
+
+### Version 4.0.2
+
+- Correct description of `Crosspoint Connected on specific level` feedback
