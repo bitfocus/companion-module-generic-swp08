@@ -99,37 +99,6 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.debouncedUpdate.cancel()
 		this.updateStatus(InstanceStatus.Connecting)
 
-		if (config.max_levels === undefined) {
-			config.max_levels = 3
-		}
-		if (config.max_levels_ext === undefined) {
-			config.max_levels_ext = config.max_levels || 3
-		}
-		if (config.extended_support) {
-			const newMatrix = Math.min(config.matrix_ext, 16)
-			const newLevels = Math.min(config.max_levels_ext, 16)
-
-			// Save the clamped values to the normal config too, in case the user
-			// switches between extended and normal mode
-			if (newMatrix !== config.matrix || newLevels !== config.max_levels) {
-				config.matrix = newMatrix
-				config.max_levels = newLevels
-				// This will not trigger a new configUpdated, so continue processing
-				// the rest of the config
-				this.saveConfig(config)
-			}
-		} else {
-			// Keep the extended values updated, in case the user switches
-			// between extended and normal mode
-			if (config.matrix_ext !== config.matrix || config.max_levels_ext !== config.max_levels) {
-				config.matrix_ext = config.matrix
-				config.max_levels_ext = config.max_levels
-				// This will not trigger a new configUpdated, so continue processing
-				// the rest of the config
-				this.saveConfig(config)
-			}
-		}
-
 		this.config = config
 		this.setupVariables()
 		this.updateFeedbacks()
