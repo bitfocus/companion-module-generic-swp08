@@ -222,10 +222,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			return true
 		}
 
-		if (this.commands.indexOf(cmdCode) !== -1) {
-			return true
-		}
-		return false
+		return this.commands.includes(cmdCode)
 	}
 
 	/**
@@ -246,7 +243,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				this.config.supported_commands_on_connect === true &&
 				this.commands.length > 0
 			) {
-				if (this.commands.indexOf(cmdCode) === -1) {
+				if (!this.hasCommand(cmdCode)) {
 					this.log('warn', `Command code ${cmdCode} is not implemented by this hardware`)
 					return
 				}
