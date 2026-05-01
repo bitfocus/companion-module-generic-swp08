@@ -54,7 +54,6 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private lastAckAt = 0
 	private consecutiveAckFailures = 0
-	private inFlight = 0
 
 	private debouncedUpdate = _.debounce(
 		async () => {
@@ -191,15 +190,18 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private get isConnectionUnhealthy(): boolean {
 		const now = Date.now()
 
-		// Only care about ACK timing if we are actually expecting one
-		const waitingForAck = this.inFlight > 0
+		// queue.pending = actively running tasks (0 or 1 with concurrency:1)
+		// queue.size = waiting to run
+		const waitingForAck = this.queue.pending > 0
 
-		const noRecentAckWhileBusy = waitingForAck && this.lastAckAt !== 0 && now - this.lastAckAt > 3000
+		const stalledWhileBusy = waitingForAck && now - this.lastAckAt > 3000
 
 		const tooManyFailures = this.consecutiveAckFailures >= 3
-		if (tooManyFailures) this.log('warn', `${this.consecutiveAckFailures} consecutive ACK failures`)
+		if (tooManyFailures) {
+			this.log('warn', `${this.consecutiveAckFailures} consecutive ACK failures`)
+		}
 
-		return noRecentAckWhileBusy || tooManyFailures
+		return stalledWhileBusy || tooManyFailures
 	}
 
 	// tcp.js functions
@@ -366,18 +368,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		await this.queue.add(async () => {
 			if (this.socket?.isConnected) {
-				this.inFlight++
-				try {
-					await this.socket.sendAsync(packetBuffer)
+				await this.socket.sendAsync(packetBuffer)
 
-					await this.waitForAck(async () => {
-						// Retry sending the command if it fails
-						this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
-						await this.socket?.sendAsync(packetBuffer).catch(() => {})
-					})
-				} finally {
-					this.inFlight--
-				}
+				await this.waitForAck(async () => {
+					// Retry sending the command if it fails
+					this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
+					await this.socket?.sendAsync(packetBuffer).catch(() => {})
+				})
 			} else {
 				this.log('warn', 'Socket not connected')
 			}
@@ -417,6 +414,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 			this.socket.on('connect', () => {
 				this.log('info', `Connected to ${this.config.host}:${this.config.port}`)
+				this.lastAckAt = Date.now() // ← prevents false unhealthy on first message
 				this.ackCallbacks = []
 				this.commands = []
 				this.routeMap = new Map()
