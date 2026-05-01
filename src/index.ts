@@ -1176,7 +1176,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.log('debug', `Processing Levels Selection: ${selection}`)
 
 		for (const level of selection) {
-			if (level < 1 || level > this.selected_level.length) break
+			if (level < 1 || level > this.selected_level.length) continue
 			if (state === 'toggle') {
 				this.selected_level[level - 1].enabled = !this.selected_level[level - 1].enabled
 			} else {
