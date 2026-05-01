@@ -46,7 +46,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	public dest_names: Map<number, DropdownChoice> = new Map()
 	public source_names: Map<number, DropdownChoice> = new Map()
-	public levels: DropdownChoice[] = []
+	public levels: DropdownChoice<number>[] = []
 
 	public selected_source: number = 0
 	public selected_dest: number = 0
