@@ -903,28 +903,23 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				let packetIndex = 0
 				let crc = 0
 
-				// Remove DLE escaping and calculate checksum
-				// Start at 2 to skip SOM
+				// Remove DLE escaping
 				for (let k = 2; k < j; k++) {
 					if (data[k] === DLE && data[k + 1] === DLE) {
-						// We found a double DLE, replace it with a single DLE
 						k++
 						packet[packetIndex++] = DLE
-						if (k < j - 1) {
-							crc += data[k]
-						}
 						continue
 					}
 					packet[packetIndex++] = data[k]
-
-					// add only DATA + BTC to CRC
-					if (k < j - 1) {
-						crc += data[k]
-					}
 				}
 
 				// Trim the packet to the correct size
 				packet = packet.subarray(0, packetIndex)
+
+				// Calculate CRC on the unescaped data: all bytes except CHK (last byte)
+				for (let k = 0; k < packet.length - 1; k++) {
+					crc += packet[k]
+				}
 
 				// Check packet size
 				if (packet[packet.length - 2] !== packet.length - 2) {
