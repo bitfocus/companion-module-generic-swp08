@@ -753,7 +753,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			return
 		}
 
-		if (Number.isNaN(levelN) || levelN < 0 || levelN > 256) {
+		if (Number.isNaN(levelN) || levelN < 1 || levelN > 256) {
 			this.log('warn', `Unable to route level ${levelN}`)
 			return
 		}
