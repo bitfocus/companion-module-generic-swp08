@@ -233,7 +233,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		return output
 	}
 
-	private async waitForAck(retryCb: () => Promise<void>, retries = 1): Promise<void> {
+	private async waitForAck(): Promise<void> {
 		return new Promise((resolve, reject) => {
 			// eslint-disable-next-line prefer-const
 			let entry: AckCallback
@@ -241,7 +241,6 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			const timeout = setTimeout(() => {
 				const index = this.ackCallbacks.indexOf(entry)
 				if (index !== -1) this.ackCallbacks.splice(index, 1)
-
 				this.consecutiveAckFailures++
 				reject(new Error('ACK timeout'))
 			}, 1000)
@@ -249,25 +248,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			entry = {
 				resolve: () => {
 					clearTimeout(timeout)
-					this.lastAckAt = Date.now()
-					this.consecutiveAckFailures = 0
 					resolve()
 				},
 				reject: () => {
 					clearTimeout(timeout)
-					this.consecutiveAckFailures++
-
-					if (retries > 0 && this.socket?.isConnected) {
-						this.queue
-							.add(async () => {
-								await retryCb()
-								await this.waitForAck(retryCb, retries - 1)
-							})
-							.then(resolve)
-							.catch(reject)
-					} else {
-						reject(new Error('ACK failed after retries'))
-					}
+					reject(new Error('NAK received'))
 				},
 			}
 
@@ -367,16 +352,27 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.log('debug', `Sending >> ${packetBuffer.toString('hex')}`)
 
 		await this.queue.add(async () => {
-			if (this.socket?.isConnected) {
-				await this.socket.sendAsync(packetBuffer)
-
-				await this.waitForAck(async () => {
-					// Retry sending the command if it fails
-					this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
-					await this.socket?.sendAsync(packetBuffer).catch(() => {})
-				})
-			} else {
+			if (!this.socket?.isConnected) {
 				this.log('warn', 'Socket not connected')
+				return
+			}
+
+			const maxAttempts = 2
+			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+				await this.socket.sendAsync(packetBuffer)
+				try {
+					await this.waitForAck()
+					this.lastAckAt = Date.now()
+					this.consecutiveAckFailures = 0
+					return
+				} catch (_e) {
+					this.consecutiveAckFailures++
+					if (attempt < maxAttempts && this.socket?.isConnected) {
+						this.log('warn', `Attempt ${attempt} failed, retrying: ${packetBuffer.toString('hex')}`)
+					} else {
+						this.log('warn', `All attempts failed: ${packetBuffer.toString('hex')}`)
+					}
+				}
 			}
 		})
 	}
@@ -889,7 +885,6 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					this.consecutiveAckFailures = 0
 					this.ackCallbacks.shift()?.resolve()
 				} else {
-					this.consecutiveAckFailures++
 					this.ackCallbacks.shift()?.reject()
 				}
 			}
