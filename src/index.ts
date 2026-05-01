@@ -558,48 +558,47 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private updateAllCrosspoints(): void {
 		const variables = new Map()
-		const numDests = this.dest_names.size > 0 ? this.dest_names.size : 256
-		for (let dest = 1; dest <= numDests; dest++) {
-			if (dest === this.selected_dest) {
-				const map = this.routeMap.get(dest) ?? new Map()
-				for (let level = 1; level <= this.config.max_levels; level++) {
-					if (map.has(level)) {
-						const source = map.get(level)
-						variables.set(`Sel_Dest_Source_Level_${level}`, source)
-						if (this.source_names.size > 0) {
-							// only if names have been retrieved
-							try {
-								variables.set(
-									`Sel_Dest_Source_Name_Level_${level}`,
-									stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
-								)
-							} catch (e: any) {
-								this.log(
-									'debug',
-									`Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`,
-								)
-							}
+
+		if (this.selected_dest) {
+			const map = this.routeMap.get(this.selected_dest) ?? new Map<number, number>()
+			const hasSourceNames = this.source_names.size > 0
+
+			for (let level = 1; level <= this.effectiveLevels; level++) {
+				if (map.has(level)) {
+					const source = map.get(level) ?? 0
+					variables.set(`Sel_Dest_Source_Level_${level}`, source)
+
+					// Hoist the source_names check outside the level loop
+					if (hasSourceNames) {
+						try {
+							variables.set(
+								`Sel_Dest_Source_Name_Level_${level}`,
+								stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+							)
+						} catch (e: any) {
+							this.log(
+								'debug',
+								`Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`,
+							)
 						}
-					} else {
-						variables.set(`Sel_Dest_Source_Level_${level}`, -1)
-						variables.set(`Sel_Dest_Source_Name_Level_${level}`, 'N/A')
 					}
+				} else {
+					variables.set(`Sel_Dest_Source_Level_${level}`, -1)
+					variables.set(`Sel_Dest_Source_Name_Level_${level}`, 'N/A')
 				}
 			}
 		}
 
 		if (this.config.tally_dump_variables) {
-			for (const index of this.routeMap.keys()) {
-				const levels = this.routeMap.get(index) ?? new Map()
-				for (const level of levels.keys()) {
-					variables.set(getRouteVariableName(level, index), levels.get(level))
+			for (const [index, levels] of this.routeMap) {
+				for (const [level, source] of levels) {
+					variables.set(getRouteVariableName(level, index), source)
 				}
 			}
 		}
 
 		this.setVariableValuesCached(Object.fromEntries(variables))
 
-		// TODO: separate id for each destination, and only send source_dest_route if any of them have changed
 		this.addFeedbacksToCheck(
 			FeedbackIds.SourceDestRoute,
 			FeedbackIds.CrosspointConnected,
