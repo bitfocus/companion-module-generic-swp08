@@ -241,7 +241,6 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			const timeout = setTimeout(() => {
 				const index = this.ackCallbacks.indexOf(entry)
 				if (index !== -1) this.ackCallbacks.splice(index, 1)
-				this.consecutiveAckFailures++
 				reject(new Error('ACK timeout'))
 			}, 1000)
 
