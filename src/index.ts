@@ -142,9 +142,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	public addFeedbacksToCheck(...feedbacks: FeedbackIds[]): void {
-		feedbacks.forEach((fb) => {
+		for (const fb of feedbacks) {
 			this.feedbacksToCheck.add(fb)
-		})
+		}
 		this.throttledFeedbackCheck()
 	}
 
