@@ -197,7 +197,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const noRecentAckWhileBusy = waitingForAck && this.lastAckAt !== 0 && now - this.lastAckAt > 3000
 
 		const tooManyFailures = this.consecutiveAckFailures >= 3
-		if (tooManyFailures) this.log('warn', `#{this.consecutiveAckFailures} consecutive ACK failures`)
+		if (tooManyFailures) this.log('warn', `${this.consecutiveAckFailures} consecutive ACK failures`)
 
 		return noRecentAckWhileBusy || tooManyFailures
 	}
