@@ -148,6 +148,43 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.throttledFeedbackCheck()
 	}
 
+	/**
+	 * Get maximum configured levels
+	 **/
+
+	private get effectiveLevels(): number {
+		return this.config.extended_support ? this.config.max_levels_ext : this.config.max_levels
+	}
+
+	/**
+	 * Get clamped maximum configured levels for use with non extended mode commands
+	 **/
+
+	private get protocolLevels(): number {
+		return Math.min(this.effectiveLevels, 16)
+	}
+
+	/**
+	 * Get maximum configured matrix
+	 **/
+
+	private get effectiveMatrix(): number {
+		return this.config.extended_support ? this.config.matrix_ext : this.config.matrix
+	}
+
+	/**
+	 * Get  maximum configured matrix for use with non extended mode commands
+	 * @throws if configured matrix exceeds non extended mode range
+	 **/
+
+	private get protocolMatrix(): number {
+		if (!this.config.extended_support && this.effectiveMatrix > 16) {
+			throw new Error('Matrix exceeds protocol limits without extended support')
+		}
+		return this.effectiveMatrix
+	}
+
+
 	// tcp.js functions
 
 	private async sendNak(): Promise<void> {
@@ -207,12 +244,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private async readTally(): Promise<void> {
 		if (this.config.extended_support) {
-			for (let i = 0; i < this.config.max_levels_ext; i++) {
-				await this.sendMessage([cmds.extendedCrosspointTallyDump, this.config.matrix - 1, i])
+			for (let i = 0; i < this.effectiveLevels; i++) {
+				await this.sendMessage([cmds.extendedCrosspointTallyDump, this.effectiveMatrix - 1, i])
 			}
 		} else {
-			for (let i = 0; i < this.config.max_levels; i++) {
-				await this.sendMessage([cmds.crosspointTallyDump, ((this.config.matrix - 1) << 4) | (i & 0x0f)])
+			for (let i = 0; i < this.protocolLevels; i++) {
+				await this.sendMessage([cmds.crosspointTallyDump, ((this.effectiveMatrix - 1) << 4) | (i & 0x0f)])
 			}
 		}
 	}
@@ -360,11 +397,14 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				while (receivebuffer.length > 0) {
 					// parseData will return the number of bytes consumed, and will retry until no more data is present
 
+					try {
 					const bytesConsumed = this.decode(receivebuffer)
-					if (bytesConsumed === 0) {
-						break
-					}
+						if (bytesConsumed === 0) break
 					receivebuffer = receivebuffer.subarray(bytesConsumed)
+					} catch (e) {
+						this.log('error', `Failed to decode packet: ${e instanceof Error ? e.message : String(e)}`)
+						receivebuffer = receivebuffer.subarray(1) // skip bad byte and keep trying
+					}
 				}
 			})
 		}
@@ -406,7 +446,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const dest = ((data[2] & 0x70) << 3) + data[3] + 1
 		const source = ((data[2] & 0x07) << 7) + data[4] + 1
 
-		if (matrix !== this.config.matrix) {
+		if (matrix !== this.effectiveMatrix) {
+			this.log('warn', `Ignoring matrix ${matrix}, expected ${this.effectiveMatrix}`)
 			return
 		}
 
@@ -421,7 +462,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const dest = ((data[3] << 8) | data[4]) + 1
 		const source = ((data[5] << 8) | data[6]) + 1
 
-		if (matrix !== this.config.matrix) {
+		if (matrix !== this.effectiveMatrix) {
+			this.log('warn', `Ignoring matrix ${matrix}, expected ${this.effectiveMatrix}`)
 			return
 		}
 
@@ -493,7 +535,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	): void {
 		const tallies = data[offset]
 
-		if (matrix !== this.config.matrix) {
+		if (matrix !== this.effectiveMatrix) {
+			this.log('warn', `Ignoring matrix ${matrix}, expected ${this.effectiveMatrix}`)
 			return
 		}
 
@@ -683,7 +726,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			// Extended command required
 			cmd.push(cmds.extendedCrosspointConnect)
 			// Matrix
-			cmd.push(this.config.matrix - 1)
+			cmd.push(this.effectiveMatrix - 1)
 			// Level
 			cmd.push(level)
 			// Dest DIV 256
@@ -706,7 +749,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			// Standard Command
 			cmd.push(cmds.crosspointConnect)
 			// Matrix and Level
-			cmd.push(((this.config.matrix - 1) << 4) | (level & 0x0f))
+			cmd.push(((this.protocolMatrix - 1) << 4) | (level & 0x0f))
 			// Multiplier if source or dest > 128
 			cmd.push(
 				((source >> 7) & 0x07) | // source DIV 128 Bits 0-2
@@ -730,14 +773,14 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 		const dest = destN - 1
 
-		if ((this.config.max_levels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) {
+		if ((this.effectiveLevels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) {
 			// check all levels
-			for (let i = 0; i < this.config.max_levels; i++) {
+			for (let i = 0; i < this.effectiveLevels; i++) {
 				await this.sendMessage([
 					// Extended commands
 					cmds.extendedInterrogate,
 					// Matrix
-					this.config.matrix - 1,
+					this.effectiveMatrix - 1,
 					// Level
 					i,
 					// Dest DIV 256
@@ -747,7 +790,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				])
 			}
 		} else {
-			if (this.config.max_levels > 16 || dest > 1023) {
+			if (this.effectiveLevels > 16 || dest > 1023) {
 				this.log(
 					'error',
 					'Doing a crosspoint interrogate with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint interrogate.',
@@ -756,12 +799,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			}
 
 			// check all levels
-			for (let i = 0; i <= this.config.max_levels - 1; i++) {
+			for (let i = 0; i <= this.protocolLevels - 1; i++) {
 				await this.sendMessage([
 					// Standard commands
 					cmds.crosspointInterrogate,
 					// Matrix and Level
-					((this.config.matrix - 1) << 4) | (i & 0x0f),
+					((this.protocolMatrix - 1) << 4) | (i & 0x0f),
 					// Multiplier dest > 128
 					((dest >> 7) & 0x07) << 4, // dest DIV 128 Bits 4-6
 					dest & 0x7f, // Destination MOD 128
@@ -980,8 +1023,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			// byte1 = matrix (in bits 4-7), level (in bits 3-0) per SW-P-08 spec
 			if (options.hasMatrix) {
 				matrix = (data[idx] & 0xf0) >> 4
-				if (matrix !== this.config.matrix - 1) {
-					this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix - 1}`)
+				if (matrix !== this.protocolMatrix - 1) {
+					this.log('debug', `Matrix number ${matrix} does not match ${this.protocolMatrix - 1}`)
 					return
 				}
 			}
@@ -995,8 +1038,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			let idx = 1
 			if (options.hasMatrix) {
 				matrix = data[idx++]
-				if (matrix !== this.config.matrix_ext - 1) {
-					this.log('debug', `Matrix number ${matrix} does not match ${this.config.matrix_ext - 1}`)
+				if (matrix !== this.effectiveMatrix - 1) {
+					this.log('debug', `Matrix number ${matrix} does not match ${this.effectiveMatrix - 1}`)
 					return
 				}
 			}
@@ -1112,19 +1155,23 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			// extended commands (only gets source names for level 0)
 			cmdGetSources.push(
 				cmds.extendedGetSourceNames,
-				this.config.matrix_ext - 1, // matrix
+				this.effectiveMatrix - 1, // matrix
 				0, // level
 				Number.parseInt(this.config.name_chars), // name characters
 			)
 			cmdGetDestinations.push(
 				cmds.extendedGetDestNames,
-				this.config.matrix_ext - 1, // matrix
+				this.effectiveMatrix - 1, // matrix
 				Number.parseInt(this.config.name_chars), // name characters
 			)
 		} else {
 			// standard commands
-			cmdGetSources.push(cmds.getSourceNames, (this.config.matrix - 1) << 4, Number.parseInt(this.config.name_chars))
-			cmdGetDestinations.push(cmds.getDestNames, (this.config.matrix - 1) << 4, Number.parseInt(this.config.name_chars))
+			cmdGetSources.push(cmds.getSourceNames, (this.protocolMatrix - 1) << 4, Number.parseInt(this.config.name_chars))
+			cmdGetDestinations.push(
+				cmds.getDestNames,
+				(this.protocolMatrix - 1) << 4,
+				Number.parseInt(this.config.name_chars),
+			)
 		}
 
 		// get source names
@@ -1145,7 +1192,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.selected_dest = 0
 		this.selected_source = 0
 
-		const currentLevels = (this.config.extended_support ? this.config.max_levels_ext : this.config.max_levels) || 3
+		if (!this.effectiveLevels || this.effectiveLevels < 1) {
+			this.log('error', `Invalid levels configuration: ${this.effectiveLevels} aborting setupVariables`)
+			return
+		}
+
+		const currentLevels = this.effectiveLevels
 
 		this.levels = []
 		this.selected_level = []
@@ -1205,7 +1257,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			name: 'Selected destination',
 		}
 
-		for (let i = 1; i <= this.config.max_levels; i++) {
+		for (let i = 1; i <= this.effectiveLevels; i++) {
 			coreVariables[`Sel_Dest_Source_Level_${i}`] = {
 				name: `Selected destination source for level ${i}`,
 			}
