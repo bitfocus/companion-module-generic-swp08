@@ -327,6 +327,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			this.socket.on('end', () => {
 				this.stopKeepAliveTimer()
 				this.log('warn', `Connection to ${this.config.host} ended`)
+				this.ackCallbacks = []
 			})
 
 			this.socket.on('connect', () => {
