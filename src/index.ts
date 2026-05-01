@@ -206,16 +206,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private async sendNak(): Promise<void> {
 		this.log('debug', 'Sending NAK')
-		await this.queue.add(async () => {
-			if (this.socket?.isConnected) await this.socket.sendAsync(Buffer.from([DLE, NAK]))
-		})
+		await this.sendRaw(Buffer.from([DLE, NAK]))
 	}
 
 	private async sendAck(): Promise<void> {
 		//this.log('debug', 'Sending ACK')
-		await this.queue.add(async () => {
-			if (this.socket?.isConnected) await this.socket.sendAsync(Buffer.from([DLE, ACK]))
-		})
+		await this.sendRaw(Buffer.from([DLE, ACK]))
 	}
 
 	/**
@@ -295,6 +291,18 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 
 		return this.commands.includes(cmdCode)
+	}
+
+	/**
+	 * Encapsulate a message and send it to the router bypassing the message queue (for ACK / NAK)
+	 * @param {Buffer} message
+	 * @returns { Promise<boolean> }
+	 */
+
+	private async sendRaw(message: Buffer): Promise<void> {
+		if (this.socket?.isConnected) {
+			await this.socket.sendAsync(message)
+		}
 	}
 
 	/**
