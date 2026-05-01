@@ -52,6 +52,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	public selected_dest: number = 0
 	public selected_level: Level[] = []
 
+	private lastAckAt = 0
+	private consecutiveAckFailures = 0
+	private inFlight = 0
+
 	private debouncedUpdate = _.debounce(
 		async () => {
 			this.updateVariableDefinitions()
@@ -184,6 +188,19 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		return this.effectiveMatrix
 	}
 
+	private get isConnectionUnhealthy(): boolean {
+		const now = Date.now()
+
+		// Only care about ACK timing if we are actually expecting one
+		const waitingForAck = this.inFlight > 0
+
+		const noRecentAckWhileBusy = waitingForAck && this.lastAckAt !== 0 && now - this.lastAckAt > 3000
+
+		const tooManyFailures = this.consecutiveAckFailures >= 3
+		if (tooManyFailures) this.log('warn', `#{this.consecutiveAckFailures} consecutive ACK failures`)
+
+		return noRecentAckWhileBusy || tooManyFailures
+	}
 
 	// tcp.js functions
 
@@ -218,27 +235,45 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		return output
 	}
 
-	private addAckCallback(retryCb: () => void): void {
-		this.ackCallbacks.push({
-			resolve: () => {
-				//this.log('debug', 'ACK received')
-			},
-			reject: () => {
-				this.log('warn', 'ACK not received, resending')
-				// Retry once
-				if (this.socket?.isConnected) {
-					// Retry sending the command
-					retryCb()
-					this.ackCallbacks.push({
-						resolve: () => {
-							this.log('debug', 'ACK received on second try')
-						},
-						reject: () => {
-							this.log('warn', 'ACK not received on second try')
-						},
-					})
-				}
-			},
+	private async waitForAck(retryCb: () => Promise<void>, retries = 1): Promise<void> {
+		return new Promise((resolve, reject) => {
+			// eslint-disable-next-line prefer-const
+			let entry: AckCallback
+
+			const timeout = setTimeout(() => {
+				const index = this.ackCallbacks.indexOf(entry)
+				if (index !== -1) this.ackCallbacks.splice(index, 1)
+
+				this.consecutiveAckFailures++
+				reject(new Error('ACK timeout'))
+			}, 1000)
+
+			entry = {
+				resolve: () => {
+					clearTimeout(timeout)
+					this.lastAckAt = Date.now()
+					this.consecutiveAckFailures = 0
+					resolve()
+				},
+				reject: () => {
+					clearTimeout(timeout)
+					this.consecutiveAckFailures++
+
+					if (retries > 0 && this.socket?.isConnected) {
+						this.queue
+							.add(async () => {
+								await retryCb()
+								await this.waitForAck(retryCb, retries - 1)
+							})
+							.then(resolve)
+							.catch(reject)
+					} else {
+						reject(new Error('ACK failed after retries'))
+					}
+				},
+			}
+
+			this.ackCallbacks.push(entry)
 		})
 	}
 
@@ -323,13 +358,18 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		await this.queue.add(async () => {
 			if (this.socket?.isConnected) {
-				await this.socket.sendAsync(packetBuffer)
+				this.inFlight++
+				try {
+					await this.socket.sendAsync(packetBuffer)
 
-				this.addAckCallback(() => {
-					// Retry sending the command if it fails
-					this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
-					this.socket?.sendAsync(packetBuffer).catch(() => {})
-				})
+					await this.waitForAck(async () => {
+						// Retry sending the command if it fails
+						this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
+						await this.socket?.sendAsync(packetBuffer).catch(() => {})
+					})
+				} finally {
+					this.inFlight--
+				}
 			} else {
 				this.log('warn', 'Socket not connected')
 			}
@@ -398,9 +438,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					// parseData will return the number of bytes consumed, and will retry until no more data is present
 
 					try {
-					const bytesConsumed = this.decode(receivebuffer)
+						const bytesConsumed = this.decode(receivebuffer)
 						if (bytesConsumed === 0) break
-					receivebuffer = receivebuffer.subarray(bytesConsumed)
+						receivebuffer = receivebuffer.subarray(bytesConsumed)
 					} catch (e) {
 						this.log('error', `Failed to decode packet: ${e instanceof Error ? e.message : String(e)}`)
 						receivebuffer = receivebuffer.subarray(1) // skip bad byte and keep trying
@@ -431,8 +471,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private async keepAlive(): Promise<void> {
 		if (this.socket?.isConnected) {
-			// Send dummy message if the queue is empty
-			if (this.queue.size === 0) {
+			if (this.isConnectionUnhealthy) {
+				this.log('warn', 'Connection looks unhealthy, sending probe')
+				await this.getCrosspoints(1)
+				return
+			}
+			// Query crosspoint as proxy for proper keep alive message if the queue is empty
+			if (this.queue.size === 0 && this.queue.pending === 0) {
 				await this.getCrosspoints(1) // Query a crosspoint since there isnt a specificed keep alive message
 			}
 		}
@@ -715,7 +760,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const dest = destN - 1
 		const level = levelN - 1
 
-		if ((source > 1023 || dest > 1023 || levelN > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
+		if ((source > 1023 || dest > 1023 || level > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
 			if (this.config.extended_support === false) {
 				this.log(
 					'warn',
@@ -738,7 +783,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			// Source MOD 256
 			cmd.push(source & 0xff)
 		} else {
-			if (source > 1023 || dest > 1023 || levelN > 15) {
+			if (source > 1023 || dest > 1023 || level > 15) {
 				this.log(
 					'error',
 					'Doing a crosspoint connect with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint.',
@@ -834,8 +879,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				this.log('warn', 'Got unexpected ACK/NAK')
 			} else {
 				if (data[1] === ACK) {
+					this.lastAckAt = Date.now()
+					this.consecutiveAckFailures = 0
 					this.ackCallbacks.shift()?.resolve()
 				} else {
+					this.consecutiveAckFailures++
 					this.ackCallbacks.shift()?.reject()
 				}
 			}
@@ -1289,11 +1337,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 
 		// Only update if there are changes to the variable definitions
-		let changes = false
-		for (const [key, value] of Object.entries(coreVariables)) {
-			if (!_.isEqual(this.lastVariableDefinitions.get(key), value)) {
-				this.lastVariableDefinitions.set(key, value)
-				changes = true
+		let changes = this.lastVariableDefinitions.size !== Object.keys(coreVariables).length
+		if (!changes) {
+			for (const [key, value] of Object.entries(coreVariables)) {
+				if (!_.isEqual(this.lastVariableDefinitions.get(key), value)) {
+					changes = true
+					break
+				}
 			}
 		}
 
