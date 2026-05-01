@@ -1196,7 +1196,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			name: 'Number of source names returned by router',
 		}
 		coreVariables['Destinations'] = {
-			name: 'Number of source names returned by router',
+			name: 'Number of destination names returned by router',
 		}
 		coreVariables['Source'] = {
 			name: 'Selected source',
