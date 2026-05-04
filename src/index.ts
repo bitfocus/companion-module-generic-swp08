@@ -260,7 +260,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	private async readTally(): Promise<void> {
-		if (this.config.extended_support) {
+		if (this.config.extended_support || this.hasCommandSafe(cmds.extendedCrosspointTallyDump)) {
 			for (let i = 0; i < this.effectiveLevels; i++) {
 				await this.sendMessage([cmds.extendedCrosspointTallyDump, this.effectiveMatrix - 1, i])
 			}
@@ -282,6 +282,16 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			return true
 		}
 
+		return this.commands.includes(cmdCode)
+	}
+
+	/**
+	 * True if the cmdCode is reported as supported. Fallsback to false
+	 * @param {number } cmdCode
+	 * @returns { boolean }
+	 */
+
+	private hasCommandSafe(cmdCode: number): boolean {
 		return this.commands.includes(cmdCode)
 	}
 
@@ -767,7 +777,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const dest = destN - 1
 		const level = levelN - 1
 
-		if ((source > 1023 || dest > 1023 || level > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
+		if (
+			((source > 1023 || dest > 1023 || level > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) ||
+			this.hasCommandSafe(cmds.extendedCrosspointConnect)
+		) {
 			if (this.config.extended_support === false) {
 				this.log(
 					'warn',
@@ -824,7 +837,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 		const dest = destN - 1
 
-		if ((this.effectiveLevels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) {
+		if (
+			((this.effectiveLevels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) ||
+			this.hasCommandSafe(cmds.extendedInterrogate)
+		) {
 			// check all levels
 			for (let i = 0; i < this.effectiveLevels; i++) {
 				await this.sendMessage([
@@ -1198,8 +1214,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.setVariableValuesCached({ Sources: 0, Destinations: 0 })
 
 		if (
-			this.config.extended_support === true &&
-			(this.hasCommand(cmds.extendedGetSourceNames) || this.hasCommand(cmds.extendedGetDestNames))
+			(this.config.extended_support === true &&
+				(this.hasCommand(cmds.extendedGetSourceNames) || this.hasCommand(cmds.extendedGetDestNames))) ||
+			(this.hasCommandSafe(cmds.extendedGetSourceNames) && this.hasCommandSafe(cmds.extendedGetDestNames))
 		) {
 			// extended commands (only gets source names for level 0)
 			cmdGetSources.push(
