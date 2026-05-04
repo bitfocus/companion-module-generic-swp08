@@ -773,7 +773,6 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					'warn',
 					'Doing a crosspoint connect with a value outside of the normal command range, but extended support is not enabled, using extended command anyway',
 				)
-				return
 			}
 			// Extended command required
 			cmd.push(cmds.extendedCrosspointConnect)
