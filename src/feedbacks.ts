@@ -79,7 +79,8 @@ export type FeedbackSchema = {
 	}
 	[FeedbackIds.CanTake]: {
 		type: 'boolean'
-		options: Record<string, never>
+		// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+		options: {}
 	}
 }
 
