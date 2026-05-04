@@ -271,6 +271,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 	}
 
+	/**
+	 * True if the cmdCode is reported as supported. Fallsback to true when the supported commands array is empty or not using supported command on connect
+	 * @param {number } cmdCode
+	 * @returns { boolean }
+	 */
+
 	private hasCommand(cmdCode: number): boolean {
 		if (!this.config.supported_commands_on_connect || this.commands.length === 0) {
 			return true
