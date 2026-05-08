@@ -157,7 +157,7 @@ export async function UpdateFeedbacks(self: SW_P_08): Promise<void> {
 	feedbackDefinitions[FeedbackIds.CrosspointConnectedByLevel] = {
 		type: 'boolean',
 		name: 'Crosspoint Connected on specific level',
-		description: 'Active when self crosspoint is connected on any level',
+		description: 'Active when self crosspoint is connected on specifc level(s)',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
