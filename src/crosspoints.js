@@ -253,7 +253,7 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 		return
 	}
 
-	if (Number.isNaN(levelN) || levelN < 0 || levelN > 255) {
+	if (Number.isNaN(levelN) || levelN <= 0 || levelN > 256) {
 		this.log('warn', `Unable to route level ${levelN}`)
 		return
 	}
@@ -262,7 +262,7 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 	const dest = destN - 1
 	const level = levelN - 1
 
-	if ((source > 1023 || dest > 1023 || levelN > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
+	if ((source > 1023 || dest > 1023 || level > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) {
 		if (this.config.extended_support === false) {
 			this.log(
 				'warn',
@@ -285,7 +285,7 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 		// Source MOD 256
 		cmd.push(source & 0xff)
 	} else {
-		if (source > 1023 || dest > 1023 || levelN > 15) {
+		if (source > 1023 || dest > 1023 || level > 15) {
 			this.log(
 				'error',
 				'Doing a crosspoint connect with a source, destination or level value outside of the normal command range, but extended support is not supported by the device, cannot do crosspoint.',
