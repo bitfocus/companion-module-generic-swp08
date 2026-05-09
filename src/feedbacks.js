@@ -144,7 +144,7 @@ export async function updateFeedbacks() {
 	feedbackDefinitions.crosspoint_connected_by_level = {
 		type: 'boolean',
 		name: 'Crosspoint Connected on specific level',
-		description: 'Active when this crosspoint is connected on any level',
+		description: 'Active when this crosspoint is connected on specific level(s)',
 		defaultStyle: {
 			color: colours.black,
 			bgcolor: colours.orange,
