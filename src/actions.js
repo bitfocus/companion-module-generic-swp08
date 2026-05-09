@@ -50,7 +50,7 @@ export async function updateActions() {
 		name: 'Select Destination name',
 		options: [{ ...actionOptions.destinationName, choices: Array.from(this.dest_names.values()) }],
 		callback: async ({ options }, context) => {
-			const dest = Number.parseInt(await context.parseVariablesInString(options.dest))
+			const dest = Number.parseInt(await context.parseVariablesInString(String(options.dest)))
 			if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
 				this.log('warn', `select_dest_name has been passed an out of range variable ${dest}`)
 				return undefined
@@ -65,7 +65,7 @@ export async function updateActions() {
 		},
 		subscribe: async (action, context) => {
 			if (!this.config.tally_dump_and_update) {
-				const dest = Number.parseInt(await context.parseVariablesInString(action.options.dest))
+				const dest = Number.parseInt(await context.parseVariablesInString(String(action.options.dest)))
 				if (Number.isNaN(dest) || dest < 1 || dest > 65536) {
 					this.log('warn', `select_dest_name:Subscribe has been passed an out of range variable - dst ${dest}`)
 					return undefined
@@ -90,7 +90,7 @@ export async function updateActions() {
 		name: 'Select Source name',
 		options: [{ ...actionOptions.sourceName, choices: Array.from(this.source_names.values()) }],
 		callback: async ({ options }, context) => {
-			const source = Number.parseInt(await context.parseVariablesInString(options.source))
+			const source = Number.parseInt(await context.parseVariablesInString(String(options.source)))
 			if (Number.isNaN(source) || source < 1 || source > 65536) {
 				this.log('warn', `select_source_name has been passed an out of range variable ${source}`)
 				return undefined
@@ -120,7 +120,7 @@ export async function updateActions() {
 		name: 'Route Source name to selected Levels and Destination',
 		options: [{ ...actionOptions.sourceName, choices: Array.from(this.source_names.values()) }],
 		callback: async ({ options }, context) => {
-			const source = Number.parseInt(await context.parseVariablesInString(options.source))
+			const source = Number.parseInt(await context.parseVariablesInString(String(options.source)))
 			if (Number.isNaN(source) || source < 1 || source > 65536) {
 				this.log('warn', `route_source_name has been passed an out of range variable ${source}`)
 				return undefined
@@ -196,8 +196,8 @@ export async function updateActions() {
 			{ ...actionOptions.destinationName, choices: Array.from(this.dest_names.values()) },
 		],
 		callback: async ({ options }, context) => {
-			const source = Number.parseInt(await context.parseVariablesInString(options.source))
-			const dest = Number.parseInt(await context.parseVariablesInString(options.dest))
+			const source = Number.parseInt(await context.parseVariablesInString(String(options.source)))
+			const dest = Number.parseInt(await context.parseVariablesInString(String(options.dest)))
 			if (Number.isNaN(source) || source < 1 || source > 65536 || Number.isNaN(dest) || dest < 1 || dest > 65536) {
 				this.log('warn', `set_crosspoint_name has been passed an out of range variable - src ${source} : dst ${dest}`)
 				return undefined
