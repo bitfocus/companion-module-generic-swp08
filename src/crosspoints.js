@@ -268,7 +268,6 @@ export function SetCrosspoint(sourceN, destN, levelN) {
 				'warn',
 				'Doing a crosspoint connect with a value outside of the normal command range, but extended support is not enabled, using extended command anyway',
 			)
-			return
 		}
 		// Extended command required
 		cmd.push(cmds.extendedCrosspointConnect)
