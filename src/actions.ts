@@ -68,8 +68,7 @@ export type ActionSchema = {
 		}
 	}
 	[ActionIds.Take]: {
-		// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-		options: {}
+		options: Record<string, never>
 	}
 	[ActionIds.Clear]: {
 		options: {
@@ -92,8 +91,7 @@ export type ActionSchema = {
 		}
 	}
 	[ActionIds.GetNames]: {
-		// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-		options: {}
+		options: Record<string, never>
 	}
 }
 

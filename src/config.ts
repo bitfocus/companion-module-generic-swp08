@@ -52,6 +52,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			range: true,
 			step: 1,
 			isVisibleExpression: '!$(options:extended_support)',
+			asInteger: true,
 		},
 		{
 			type: 'number',
@@ -64,6 +65,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			range: true,
 			step: 1,
 			isVisibleExpression: '$(options:extended_support)',
+			asInteger: true,
 		},
 		{
 			type: 'number',
@@ -76,6 +78,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			range: true,
 			step: 1,
 			isVisibleExpression: '!$(options:extended_support)',
+			asInteger: true,
 		},
 		{
 			type: 'number',
@@ -88,6 +91,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			range: true,
 			step: 1,
 			isVisibleExpression: '$(options:extended_support)',
+			asInteger: true,
 		},
 		{
 			type: 'checkbox',
@@ -142,6 +146,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 				{ id: '01', label: '8 characters' },
 				{ id: '02', label: '12 characters' },
 			],
+			allowCustom: false,
 		},
 	]
 }
