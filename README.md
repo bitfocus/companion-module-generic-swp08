@@ -139,3 +139,17 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Correct description of `Crosspoint Connected on specific level` feedback
 - P-Queue updated to `9.2.0`
 - Typescript-eslint updated to `8.59.1`
+
+### Version 4.0.3
+
+Fix: `destination source name` feedback source offset by 1
+Improve: Handling of levels and matrix values in extended mode (> 16).
+Fix: `destinations` variable `name` field
+Fix: Don't return `SetCrosspoint` early after logging message to say proceeding with extended command despite extended commands not being enabled
+Improvement: Prefer extended command set whenever it is supported
+Improvement: Don't overwrite config in `configUpdated()`
+Improvement: Wait for `ACK` during `sendMessage`, queue processing and consecutive actions will progress after `ACK`
+Improvement: Refactor `updateAllCrosspoints()` for better efficieny
+Improvement: check for changed size of `coreVariables` during `updateVariableDefinitions()`
+Improvement: clear `this.ackCallbacks` on socket `end` event
+Improvement: Other minor refactors / typing improvements
