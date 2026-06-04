@@ -1,22 +1,20 @@
 import { InstanceStatus, TCPHelper } from '@companion-module/base'
 import { Buffer } from 'node:buffer'
-import { ACK, NAK, DLE, STX, ETX, cmds } from './consts.js'
+import { ACK, NAK, DLE, STX, ETX, cmds, ackTimeout } from './consts.js'
 
 export function sendNak() {
 	this.log('debug', 'Sending NAK')
+	// Send our link-level ACK/NAK directly, not via the command queue, so they
+	// are never delayed behind a command that is waiting for its ACK.
 	if (this.socket?.isConnected) {
-		this.queue.add(async () => {
-			this.socket.send(Buffer.from([DLE, NAK]))
-		})
+		this.socket.send(Buffer.from([DLE, NAK]))
 	}
 }
 
 export function sendAck() {
 	//this.log('debug', 'Sending ACK')
 	if (this.socket?.isConnected) {
-		this.queue.add(async () => {
-			this.socket.send(Buffer.from([DLE, ACK]))
-		})
+		this.socket.send(Buffer.from([DLE, ACK]))
 	}
 }
 
@@ -37,27 +35,31 @@ function stuffDLE(data) {
 	return output
 }
 
-export function addAckCallback(retryCb) {
-	this.ackCallbacks.push({
-		resolve: () => {
-			//this.log('debug', 'ACK received')
-		},
-		reject: () => {
-			this.log('warn', 'ACK not received, resending')
-			// Retry once
-			if (this.socket?.isConnected) {
-				// Retry sending the command
-				retryCb()
-				this.ackCallbacks.push({
-					resolve: () => {
-						this.log('debug', 'ACK received on second try')
-					},
-					reject: () => {
-						this.log('warn', 'ACK not received on second try')
-					},
-				})
+/**
+ * Wait for the router to ACK or NAK the last command, or time out.
+ * Only one command is ever outstanding, so the reply can only belong to it.
+ * @param {string} messageHex hex of the message we are awaiting a reply for (for logging)
+ * @returns {Promise<'ack'|'nak'|'timeout'>}
+ */
+export function waitForAck(messageHex) {
+	return new Promise((resolve) => {
+		let settled = false
+		const timer = setTimeout(() => {
+			if (settled) return
+			settled = true
+			this.pendingAck = null
+			resolve('timeout')
+		}, ackTimeout)
+		this.pendingAck = (result) => {
+			if (settled) return
+			settled = true
+			clearTimeout(timer)
+			this.pendingAck = null
+			if (result === 'nak') {
+				this.log('debug', `NAK received for message: ${messageHex}`)
 			}
-		},
+			resolve(result)
+		}
 	})
 }
 
@@ -141,19 +143,31 @@ export function sendMessage(message) {
 
 	const packetBuffer = Buffer.from(packet)
 
-	this.log('debug', `Sending >> ${packetBuffer.toString('hex')}`)
-
 	this.queue.add(async () => {
-		if (this.socket?.isConnected) {
-			this.socket.send(packetBuffer)
-
-			this.addAckCallback(() => {
-				// Retry sending the command if it fails
-				this.log('warn', `Retrying to send message: ${packetBuffer.toString('hex')}`)
-				this.socket.send(packetBuffer)
-			})
-		} else {
+		if (!this.socket?.isConnected) {
 			this.log('warn', 'Socket not connected')
+			return
+		}
+
+		const messageHex = packetBuffer.toString('hex')
+		this.log('debug', `Sending >> ${messageHex}`)
+		this.socket.send(packetBuffer)
+
+		// Strict request/response: wait for the router's ACK/NAK before sending
+		// the next message, so a reply can never be attributed to the wrong
+		// command. The wait times out (see ackTimeout) so the queue can never
+		// block forever on a non-responding device.
+		let result = await this.waitForAck(messageHex)
+
+		if (result === 'nak') {
+			// Single retry on NAK, then move on regardless of outcome.
+			this.log('warn', `NAK received, retrying once: ${messageHex}`)
+			this.socket.send(packetBuffer)
+			result = await this.waitForAck(messageHex)
+		}
+
+		if (result !== 'ack') {
+			this.log('warn', `Message not acknowledged (${result}), moving on: ${packetBuffer.toString('hex')}`)
 		}
 	})
 }
@@ -188,7 +202,10 @@ export function init_tcp() {
 
 		this.socket.on('connect', () => {
 			console.log(`Connected to ${this.config.host}:${this.config.port}`)
-			this.ackCallbacks = []
+			// Clean slate so a reconnect can't inherit a stale waiter or queued commands
+			this.queue.clear()
+			if (this.pendingAck) this.pendingAck('timeout')
+			this.pendingAck = null
 			this.commands = []
 			this.routeMap = new Map()
 			this.lastVariables = new Map()

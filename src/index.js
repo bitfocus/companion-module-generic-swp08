@@ -68,7 +68,7 @@ class SW_P_08 extends InstanceBase {
 			...tcp,
 			...util,
 		})
-		this.ackCallbacks = []
+		this.pendingAck = null
 		this.routeMap = new Map()
 		this.lastVariables = new Map()
 		this.lastVariableDefinitions = new Map()
@@ -134,6 +134,8 @@ class SW_P_08 extends InstanceBase {
 	async destroy() {
 		this.log('debug', `destroy. ID: ${this.id}`)
 		this.queue.clear()
+		if (this.pendingAck) this.pendingAck('timeout')
+		this.pendingAck = null
 		this.stopKeepAliveTimer()
 		if (this.socket) {
 			this.socket.destroy()

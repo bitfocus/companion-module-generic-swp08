@@ -15,15 +15,11 @@ export function decode(data) {
 	}
 
 	if (data[1] === ACK || data[1] === NAK) {
-		// ACK or NAK
-		if (this.ackCallbacks.length === 0) {
-			this.log('warn', 'Got unexpected ACK/NAK')
+		// ACK or NAK for the command we are currently waiting on
+		if (this.pendingAck) {
+			this.pendingAck(data[1] === ACK ? 'ack' : 'nak')
 		} else {
-			if (data[1] === ACK) {
-				this.ackCallbacks.shift().resolve()
-			} else {
-				this.ackCallbacks.shift().reject()
-			}
+			this.log('warn', 'Got unexpected ACK/NAK')
 		}
 		return 2
 	}
