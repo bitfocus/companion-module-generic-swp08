@@ -98,8 +98,8 @@ export type ActionSchema = {
 export function UpdateActions(self: SW_P_08): void {
 	const actionDefinitions: Partial<CompanionActionDefinitions<ActionSchema>> = {}
 	const logger = createModuleLogger('SWP08_Actions')
-	const destMax = getHighestKey(self.dest_names) ?? 0xffff
-	const sourceMax = getHighestKey(self.source_names) ?? 0xffff
+	const destMax = getHighestKey(self.dest_names) || 0xffff
+	const sourceMax = getHighestKey(self.source_names) || 0xffff
 	actionDefinitions[ActionIds.SelectLevel] = {
 		name: 'Select Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
