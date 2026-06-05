@@ -2,6 +2,7 @@ import { combineRgb } from '@companion-module/base'
 
 export const msgDelay = 5
 export const keepAliveTime = 30000
+export const ackTimeout = 5000 // ms — max wait for ACK/NAK after any send before moving on
 
 export const DLE = 0x10
 export const STX = 0x02
