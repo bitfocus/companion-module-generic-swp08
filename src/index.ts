@@ -1134,11 +1134,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		for (let l = 0; l < labels_in_part; l++) {
 			const pos = l * char_length
-			const labelId = label_number + l
+			const labelId = label_number + l + 1
 
 			if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
 				this.dest_names.set(labelId, {
-					id: labelId + 1,
+					id: labelId,
 					label: data
 						.subarray(start + pos, start + pos + char_length)
 						.toString('utf8')
@@ -1147,7 +1147,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				})
 			} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
 				this.source_names.set(labelId, {
-					id: labelId + 1,
+					id: labelId,
 					label: data
 						.subarray(start + pos, start + pos + char_length)
 						.toString('utf8')
