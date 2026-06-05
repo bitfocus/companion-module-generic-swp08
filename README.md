@@ -153,3 +153,12 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Improvement: check for changed size of `coreVariables` during `updateVariableDefinitions()`
 - Improvement: clear `this.ackCallbacks` on socket `end` event
 - Improvement: Other minor refactors / typing improvements
+
+## Version 4.0.4
+
+- Fix: 1-based key for `this.source_names` and `this.dest_names`
+- Improvement: Default to a max source/dest value of 0xffff if getHighestKey returns a 0 or undefined.
+- Chore: Update p-queue
+- Chore: Update lint-staged
+- Chore: Update typescript-eslint
+- Chore: Update yarn
