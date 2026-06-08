@@ -86,8 +86,8 @@ export type FeedbackSchema = {
 export function UpdateFeedbacks(self: SW_P_08): void {
 	const feedbackDefinitions: Partial<CompanionFeedbackDefinitions<FeedbackSchema>> = {}
 	const logger = createModuleLogger('SWP08_Feedbacks')
-	const destMax = getHighestKey(self.dest_names) ?? 0xffff
-	const sourceMax = getHighestKey(self.source_names) ?? 0xffff
+	const destMax = getHighestKey(self.dest_names) || 0xffff
+	const sourceMax = getHighestKey(self.source_names) || 0xffff
 
 	feedbackDefinitions[FeedbackIds.SelectedLevel] = {
 		name: 'Selected Levels',
