@@ -2,7 +2,7 @@
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"id": "generic-swp08",
 	"type": "connection",
-	"name": "generic-swp08",
+	"name": "ProBel SW-P-08",
 	"shortname": "SW-P-08",
 	"description": "General Remote Control Protocol (SW-P-08)",
 	"version": "0.0.0",
@@ -19,7 +19,7 @@
 		}
 	],
 	"runtime": {
-		"type": "node22",
+		"type": "node26",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/index.js"

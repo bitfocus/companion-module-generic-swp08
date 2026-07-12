@@ -1076,11 +1076,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private processLabels(data: Buffer, options: ProcessLabelsOptions): void {
 		const char_length_table = [4, 8, 12]
 		//let level = 0
-		let matrix = 0
-		let start = 0
-		let char_length = 0
-		let label_number = 0
-		let labels_in_part = 0
+		let matrix: number
+		let start: number
+		let char_length: number
+		let label_number: number
+		let labels_in_part: number
 
 		if (!options.extended) {
 			let idx = 1
