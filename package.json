@@ -39,7 +39,7 @@
 		"node": "^22.22.1"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.16.0",
+	"packageManager": "yarn@4.17.1",
 	"lint-staged": {
 		"*.{css,json,md,scss}": [
 			"prettier --write"
