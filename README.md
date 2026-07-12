@@ -162,3 +162,9 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Chore: Update lint-staged
 - Chore: Update typescript-eslint
 - Chore: Update yarn
+
+## Version 4.0.5
+
+- Use Node 26
+- Update Dependencies
+- Linting
