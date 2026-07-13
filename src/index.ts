@@ -490,12 +490,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		if (this.socket?.isConnected) {
 			if (this.isConnectionUnhealthy) {
 				this.log('warn', 'Connection looks unhealthy, sending probe')
-				await this.getCrosspoints(1)
+				await this.getCrosspoints(1, 1)
 				return
 			}
 			// Query crosspoint as proxy for proper keep alive message if the queue is empty
 			if (this.queue.size === 0 && this.queue.pending === 0) {
-				await this.getCrosspoints(1) // Query a crosspoint since there isnt a specificed keep alive message
+				await this.getCrosspoints(1, 1) // Query a crosspoint since there isnt a specificed keep alive message
 			}
 		}
 	}
@@ -828,7 +828,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		await this.sendMessage(cmd)
 	}
 
-	public async getCrosspoints(destN: number): Promise<void> {
+	public async getCrosspoints(destN: number, level?: number): Promise<void> {
 		this.log('debug', `GetCrosspoint ${destN}`)
 
 		if (destN <= 0 || destN > 65536) {
@@ -841,8 +841,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			((this.effectiveLevels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) ||
 			this.hasCommandSafe(cmds.extendedInterrogate)
 		) {
-			// check all levels
-			for (let i = 0; i < this.effectiveLevels; i++) {
+			// check requested levels, or all levels if none specified
+			const levels = level === undefined ? Array.from({ length: this.effectiveLevels }, (_, i) => i) : [level - 1]
+			for (const i of levels) {
 				await this.sendMessage([
 					// Extended commands
 					cmds.extendedInterrogate,
@@ -865,8 +866,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				return
 			}
 
-			// check all levels
-			for (let i = 0; i <= this.protocolLevels - 1; i++) {
+			// check requested levels, or all levels if none specified
+			const levels = level === undefined ? Array.from({ length: this.protocolLevels }, (_, i) => i) : [level - 1]
+			for (const i of levels) {
 				await this.sendMessage([
 					// Standard commands
 					cmds.crosspointInterrogate,

@@ -168,3 +168,7 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Use Node 26
 - Update Dependencies
 - Linting
+
+## Version 4.0.6
+
+- Keep alive get crosspoint only performed on Level 1
