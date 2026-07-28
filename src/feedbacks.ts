@@ -190,7 +190,11 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 		callback: (feedback) => {
 			// look for self dest in route table
 			logger.debug(`dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
-			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(self.selected_dest)) {
+			if (
+				self.selected_dest !== 0 &&
+				!self.config.tally_dump_and_update &&
+				!self.hasDestInRoutemap(self.selected_dest)
+			) {
 				void self.getCrosspoints(self.selected_dest)
 			}
 			return self.hasSourceInAnyLevelRoutemap(self.selected_dest, feedback.options.source)
