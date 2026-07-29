@@ -11,6 +11,17 @@ const customConfig = [
 			sourceType: 'module',
 		},
 	},
+	{
+		files: ['**/*.spec.ts', '**/*.test.ts', 'vitest.config.ts'],
+		rules: {
+			'n/no-unpublished-import': [
+				'error',
+				{
+					allowModules: ['vitest'],
+				},
+			],
+		},
+	},
 ]
 
 export default customConfig
