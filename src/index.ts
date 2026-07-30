@@ -891,9 +891,14 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	public async getCrosspoints(destN: number, level?: number): Promise<void> {
+		if (destN === 0) {
+			// 0 means no destination is currently selected, nothing to query
+			return
+		}
+
 		this.log('debug', `GetCrosspoint ${destN}`)
 
-		if (destN <= 0 || destN > 65536) {
+		if (destN < 0 || destN > 65536 || !Number.isInteger(destN)) {
 			this.log('warn', `Unable to get crosspoint destination ${destN}`)
 			return
 		}

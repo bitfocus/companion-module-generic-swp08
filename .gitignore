@@ -2,6 +2,7 @@
 .yarn/
 node_modules/
 dist/
+coverage/
 package-lock.json
 /pkg
 /pkg.tgz
