@@ -172,3 +172,8 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 ## Version 4.0.6
 
 - Keep alive get crosspoint only performed on Level 1
+
+## Version 4.0.7
+
+- Silently drop or dont perform getCrosspoint commands to destination 0 (selected_dst on init)
+- Add some self tests
