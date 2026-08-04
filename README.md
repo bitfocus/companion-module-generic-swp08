@@ -177,3 +177,7 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 
 - Silently drop or dont perform getCrosspoint commands to destination 0 (selected_dst on init)
 - Add some self tests
+
+## Version 4.1.0
+
+- Add an initial load sync gate, to avoid noise until settled

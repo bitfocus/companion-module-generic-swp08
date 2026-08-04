@@ -2,6 +2,9 @@ import { combineRgb, SomeCompanionActionInputField, type SomeCompanionFeedbackIn
 
 export const msgDelay = 5
 export const keepAliveTime = 30000
+/** Max time to wait for initial name/tally load before forcing a Companion push */
+export const initialLoadTimeoutMs = 30000
+export const namesSettleMs = 1000
 
 export const DLE = 0x10
 export const STX = 0x02

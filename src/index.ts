@@ -26,6 +26,7 @@ import { UpdateFeedbacks, FeedbackIds } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import type { AckCallback, Level, ProcessLabelsOptions, VarList, InstanceBaseExt, SWP08Types } from './types.js'
 import { stripNumber, getRouteVariableName } from './util.js'
+import { LoadingGate } from './loadingGate.js'
 import _ from 'lodash'
 import PQueue from 'p-queue'
 
@@ -55,8 +56,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private lastAckAt = 0
 	private consecutiveAckFailures = 0
 
+	private loadingGate = new LoadingGate()
+
 	private debouncedUpdate = _.debounce(
 		async () => {
+			if (this.loadingGate.isActive) return
 			this.updateVariableDefinitions()
 			this.updateAllNames()
 			this.updateActions()
@@ -71,6 +75,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private debouncedCrosspointUpdate = _.debounce(
 		() => {
+			if (this.loadingGate.isActive) return
 			this.updateVariableDefinitions()
 			this.updateAllNames()
 			this.updateAllCrosspoints()
@@ -82,6 +87,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	)
 
 	private throttledFeedbackCheck = _.throttle(() => {
+		if (this.loadingGate.isActive) return
 		if (this.feedbacksToCheck.size == 0) return
 		this.checkFeedbacks(...([...this.feedbacksToCheck] as [FeedbackIds, ...FeedbackIds[]]))
 		this.feedbacksToCheck.clear()
@@ -103,12 +109,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.updateStatus(InstanceStatus.Connecting)
 
 		this.config = config
+		this.startLoadingGate()
 		this.setupVariables()
-		this.updateFeedbacks()
-		this.updateActions()
-		this.updatePresets()
 		this.init_tcp()
-		this.checkAllFeedbacks()
 	}
 
 	public async destroy(): Promise<void> {
@@ -117,6 +120,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.throttledFeedbackCheck.cancel()
 		this.debouncedCrosspointUpdate.cancel()
 		this.debouncedUpdate.cancel()
+		this.loadingGate.reset()
 		this.stopKeepAliveTimer()
 		if (this.socket) {
 			this.socket.destroy()
@@ -145,6 +149,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	public addFeedbacksToCheck(...feedbacks: FeedbackIds[]): void {
+		if (this.loadingGate.isActive) return
 		for (const fb of feedbacks) {
 			this.feedbacksToCheck.add(fb)
 		}
@@ -185,6 +190,48 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			throw new Error('Matrix exceeds protocol limits without extended support')
 		}
 		return this.effectiveMatrix
+	}
+
+	/**
+	 * Start the initial-load gate (startup / config change only — not reconnects).
+	 * Companion pushes are deferred until flushAfterLoad().
+	 */
+	private startLoadingGate(): void {
+		this.loadingGate.start({
+			namesRequired: !!this.config.read_names_on_connect,
+			tallyRequired: !!this.config.tally_dump_and_update,
+			onFlush: (reason) => this.flushAfterLoad(reason),
+		})
+	}
+
+	/**
+	 * Push deferred definitions/values/actions once, then lift the gate.
+	 */
+	private flushAfterLoad(reason: string): void {
+		this.log('info', `Initial load finished (${reason}), pushing data`)
+
+		// Drop any trailing debounced work scheduled during the gate so we do one clean push
+		this.debouncedUpdate.cancel()
+		this.debouncedCrosspointUpdate.cancel()
+		this.throttledFeedbackCheck.cancel()
+
+		// Force a full resync — Companion resets values when definitions change, and the
+		// value cache may be stale relative to everything accumulated while gated
+		this.lastVariables.clear()
+		this.lastVariableDefinitions.clear()
+
+		this.updateVariableDefinitions()
+		this.updateAllNames()
+		this.updateAllCrosspoints()
+		this.updateActions()
+		this.updateFeedbacks()
+		this.updatePresets()
+		this.setVariableValuesCached({
+			is_loading_ports: 'false',
+			Source: this.selected_source,
+			Destination: this.selected_dest,
+		})
+		this.checkAllFeedbacks()
 	}
 
 	private get isConnectionUnhealthy(): boolean {
@@ -261,10 +308,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private async readTally(): Promise<void> {
 		if (this.config.extended_support || this.hasCommandSafe(cmds.extendedCrosspointTallyDump)) {
+			this.loadingGate.setTallyLevelsExpected(this.effectiveLevels)
 			for (let i = 0; i < this.effectiveLevels; i++) {
 				await this.sendMessage([cmds.extendedCrosspointTallyDump, this.effectiveMatrix - 1, i])
 			}
 		} else {
+			this.loadingGate.setTallyLevelsExpected(this.protocolLevels)
 			for (let i = 0; i < this.protocolLevels; i++) {
 				await this.sendMessage([cmds.crosspointTallyDump, ((this.effectiveMatrix - 1) << 4) | (i & 0x0f)])
 			}
@@ -433,6 +482,15 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				this.lastVariableDefinitions = new Map()
 				receivebuffer = Buffer.alloc(0)
 				this.updateStatus(InstanceStatus.Ok, 'Connected')
+
+				if (this.loadingGate.isActive) {
+					// Startup / config-change gate: track completion, suppress Companion pushes until flush
+					this.loadingGate.prepareForConnect()
+					this.setVariableValuesCached({ is_loading_ports: 'true' })
+					this.loadingGate.completeIfNothingRequired()
+				}
+				// Reconnects: gate stays inactive — keep pushing updates as data arrives
+
 				if (this.config.supported_commands_on_connect === true) {
 					// request protocol implementation
 					this.sendMessage([cmds.protocolImplementation]).catch(() => {})
@@ -445,7 +503,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					}
 				}
 				this.subscribeActions()
-				this.checkAllFeedbacks()
+				if (!this.loadingGate.isActive) {
+					this.checkAllFeedbacks()
+				}
 				this.startKeepAliveTimer()
 			})
 
@@ -578,6 +638,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const level = (data[1] & 0x0f) + 1
 
 		this.processCrosspointTallyDumpData(data, matrix, level, type, 2)
+		this.loadingGate.markTallyLevelReceived(level)
 	}
 
 	/**
@@ -660,6 +721,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		// we only know about word-style extended tally dumps
 		this.processCrosspointTallyDumpData(data, matrix, level, 'word', 3)
+		this.loadingGate.markTallyLevelReceived(level)
 	}
 
 	private updateAllCrosspoints(): void {
@@ -1169,6 +1231,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		// update dropdown lists
 		void this.debouncedUpdate()
+		this.loadingGate.markNamesPacketReceived()
 	}
 
 	private updateAllNames(): void {
@@ -1285,6 +1348,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		this.updateVariableDefinitions()
 
+		varList.is_loading_ports = 'true'
 		varList.Sources = 0
 		varList.Destinations = 0
 
@@ -1299,6 +1363,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	 * @param {VarList} object - Object with variable values to set
 	 */
 	public setVariableValuesCached(object: VarList): void {
+		// During the initial-load gate, only allow is_loading_ports through
+		if (this.loadingGate.isActive) {
+			if (!('is_loading_ports' in object)) return
+			object = { is_loading_ports: object.is_loading_ports }
+		}
+
 		const variablesToUpdate: Record<string, string | number> = {}
 		for (const [key, value] of Object.entries(object)) {
 			if (this.lastVariables.get(key) !== value) {
@@ -1317,6 +1387,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const sourceValues = Array.from(this.source_names.values())
 		const destValues = Array.from(this.dest_names.values())
 
+		coreVariables['is_loading_ports'] = {
+			name: 'True while initial port data is being loaded from the router',
+		}
 		coreVariables['Sources'] = {
 			name: 'Number of source names returned by router',
 		}
