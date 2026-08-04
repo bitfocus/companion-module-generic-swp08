@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { LoadingGate, type LoadingFlushReason } from './loadingGate.js'
+import { LoadingGate, type LoadingFlushReason } from '../loadingGate.js'
 
 describe('LoadingGate', () => {
 	let gate: LoadingGate
