@@ -154,7 +154,7 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Improvement: clear `this.ackCallbacks` on socket `end` event
 - Improvement: Other minor refactors / typing improvements
 
-## Version 4.0.4
+### Version 4.0.4
 
 - Fix: 1-based key for `this.source_names` and `this.dest_names`
 - Improvement: Default to a max source/dest value of 0xffff if getHighestKey returns a 0 or undefined.
@@ -163,21 +163,21 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Chore: Update typescript-eslint
 - Chore: Update yarn
 
-## Version 4.0.5
+### Version 4.0.5
 
 - Use Node 26
 - Update Dependencies
 - Linting
 
-## Version 4.0.6
+### Version 4.0.6
 
 - Keep alive get crosspoint only performed on Level 1
 
-## Version 4.0.7
+### Version 4.0.7
 
 - Silently drop or dont perform getCrosspoint commands to destination 0 (selected_dst on init)
 - Add some self tests
 
-## Version 4.1.0
+### Version 4.1.0
 
 - Add an initial load sync gate, to avoid noise until settled
