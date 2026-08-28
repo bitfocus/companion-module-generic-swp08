@@ -27,7 +27,7 @@
 		"p-queue": "^9.3.3"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^3.0.2",
+		"@companion-module/tools": "^3.1.0",
 		"@types/lodash": "^4.17.25",
 		"@types/node": "^26.1.2",
 		"@vitest/coverage-v8": "^4.1.10",
