@@ -181,3 +181,9 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 ### Version 4.1.0
 
 - Add an initial load sync gate, to avoid noise until settled
+
+### Version 4.1.1
+
+- Send the next queued message as soon as the router ACKs/NAKs the previous one (or the ACK timeout elapses) instead of also holding a fixed 10 ms interval between sends, per SW-P-88 §7.2.2
+- Name the ACK timeout (1 s, the spec's notional value) and the attempts per message (2) as constants
+- Add send-queue tests against a fake SW-P-08 router (immediate / delayed / NAK / silent)

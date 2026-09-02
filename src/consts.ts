@@ -2,6 +2,17 @@ import { combineRgb, SomeCompanionActionInputField, type SomeCompanionFeedbackIn
 
 export const msgDelay = 5
 export const keepAliveTime = 30000
+/**
+ * How long a queued send waits for the router's data-link ACK/NAK before the attempt is treated as failed.
+ * SW-P-88 (Issue 4a) §7.2.2: "a notional 1 second timeout is set for the low level ACK/NAK responses".
+ */
+export const ackTimeout = 1000
+/**
+ * Send attempts per message (first send + resends) before the queue moves on regardless of outcome.
+ * Keeps the no-ACK case bounded: a router that never answers holds the queue for at most
+ * ackMaxAttempts * ackTimeout per message.
+ */
+export const ackMaxAttempts = 2
 /** Max time to wait for initial name/tally load before forcing a Companion push */
 export const initialLoadTimeoutMs = 30000
 export const namesSettleMs = 1000

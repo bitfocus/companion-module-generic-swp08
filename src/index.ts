@@ -20,7 +20,7 @@ import {
 import { Buffer } from 'node:buffer'
 import { UpgradeScripts } from './upgrades.js'
 import { GetConfigFields, type SwP08Config } from './config.js'
-import { ACK, NAK, DLE, STX, ETX, cmds, getCommandName, keepAliveTime } from './consts.js'
+import { ACK, NAK, DLE, STX, ETX, cmds, getCommandName, keepAliveTime, ackTimeout, ackMaxAttempts } from './consts.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks, FeedbackIds } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
@@ -34,7 +34,11 @@ export { UpgradeScripts }
 
 export default class SW_P_08 extends InstanceBase<SWP08Types> implements InstanceBaseExt {
 	config!: SwP08Config
-	private queue = new PQueue({ concurrency: 1, interval: 10, intervalCap: 1 })
+	// One message in flight at a time: each queued send awaits the router's ACK/NAK (or the ackTimeout)
+	// before the next one goes out, per SW-P-88 §7.2.2. No fixed interval on top of that - the ACK is
+	// the protocol's flow control, and a router that has acknowledged is ready for the next message.
+	private queue = new PQueue({ concurrency: 1 })
+	private ackTimeoutMs = ackTimeout
 	private ackCallbacks: AckCallback[] = []
 	private commands: number[] = []
 	private routeMap: Map<number, Map<number, number>> = new Map()
@@ -289,7 +293,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				const index = this.ackCallbacks.indexOf(entry)
 				if (index !== -1) this.ackCallbacks.splice(index, 1)
 				reject(new Error('ACK timeout'))
-			}, 1000)
+			}, this.ackTimeoutMs)
 
 			entry = {
 				resolve: () => {
@@ -421,7 +425,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				return
 			}
 
-			const maxAttempts = 2
+			const maxAttempts = ackMaxAttempts
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 				await this.socket.sendAsync(packetBuffer)
 				try {
