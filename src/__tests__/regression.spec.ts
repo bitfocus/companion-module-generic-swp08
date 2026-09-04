@@ -4,7 +4,7 @@
 // that doesn't push tally updates, every single crosspoint update re-checked the
 // SourceDestRoute feedback, which queried getCrosspoints(self.selected_dest) - flooding
 // the log with warnings for the unselected (0) destination on every port update at startup.
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeedbackIds, UpdateFeedbacks } from '../feedbacks.js'
 import { createTestInstance, type TestableInstance } from './testHarness.js'
 
@@ -99,5 +99,38 @@ describe('CanTake feedback - 0 still means "nothing selected" (used by the clear
 		instance.selected_dest = 3
 		instance.selected_source = 0
 		expect(canTake.callback({ options: {} })).toBe(false)
+	})
+})
+
+describe('advanced tally route variables', () => {
+	afterEach(() => {
+		vi.useRealTimers()
+	})
+
+	it('does not republish definitions when crosspoint values change', () => {
+		vi.useFakeTimers()
+		const { instance, context } = createTestInstance({ tally_dump_variables: true })
+		context.setVariableDefinitions.mockClear()
+		context.setVariableValues.mockClear()
+
+		instance.setRoutemap(10, 20, 1)
+		instance.debouncedCrosspointUpdate()
+		vi.advanceTimersByTime(250)
+
+		expect(context.setVariableDefinitions).not.toHaveBeenCalled()
+		expect(context.setVariableValues).toHaveBeenCalledWith({ Route_1_20: 10 })
+	})
+
+	it('still publishes advanced route definitions during the explicit initial-load flush', () => {
+		const { instance, context } = createTestInstance({ tally_dump_variables: true })
+		context.setVariableDefinitions.mockClear()
+		context.setVariableValues.mockClear()
+
+		instance.setRoutemap(10, 20, 1)
+		instance.flushAfterLoad('complete')
+
+		const definitions = context.setVariableDefinitions.mock.calls.at(-1)?.[0]
+		expect(definitions).toHaveProperty('Route_1_20')
+		expect(context.setVariableValues).toHaveBeenCalledWith(expect.objectContaining({ Route_1_20: 10 }))
 	})
 })

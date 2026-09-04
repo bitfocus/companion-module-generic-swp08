@@ -80,8 +80,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private debouncedCrosspointUpdate = _.debounce(
 		() => {
 			if (this.loadingGate.isActive) return
-			this.updateVariableDefinitions()
-			this.updateAllNames()
+			// Crosspoint changes only change values. Re-publishing variable definitions here is
+			// extremely expensive on large routers with tally_dump_variables enabled, because
+			// every tally/update batch walks and sends the full Route_<level>_<dest> definition set.
 			this.updateAllCrosspoints()
 		},
 		200,
