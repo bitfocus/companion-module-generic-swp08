@@ -599,14 +599,16 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.update_crosspoints(source, dest, level)
 	}
 
-	private setRoutemap(source: number, dest: number, level: number): void {
+	private setRoutemap(source: number, dest: number, level: number): boolean {
 		let map = this.routeMap.get(dest)
 		if (!map) {
 			map = new Map()
 			this.routeMap.set(dest, map)
 		}
 
+		if (map.get(level) === source) return false
 		map.set(level, source)
+		return true
 	}
 
 	public getRoutemapEntries(dest: number): {
@@ -621,16 +623,25 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	public hasSourceInAnyLevelRoutemap(dest: number, source: number): boolean {
-		return Object.values(this.getRoutemapEntries(dest)).some((entry) => entry === source)
+		const map = this.routeMap.get(dest)
+		if (!map) return false
+		for (const entry of map.values()) {
+			if (entry === source) return true
+		}
+		return false
 	}
 
 	public hasSourceInRoutemap(level: number, dest: number, source: number): boolean {
-		return this.getRoutemapEntries(dest)[level] === source
+		return this.routeMap.get(dest)?.get(level) === source
+	}
+
+	public getSourceInRoutemap(level: number, dest: number): number | undefined {
+		return this.routeMap.get(dest)?.get(level)
 	}
 
 	// Utility function ie lieu of Feedback subscribe
 	public hasDestInRoutemap(dest: number): boolean {
-		return Object.keys(this.getRoutemapEntries(dest)).length > 0
+		return (this.routeMap.get(dest)?.size ?? 0) > 0
 	}
 
 	/**
@@ -685,6 +696,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			)
 		}
 
+		const variables: Record<string, string | number> = {}
+		let changed = false
 		let currentOffset = offset + 1
 		if (type === 'byte') {
 			let dest = data.readUInt8(currentOffset) + 1
@@ -698,7 +711,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					break
 				}
 				const source = data.readUInt8(currentOffset) + 1
-				this.setRoutemap(source, dest, level)
+				if (this.setRoutemap(source, dest, level)) {
+					Object.assign(variables, this.getCrosspointVariableValues(source, dest, level))
+					changed = true
+				}
 				dest++
 				currentOffset++
 			}
@@ -707,13 +723,19 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			currentOffset += 2
 			for (let i = 0; i < tallies; i++) {
 				const source = data.readUInt16BE(currentOffset) + 1
-				this.setRoutemap(source, dest, level)
+				if (this.setRoutemap(source, dest, level)) {
+					Object.assign(variables, this.getCrosspointVariableValues(source, dest, level))
+					changed = true
+				}
 				currentOffset += 2
 				dest++
 			}
 		}
 
-		this.debouncedCrosspointUpdate()
+		if (changed) {
+			this.setVariableValuesCached(variables)
+			this.addCrosspointFeedbacksToCheck()
+		}
 	}
 
 	/**
@@ -793,24 +815,30 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 	}
 
-	private update_crosspoints(source: number, dest: number, level: number): void {
+	private getCrosspointVariableValues(source: number, dest: number, level: number): Record<string, string | number> {
+		const variables: Record<string, string | number> = {}
+
 		if (dest === this.selected_dest) {
-			// update variables for selected dest source
-			this.setVariableValuesCached({ [`Sel_Dest_Source_Level_${level}`]: source })
+			variables[`Sel_Dest_Source_Level_${level}`] = source
 			if (this.source_names.size > 0) {
-				// only if names have been retrieved
 				try {
-					this.setVariableValuesCached({
-						[`Sel_Dest_Source_Name_Level_${level}`]: stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
-					})
+					variables[`Sel_Dest_Source_Name_Level_${level}`] = stripNumber(
+						this.source_names.get(source - 1)?.label || 'N/A',
+					)
 				} catch (e: any) {
 					this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`)
 				}
 			}
 		}
 
-		this.setVariableValuesCached({ [getRouteVariableName(level, dest)]: source })
-		this.setRoutemap(source, dest, level)
+		if (this.config.tally_dump_variables) {
+			variables[getRouteVariableName(level, dest)] = source
+		}
+
+		return variables
+	}
+
+	private addCrosspointFeedbacksToCheck(): void {
 		this.addFeedbacksToCheck(
 			FeedbackIds.SourceDestRoute,
 			FeedbackIds.CrosspointConnected,
@@ -818,6 +846,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			FeedbackIds.CrosspointConnectedByLevel,
 			FeedbackIds.DestinationSourceName,
 		)
+	}
+
+	private update_crosspoints(source: number, dest: number, level: number): void {
+		this.setVariableValuesCached(this.getCrosspointVariableValues(source, dest, level))
+		this.setRoutemap(source, dest, level)
+		this.addCrosspointFeedbacksToCheck()
 		this.record_crosspoint(source, dest, level)
 	}
 
