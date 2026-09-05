@@ -87,17 +87,14 @@ describe('sendMessage - wire framing', () => {
 	beforeEach(() => {
 		;({ instance } = createTestInstance())
 		sent = []
-		// Fake a connected socket: capture the framed bytes, and immediately ACK
-		// so sendMessage's queue doesn't stall waiting for a real device.
+		// Fake a connected socket: capture the framed bytes and ACK synchronously.
+		// Fast routers can reply before the socket write promise resolves, so the
+		// ACK waiter must already be registered when sendAsync is called.
 		instance.socket = {
 			isConnected: true,
 			sendAsync: vi.fn(async (buf: Buffer) => {
 				sent.push(buf)
-				// Deferred to a macrotask so sendMessage's `await waitForAck()` has
-				// registered its callback (a synchronous step after this promise
-				// resolves) before the ACK "arrives" - otherwise it races and is
-				// dropped as an unexpected ACK.
-				setTimeout(() => instance.decode(Buffer.from([DLE, 0x06 /* ACK */])), 0)
+				instance.decode(Buffer.from([DLE, 0x06 /* ACK */]))
 			}),
 		}
 	})
