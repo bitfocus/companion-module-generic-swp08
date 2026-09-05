@@ -428,9 +428,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 			const maxAttempts = ackMaxAttempts
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-				await this.socket.sendAsync(packetBuffer)
+				const ack = this.waitForAck()
 				try {
-					await this.waitForAck()
+					await this.socket.sendAsync(packetBuffer)
+					await ack
 					this.lastAckAt = Date.now()
 					this.consecutiveAckFailures = 0
 					return
