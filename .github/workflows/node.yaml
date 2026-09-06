@@ -15,10 +15,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Node.js 26.x
         # This should match the version of Node.js you have defined in the manifest.json runtime field
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 26.x
       - name: Prepare Environment
@@ -55,10 +55,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Node.js 26.x
         # This should match the version of Node.js you have defined in the manifest.json runtime field
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 26.x
       - name: Prepare Environment
@@ -75,7 +75,7 @@ jobs:
         env:
           CI: true
       - name: Send coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           # Optional for public repos, but uploads are rate-limited without it.
           # Add CODECOV_TOKEN as a repository secret to make uploads reliable.
