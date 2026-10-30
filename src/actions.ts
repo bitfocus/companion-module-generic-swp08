@@ -8,6 +8,7 @@ export enum ActionIds {
 	SelectLevel = 'select_level',
 	DeselectLevel = 'deselect_level',
 	ToggleLevel = 'toggle_level',
+	SelectMatrix = 'select_matrix',
 	SelectDest = 'select_dest',
 	SelectDestName = 'select_dest_name',
 	SelectSource = 'select_source',
@@ -35,6 +36,11 @@ export type ActionSchema = {
 	[ActionIds.ToggleLevel]: {
 		options: {
 			level: number[]
+		}
+	}
+	[ActionIds.SelectMatrix]: {
+		options: {
+			matrix: number
 		}
 	}
 	[ActionIds.SelectDest]: {
@@ -78,6 +84,8 @@ export type ActionSchema = {
 	}
 	[ActionIds.SetCrosspoint]: {
 		options: {
+			/** optional: absent on actions saved before multi-matrix support */
+			matrix?: number
 			level: number[]
 			source: number
 			dest: number
@@ -85,6 +93,8 @@ export type ActionSchema = {
 	}
 	[ActionIds.SetCrosspointName]: {
 		options: {
+			/** optional: absent on actions saved before multi-matrix support */
+			matrix?: number
 			level: number[]
 			source: number
 			dest: number
@@ -98,8 +108,10 @@ export type ActionSchema = {
 export function UpdateActions(self: SW_P_08): void {
 	const actionDefinitions: Partial<CompanionActionDefinitions<ActionSchema>> = {}
 	const logger = createModuleLogger('SWP08_Actions')
-	const destMax = getHighestKey(self.dest_names) || 0xffff
-	const sourceMax = getHighestKey(self.source_names) || 0xffff
+	const mergedSourceNames = self.mergedNames('source')
+	const mergedDestNames = self.mergedNames('dest')
+	const destMax = getHighestKey(mergedDestNames) || 0xffff
+	const sourceMax = getHighestKey(mergedSourceNames) || 0xffff
 	actionDefinitions[ActionIds.SelectLevel] = {
 		name: 'Select Levels',
 		options: [{ ...actionOptions.levels, choices: self.levels }],
@@ -121,6 +133,28 @@ export function UpdateActions(self: SW_P_08): void {
 		options: [{ ...actionOptions.levels, choices: self.levels }],
 		callback: ({ options }) => {
 			self.processLevelsSelection(options.level, 'toggle')
+		},
+	}
+
+	actionDefinitions[ActionIds.SelectMatrix] = {
+		name: 'Select Matrix',
+		options: [{ ...actionOptions.matrix, choices: self.matrixChoices, default: self.primaryMatrix }],
+		callback: async ({ options }) => {
+			self.selected_matrix = self.resolveMatrixOption(options.matrix)
+			logger.info(`set matrix ${self.selected_matrix}`)
+			self.setVariableValuesCached({
+				Selected_Matrix: self.selected_matrix,
+				Selected_Matrix_Label: self.matrices.find((m) => m.id === self.selected_matrix)?.label ?? '',
+			})
+			self.addFeedbacksToCheck(
+				FeedbackIds.SelectedMatrix,
+				FeedbackIds.SelectedLevelDest,
+				FeedbackIds.SourceDestRoute,
+				FeedbackIds.CanTake,
+			)
+			if (!self.config.tally_dump_and_update && self.selected_dest) {
+				await self.getCrosspoints(self.selected_dest, undefined, self.selected_matrix)
+			}
 		},
 	}
 
@@ -151,7 +185,7 @@ export function UpdateActions(self: SW_P_08): void {
 
 	actionDefinitions[ActionIds.SelectDestName] = {
 		name: 'Select Destination name',
-		options: [{ ...actionOptions.destinationName, choices: Array.from(self.dest_names.values()) }],
+		options: [{ ...actionOptions.destinationName, choices: Array.from(mergedDestNames.values()) }],
 		optionsToMonitorForSubscribe: ['dest'],
 		callback: async ({ options }, _context) => {
 			const dest = Math.round(options.dest)
@@ -191,7 +225,7 @@ export function UpdateActions(self: SW_P_08): void {
 
 	actionDefinitions[ActionIds.SelectSourceName] = {
 		name: 'Select Source name',
-		options: [{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) }],
+		options: [{ ...actionOptions.sourceName, choices: Array.from(mergedSourceNames.values()) }],
 		callback: async ({ options }, _context) => {
 			const source = Math.round(options.source)
 			checkSourceDestRange(source, ActionIds.SelectSourceName, sourceMax)
@@ -210,7 +244,12 @@ export function UpdateActions(self: SW_P_08): void {
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
-					await self.SetCrosspoint(Math.round(options.source), self.selected_dest, self.selected_level[i].id)
+					await self.SetCrosspoint(
+						Math.round(options.source),
+						self.selected_dest,
+						self.selected_level[i].id,
+						self.selected_matrix,
+					)
 				}
 			}
 		},
@@ -218,7 +257,7 @@ export function UpdateActions(self: SW_P_08): void {
 
 	actionDefinitions[ActionIds.RouteSourceName] = {
 		name: 'Route Source name to selected Levels and Destination',
-		options: [{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) }],
+		options: [{ ...actionOptions.sourceName, choices: Array.from(mergedSourceNames.values()) }],
 		callback: async ({ options }, _context) => {
 			const source = Math.round(options.source)
 			checkSourceDestRange(source, ActionIds.RouteSourceName, sourceMax)
@@ -226,7 +265,7 @@ export function UpdateActions(self: SW_P_08): void {
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
-					await self.SetCrosspoint(source, self.selected_dest, self.selected_level[i].id)
+					await self.SetCrosspoint(source, self.selected_dest, self.selected_level[i].id, self.selected_matrix)
 				}
 			}
 		},
@@ -240,7 +279,12 @@ export function UpdateActions(self: SW_P_08): void {
 			const l = self.selected_level.length
 			for (let i = 0; i < l; i++) {
 				if (self.selected_level[i].enabled === true) {
-					await self.SetCrosspoint(self.selected_source, self.selected_dest, self.selected_level[i].id)
+					await self.SetCrosspoint(
+						self.selected_source,
+						self.selected_dest,
+						self.selected_level[i].id,
+						self.selected_matrix,
+					)
 				}
 			}
 		},
@@ -281,15 +325,30 @@ export function UpdateActions(self: SW_P_08): void {
 				self.setVariableValuesCached({ Source: self.selected_source })
 				self.addFeedbacksToCheck(FeedbackIds.SelectedSource, FeedbackIds.SourceDestRoute, FeedbackIds.CanTake)
 			}
+
+			if (options.clear === 'all') {
+				self.selected_matrix = self.primaryMatrix
+				self.setVariableValuesCached({
+					Selected_Matrix: self.selected_matrix,
+					Selected_Matrix_Label: self.matrices.find((m) => m.id === self.selected_matrix)?.label ?? '',
+				})
+				self.addFeedbacksToCheck(FeedbackIds.SelectedMatrix, FeedbackIds.CanTake)
+			}
 		},
 	}
 
 	actionDefinitions[ActionIds.SetCrosspoint] = {
 		name: 'Set crosspoint',
-		options: [{ ...actionOptions.levels, choices: self.levels }, actionOptions.source, actionOptions.destination],
+		options: [
+			{ ...actionOptions.matrix, choices: self.matrixChoices, default: self.primaryMatrix },
+			{ ...actionOptions.levels, choices: self.levels },
+			actionOptions.source,
+			actionOptions.destination,
+		],
 		callback: async ({ options }) => {
+			const matrix = self.resolveMatrixOption(options.matrix)
 			for (const level_val of options.level) {
-				await self.SetCrosspoint(Math.round(options.source), Math.round(options.dest), level_val)
+				await self.SetCrosspoint(Math.round(options.source), Math.round(options.dest), level_val, matrix)
 			}
 		},
 	}
@@ -297,17 +356,19 @@ export function UpdateActions(self: SW_P_08): void {
 	actionDefinitions[ActionIds.SetCrosspointName] = {
 		name: 'Set crosspoint by name',
 		options: [
+			{ ...actionOptions.matrix, choices: self.matrixChoices, default: self.primaryMatrix },
 			{ ...actionOptions.levels, choices: self.levels },
-			{ ...actionOptions.sourceName, choices: Array.from(self.source_names.values()) },
-			{ ...actionOptions.destinationName, choices: Array.from(self.dest_names.values()) },
+			{ ...actionOptions.sourceName, choices: Array.from(mergedSourceNames.values()) },
+			{ ...actionOptions.destinationName, choices: Array.from(mergedDestNames.values()) },
 		],
 		callback: async ({ options }, _context) => {
 			const source = Math.round(options.source)
 			const dest = Math.round(options.dest)
+			const matrix = self.resolveMatrixOption(options.matrix)
 			checkSourceDestRange(source, ActionIds.SetCrosspointName, sourceMax)
 			checkSourceDestRange(dest, ActionIds.SetCrosspointName, destMax)
 			for (const level_val of options.level) {
-				await self.SetCrosspoint(source, dest, level_val)
+				await self.SetCrosspoint(source, dest, level_val, matrix)
 			}
 		},
 	}

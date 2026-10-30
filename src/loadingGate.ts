@@ -26,7 +26,7 @@ export class LoadingGate {
 	private tallyRequired = false
 	private tallyLoaded = false
 	private tallyLevelsExpected = 0
-	private tallyLevelsReceived = new Set<number>()
+	private tallyLevelsReceived = new Set<string>()
 	private namesSettleTimer: ReturnType<typeof setTimeout> | undefined
 	private tallySettleTimer: ReturnType<typeof setTimeout> | undefined
 	private loadingTimeoutTimer: ReturnType<typeof setTimeout> | undefined
@@ -99,12 +99,12 @@ export class LoadingGate {
 		this.tallyLevelsExpected = count
 	}
 
-	markTallyLevelReceived(level: number): void {
+	markTallyLevelReceived(matrix: number, level: number): void {
 		if (!this.gateActive || !this.tallyRequired || this.tallyLoaded) return
-		this.tallyLevelsReceived.add(level)
+		this.tallyLevelsReceived.add(`${matrix}:${level}`)
 
-		// Wait until every level has produced at least one packet, then settle so
-		// multi-packet dumps for those levels can finish streaming.
+		// Wait until every matrix/level has produced at least one packet, then settle
+		// so multi-packet dumps for those levels can finish streaming.
 		if (this.tallyLevelsReceived.size < this.tallyLevelsExpected) return
 
 		clearTimeout(this.tallySettleTimer)

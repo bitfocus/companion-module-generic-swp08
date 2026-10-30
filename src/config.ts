@@ -1,8 +1,10 @@
 import { Regex, SomeCompanionConfigField } from '@companion-module/base'
+import { DEFAULT_UNUSED_PORT_NAMES } from './util.js'
 
 export type SwP08Config = {
 	host: string
 	port: string
+	matrices: string
 	matrix: number
 	matrix_ext: number
 	max_levels: number
@@ -13,6 +15,9 @@ export type SwP08Config = {
 	read_names_on_connect: boolean
 	extended_support: boolean
 	name_chars: '00' | '01' | '02'
+	/** optional: absent on connections saved before these options existed */
+	crosspoint_presets?: boolean
+	unused_port_names?: string
 }
 
 export type SwP08Secrets = undefined
@@ -42,8 +47,20 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			regex: Regex.PORT,
 		},
 		{
+			type: 'textinput',
+			label: 'Matrices (optional, e.g. "1:Video, 2:Audio")',
+			id: 'matrices',
+			width: 12,
+			default: '',
+			description:
+				'Leave blank to control a single matrix (the Matrix Number below). ' +
+				'To control several matrices over one connection, list them comma separated: ' +
+				'"1:Video, 2:Audio" (ids with labels), "1,2,3" (ids only), or "3" (a count -> matrices 1..3). ' +
+				'The first matrix in the list is the primary one and keeps the un-prefixed variables.',
+		},
+		{
 			type: 'number',
-			label: 'Matrix Number (Default 1) (normal mode)',
+			label: 'Matrix Number (primary / fallback) (normal mode)',
 			id: 'matrix',
 			width: 6,
 			default: 1,
@@ -56,7 +73,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'number',
-			label: 'Matrix Number (Default 1) (extended mode)',
+			label: 'Matrix Number (primary / fallback) (extended mode)',
 			id: 'matrix_ext',
 			width: 6,
 			default: 1,
@@ -100,7 +117,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			width: 1,
 			default: false,
 			description:
-				'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
+				'If enabled, the module will request a tally dump on connection. Crosspoint feedbacks still interrogate each destination they use once per connection.',
 		},
 		{
 			type: 'checkbox',
@@ -147,6 +164,25 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 				{ id: '02', label: '12 characters' },
 			],
 			allowCustom: false,
+		},
+		{
+			type: 'checkbox',
+			label: 'Generate crosspoint presets',
+			id: 'crosspoint_presets',
+			width: 6,
+			default: false,
+			description:
+				'Adds a preset for every source and destination pair, on every matrix and level. ' +
+				'Needs names from the router, and can get very large on big routers.',
+		},
+		{
+			type: 'textinput',
+			label: 'Port names to leave out of crosspoint presets',
+			id: 'unused_port_names',
+			width: 6,
+			default: DEFAULT_UNUSED_PORT_NAMES,
+			description: 'Comma separated, not case sensitive. Ports with no name are always left out.',
+			isVisibleExpression: '$(options:crosspoint_presets)',
 		},
 	]
 }

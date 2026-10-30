@@ -2,6 +2,10 @@ import { combineRgb, SomeCompanionActionInputField, type SomeCompanionFeedbackIn
 
 export const msgDelay = 5
 export const keepAliveTime = 30000
+/** How long to wait for a protocol implementation response before reading names/tally anyway (ms). */
+export const supportedCommandsTimeout = 3000
+/** Delay before interrogating a crosspoint this module just connected (ms). */
+export const crosspointConfirmDelay = 150
 /**
  * How long a queued send waits for the router's data-link ACK/NAK before the attempt is treated as failed.
  * SW-P-88 (Issue 4a) §7.2.2: "a notional 1 second timeout is set for the low level ACK/NAK responses".
@@ -49,6 +53,15 @@ export const feedbackOptions = {
 		default: 1,
 		choices: [],
 		expressionDescription: 'Expression should return a level number',
+	},
+	matrix: {
+		type: 'dropdown',
+		label: 'Matrix',
+		id: 'matrix',
+		default: 1,
+		choices: [],
+		allowCustom: true,
+		expressionDescription: 'Expression should return a matrix number',
 	},
 	destination: {
 		type: 'number',
@@ -102,6 +115,15 @@ export const actionOptions = {
 		default: [1],
 		minSelection: 1,
 		choices: [],
+	},
+	matrix: {
+		type: 'dropdown',
+		label: 'Matrix',
+		id: 'matrix',
+		default: 1,
+		choices: [],
+		allowCustom: true,
+		expressionDescription: 'Expression should return a matrix number',
 	},
 	destination: {
 		type: 'number',
@@ -168,7 +190,7 @@ export const actionOptions = {
 
 export const presetDefaults = {
 	style: {
-		size: '18',
+		size: 'auto',
 		alignment: 'center:center',
 		color: colours.white,
 		bgcolor: colours.black,

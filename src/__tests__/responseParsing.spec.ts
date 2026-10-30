@@ -74,7 +74,7 @@ describe('decode - packet framing', () => {
 		expect(warnSpy).toHaveBeenCalledWith('warn', expect.stringContaining('Invalid checksum'))
 		expect(nakSpy).toHaveBeenCalled()
 		// A bad packet must not be routed as a valid crosspoint update
-		expect(instance.hasDestInRoutemap(3)).toBe(false)
+		expect(instance.hasDestInRoutemap(1, 3)).toBe(false)
 	})
 })
 
@@ -97,18 +97,19 @@ describe('processMessage - crosspoint connected (standard)', () => {
 
 		instance.decode(frame(Array.from(data)))
 
-		expect(instance.getRoutemapEntries(3)).toEqual({ 2: 5 })
+		expect(instance.getRoutemapEntries(1, 3)).toEqual({ 2: 5 })
 	})
 
-	it('ignores a crosspoint update for a different matrix than configured', () => {
-		const warnSpy = vi.spyOn(instance, 'log')
-		// matrix nibble = 1 (matrix 2), but instance is configured for matrix 1
+	it('ignores a crosspoint update for a matrix this connection is not configured for', () => {
+		const logSpy = vi.spyOn(instance, 'log')
+		// matrix nibble = 1 (matrix 2), but instance is configured for matrix 1 only
 		const data = Buffer.from([cmds.crosspointConnected, 0x11, 0x00, 0x02, 0x04])
 
 		instance.decode(frame(Array.from(data)))
 
-		expect(warnSpy).toHaveBeenCalledWith('warn', expect.stringContaining('Ignoring matrix'))
-		expect(instance.hasDestInRoutemap(3)).toBe(false)
+		expect(logSpy).toHaveBeenCalledWith('debug', expect.stringContaining('unconfigured matrix'))
+		expect(instance.hasDestInRoutemap(1, 3)).toBe(false)
+		expect(instance.hasDestInRoutemap(2, 3)).toBe(false)
 	})
 })
 
@@ -131,7 +132,7 @@ describe('processMessage - extended crosspoint connected', () => {
 
 		instance.decode(frame(Array.from(data)))
 
-		expect(instance.getRoutemapEntries(dest)).toEqual({ [level]: source })
+		expect(instance.getRoutemapEntries(1, dest)).toEqual({ [level]: source })
 	})
 })
 
@@ -144,9 +145,9 @@ describe('processMessage - crosspoint tally dump', () => {
 
 		instance.decode(frame(Array.from(data)))
 
-		expect(instance.getRoutemapEntries(10)).toEqual({ 1: 20 })
-		expect(instance.getRoutemapEntries(11)).toEqual({ 1: 21 })
-		expect(instance.getRoutemapEntries(12)).toEqual({ 1: 22 })
+		expect(instance.getRoutemapEntries(1, 10)).toEqual({ 1: 20 })
+		expect(instance.getRoutemapEntries(1, 11)).toEqual({ 1: 21 })
+		expect(instance.getRoutemapEntries(1, 12)).toEqual({ 1: 22 })
 	})
 })
 

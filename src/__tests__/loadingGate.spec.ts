@@ -55,8 +55,8 @@ describe('LoadingGate', () => {
 		start({ tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(2)
 
-		gate.markTallyLevelReceived(1)
-		gate.markTallyLevelReceived(2)
+		gate.markTallyLevelReceived(1, 1)
+		gate.markTallyLevelReceived(1, 2)
 		expect(gate.isActive).toBe(true)
 		expect(flushReasons).toEqual([])
 
@@ -72,10 +72,10 @@ describe('LoadingGate', () => {
 		start({ tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(1)
 
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(800)
-		// Another chunk for the same level (multi-packet dump)
-		gate.markTallyLevelReceived(1)
+		// Another chunk for the same matrix/level (multi-packet dump)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(800)
 		expect(gate.isActive).toBe(true)
 
@@ -88,11 +88,29 @@ describe('LoadingGate', () => {
 		start({ tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(2)
 
-		gate.markTallyLevelReceived(1)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(1_000)
 		expect(gate.isActive).toBe(true)
 		expect(flushReasons).toEqual([])
+	})
+
+	it('counts matrix/level pairs, not bare levels, across multiple matrices', () => {
+		start({ tallyRequired: true, settleMs: 1_000 })
+		// 2 matrices x 2 levels
+		gate.setTallyLevelsExpected(4)
+
+		gate.markTallyLevelReceived(1, 1)
+		gate.markTallyLevelReceived(1, 2)
+		gate.markTallyLevelReceived(2, 1)
+		vi.advanceTimersByTime(1_000)
+		// only 3 of 4 matrix/level pairs seen
+		expect(gate.isActive).toBe(true)
+
+		gate.markTallyLevelReceived(2, 2)
+		vi.advanceTimersByTime(1_000)
+		expect(gate.isActive).toBe(false)
+		expect(flushReasons).toEqual(['complete'])
 	})
 
 	it('flushes after names settle window with no further packets', () => {
@@ -127,7 +145,7 @@ describe('LoadingGate', () => {
 		start({ namesRequired: true, tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(1)
 
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		gate.markNamesPacketReceived()
 		vi.advanceTimersByTime(1_000)
 		expect(gate.isActive).toBe(false)
@@ -148,7 +166,7 @@ describe('LoadingGate', () => {
 		start({ namesRequired: true, tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(1)
 
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(1_000)
 		expect(gate.isActive).toBe(true)
 		expect(flushReasons).toEqual([])
@@ -157,7 +175,7 @@ describe('LoadingGate', () => {
 	it('flushes on timeout even if pulls are incomplete', () => {
 		start({ namesRequired: true, tallyRequired: true, timeoutMs: 5_000 })
 		gate.setTallyLevelsExpected(2)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 
 		vi.advanceTimersByTime(5_000)
 		expect(gate.isActive).toBe(false)
@@ -170,7 +188,7 @@ describe('LoadingGate', () => {
 		vi.advanceTimersByTime(1_000)
 		expect(flushReasons).toEqual(['timeout'])
 
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		gate.markNamesPacketReceived()
 		vi.advanceTimersByTime(1_000)
 		expect(flushReasons).toEqual(['timeout'])
@@ -180,7 +198,7 @@ describe('LoadingGate', () => {
 	it('prepareForConnect resets completion tracking but keeps gate active', () => {
 		start({ namesRequired: true, tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(1)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		gate.markNamesPacketReceived()
 
 		gate.prepareForConnect()
@@ -192,7 +210,7 @@ describe('LoadingGate', () => {
 		expect(flushReasons).toEqual([])
 
 		gate.setTallyLevelsExpected(1)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		gate.markNamesPacketReceived()
 		vi.advanceTimersByTime(1_000)
 		expect(flushReasons).toEqual(['complete'])
@@ -201,13 +219,13 @@ describe('LoadingGate', () => {
 	it('prepareForConnect is a no-op when gate is inactive (reconnect case)', () => {
 		start({ tallyRequired: true, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(1)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(1_000)
 		expect(gate.isActive).toBe(false)
 
 		gate.prepareForConnect()
 		expect(gate.isActive).toBe(false)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(1_000)
 		expect(flushReasons).toEqual(['complete'])
 	})
@@ -224,7 +242,7 @@ describe('LoadingGate', () => {
 	it('only flushes once', () => {
 		start({ tallyRequired: true, timeoutMs: 5_000, settleMs: 1_000 })
 		gate.setTallyLevelsExpected(1)
-		gate.markTallyLevelReceived(1)
+		gate.markTallyLevelReceived(1, 1)
 		vi.advanceTimersByTime(1_000)
 		expect(flushReasons).toEqual(['complete'])
 

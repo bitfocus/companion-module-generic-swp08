@@ -33,6 +33,25 @@ describe('SetCrosspoint - standard command construction', () => {
 		expect(instance.sendMessage).not.toHaveBeenCalled()
 	})
 
+	it('encodes an explicit matrix in the high nibble of the matrix/level byte', async () => {
+		// matrix 2 -> wire nibble 1; level 2 -> level0 1  =>  (1 << 4) | 1 = 0x11
+		await instance.SetCrosspoint(1, 1, 2, 2)
+
+		expect(instance.sendMessage).toHaveBeenCalledWith([cmds.crosspointConnect, 0x11, 0x00, 0x00, 0x00])
+	})
+
+	it('defaults to the primary matrix when no matrix is given', async () => {
+		await instance.SetCrosspoint(1, 1, 1)
+		expect(instance.sendMessage).toHaveBeenCalledWith([cmds.crosspointConnect, 0x00, 0x00, 0x00, 0x00])
+	})
+
+	it('rejects an out of range matrix without sending anything', async () => {
+		await instance.SetCrosspoint(1, 1, 1, 0)
+		await instance.SetCrosspoint(1, 1, 1, 17) // > 16 without extended support
+		await instance.SetCrosspoint(1, 1, 1, Number.NaN)
+		expect(instance.sendMessage).not.toHaveBeenCalled()
+	})
+
 	it('falls back to the extended command when level exceeds the standard range, and warns since extended_support is off', async () => {
 		const warnSpy = vi.spyOn(instance, 'log')
 
