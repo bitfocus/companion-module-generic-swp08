@@ -57,7 +57,13 @@ Button background colours can be changed to show current selection status.
 
 - **Source name routed to selected Destination** (has a **Matrix** option)
 
+## Feedbacks - Advanced
+
+- **Background colour** Sets the button background from a colour value (`#RRGGBB`, `#RGB`, `rgb(r, g, b)` or a number). Empty or invalid values leave the button colour alone.
+
 ## Presets
+
+- **Crosspoints** One ready-made button for every crosspoint, built from the source and destination names read from the router; ports named "N/C" are left out. There is a section per matrix and level, a group per destination, and a button per source. Each button routes that source to that destination and lights orange while the route is active. Each button has two preset variables, both empty by default: `show_dest_name` (`0` shows only the source name, `1` shows both) and `bg_color` (a background colour such as `#204080`, `#f00`, `rgb(32, 64, 128)` or a number). When a button's variable is empty, a page variable with the same name applies to it, and with neither set the destination name shows on a black background. A button value wins over a page value. The orange route-active colour is drawn over `bg_color`.
 
 ## Variables
 

@@ -190,7 +190,7 @@ export const actionOptions = {
 
 export const presetDefaults = {
 	style: {
-		size: '18',
+		size: 'auto',
 		alignment: 'center:center',
 		color: colours.white,
 		bgcolor: colours.black,

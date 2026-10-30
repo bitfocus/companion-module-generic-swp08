@@ -1,6 +1,6 @@
 import { type CompanionFeedbackDefinitions, createModuleLogger } from '@companion-module/base'
 import { colours, feedbackOptions } from './consts.js'
-import { checkSourceDestRange, getHighestKey } from './util.js'
+import { checkSourceDestRange, getHighestKey, parseColour } from './util.js'
 import SW_P_08 from './index.js'
 
 export enum FeedbackIds {
@@ -15,6 +15,7 @@ export enum FeedbackIds {
 	CrosspointConnectedByName = 'crosspoint_connected_by_name',
 	DestinationSourceName = 'dest_source_name',
 	CanTake = 'can_take',
+	BackgroundColour = 'background_colour',
 }
 
 export type FeedbackSchema = {
@@ -97,6 +98,12 @@ export type FeedbackSchema = {
 	[FeedbackIds.CanTake]: {
 		type: 'boolean'
 		options: Record<string, never>
+	}
+	[FeedbackIds.BackgroundColour]: {
+		type: 'advanced'
+		options: {
+			colour: string
+		}
 	}
 }
 
@@ -363,6 +370,28 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 		options: [],
 		callback: (_feedback) => {
 			return self.selected_source !== 0 && self.selected_dest !== 0 && self.selected_level.length > 0
+		},
+	}
+
+	feedbackDefinitions[FeedbackIds.BackgroundColour] = {
+		type: 'advanced',
+		name: 'Background colour',
+		affectedProperties: ['bgcolor'],
+		description:
+			'Sets the button background from a colour value, e.g. "#204080", "rgb(32, 64, 128)" or a number. ' +
+			'Crosspoint presets feed it from their bg_color preset variable; an empty value leaves the button colour alone.',
+		options: [
+			{
+				type: 'textinput',
+				label: 'Colour',
+				id: 'colour',
+				default: '',
+				tooltip: '#RRGGBB, #RGB, rgb(r, g, b) or a number. Empty or invalid leaves the button colour alone.',
+			},
+		],
+		callback: (feedback) => {
+			const bgcolor = parseColour(feedback.options.colour)
+			return bgcolor === undefined ? {} : { bgcolor }
 		},
 	}
 

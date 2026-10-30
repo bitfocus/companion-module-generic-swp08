@@ -1,4 +1,5 @@
 import { Regex, SomeCompanionConfigField } from '@companion-module/base'
+import { DEFAULT_UNUSED_PORT_NAMES } from './util.js'
 
 export type SwP08Config = {
 	host: string
@@ -14,6 +15,9 @@ export type SwP08Config = {
 	read_names_on_connect: boolean
 	extended_support: boolean
 	name_chars: '00' | '01' | '02'
+	/** optional: absent on connections saved before these options existed */
+	crosspoint_presets?: boolean
+	unused_port_names?: string
 }
 
 export type SwP08Secrets = undefined
@@ -160,6 +164,25 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 				{ id: '02', label: '12 characters' },
 			],
 			allowCustom: false,
+		},
+		{
+			type: 'checkbox',
+			label: 'Generate crosspoint presets',
+			id: 'crosspoint_presets',
+			width: 6,
+			default: false,
+			description:
+				'Adds a preset for every source and destination pair, on every matrix and level. ' +
+				'Needs names from the router, and can get very large on big routers.',
+		},
+		{
+			type: 'textinput',
+			label: 'Port names to leave out of crosspoint presets',
+			id: 'unused_port_names',
+			width: 6,
+			default: DEFAULT_UNUSED_PORT_NAMES,
+			description: 'Comma separated, not case sensitive. Ports with no name are always left out.',
+			isVisibleExpression: '$(options:crosspoint_presets)',
 		},
 	]
 }

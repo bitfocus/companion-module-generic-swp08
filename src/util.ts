@@ -17,6 +17,63 @@ export function stripNumber(str: string): string {
 }
 
 /**
+ * Parse a user supplied colour into Companion's 24-bit RGB number.
+ *
+ * Accepts `#RRGGBB`, `RRGGBB`, `0xRRGGBB`, `#RGB`, `rgb(r, g, b)` and plain
+ * decimal numbers (as Companion stores colours). Anything else, including an
+ * empty value, gives `undefined` so the button keeps its own colour.
+ *
+ * @param value Raw value, usually a button's `bg_color` preset variable
+ */
+export function parseColour(value: unknown): number | undefined {
+	if (typeof value === 'number') {
+		return Number.isInteger(value) && value >= 0 && value <= 0xffffff ? value : undefined
+	}
+	if (typeof value !== 'string') return undefined
+	const str = value.trim().toLowerCase()
+	if (str === '') return undefined
+
+	const rgb = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/.exec(str)
+	if (rgb) {
+		const [r, g, b] = rgb.slice(1).map(Number)
+		if (r > 255 || g > 255 || b > 255) return undefined
+		return (r << 16) | (g << 8) | b
+	}
+
+	const short = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(str)
+	if (short)
+		return Number.parseInt(
+			short
+				.slice(1)
+				.map((c) => c + c)
+				.join(''),
+			16,
+		)
+
+	const hex = /^(?:#|0x)?([0-9a-f]{6})$/.exec(str)
+	if (hex) return Number.parseInt(hex[1], 16)
+
+	if (/^\d+$/.test(str)) return parseColour(Number(str))
+	return undefined
+}
+
+/** Default for the `unused_port_names` config field. */
+export const DEFAULT_UNUSED_PORT_NAMES = 'N/C'
+
+/**
+ * True when a router name marks an unused port: empty, or one of the names in
+ * `unusedNames`, ignoring any `<number>: ` prefix, case and surrounding spaces.
+ *
+ * @param label Port name as stored from the router
+ * @param unusedNames Comma separated names to treat as unused
+ */
+export function isUnusedPortName(label: string, unusedNames: string = DEFAULT_UNUSED_PORT_NAMES): boolean {
+	const name = stripNumber(label).trim().toUpperCase()
+	if (name === '') return true
+	return unusedNames.split(',').some((unused) => unused.trim().toUpperCase() === name)
+}
+
+/**
  * Parse the `matrices` config field into an ordered, de-duped list of matrices.
  *
  * Accepted forms:
