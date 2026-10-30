@@ -3,6 +3,7 @@ import { Regex, SomeCompanionConfigField } from '@companion-module/base'
 export type SwP08Config = {
 	host: string
 	port: string
+	matrices: string
 	matrix: number
 	matrix_ext: number
 	max_levels: number
@@ -42,8 +43,20 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			regex: Regex.PORT,
 		},
 		{
+			type: 'textinput',
+			label: 'Matrices (optional, e.g. "1:Video, 2:Audio")',
+			id: 'matrices',
+			width: 12,
+			default: '',
+			description:
+				'Leave blank to control a single matrix (the Matrix Number below). ' +
+				'To control several matrices over one connection, list them comma separated: ' +
+				'"1:Video, 2:Audio" (ids with labels), "1,2,3" (ids only), or "3" (a count -> matrices 1..3). ' +
+				'The first matrix in the list is the primary one and keeps the un-prefixed variables.',
+		},
+		{
 			type: 'number',
-			label: 'Matrix Number (Default 1) (normal mode)',
+			label: 'Matrix Number (primary / fallback) (normal mode)',
 			id: 'matrix',
 			width: 6,
 			default: 1,
@@ -56,7 +69,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'number',
-			label: 'Matrix Number (Default 1) (extended mode)',
+			label: 'Matrix Number (primary / fallback) (extended mode)',
 			id: 'matrix_ext',
 			width: 6,
 			default: 1,

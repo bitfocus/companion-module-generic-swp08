@@ -25,7 +25,7 @@ import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks, FeedbackIds } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import type { AckCallback, Level, ProcessLabelsOptions, VarList, InstanceBaseExt, SWP08Types } from './types.js'
-import { stripNumber, getRouteVariableName } from './util.js'
+import { stripNumber, getRouteVariableName, parseMatrices, type MatrixDef } from './util.js'
 import { LoadingGate } from './loadingGate.js'
 import _ from 'lodash'
 import PQueue from 'p-queue'
@@ -41,7 +41,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private ackTimeoutMs = ackTimeout
 	private ackCallbacks: AckCallback[] = []
 	private commands: number[] = []
-	private routeMap: Map<number, Map<number, number>> = new Map()
+	// routeMap: matrix -> dest -> level -> source
+	private routeMap: Map<number, Map<number, Map<number, number>>> = new Map()
 	private lastVariables: Map<string, number | string> = new Map()
 	private lastVariableDefinitions: Map<string, CompanionVariableDefinition<Record<string, string | number>>> = new Map()
 	private isRecordingActions = false
@@ -49,12 +50,26 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private keepAliveTimer: NodeJS.Timeout | undefined
 	public feedbacksToCheck: Set<FeedbackIds> = new Set()
 
+	// Primary-matrix name maps. Kept for backwards compatibility: every existing
+	// consumer (actions/feedbacks/presets/variables) reads these and they always
+	// mirror the primary matrix. Per-matrix names live in namesByMatrix.
 	public dest_names: Map<number, DropdownChoice> = new Map()
 	public source_names: Map<number, DropdownChoice> = new Map()
+	// Full per-matrix names: matrix -> (number -> DropdownChoice)
+	private namesByMatrix: {
+		source: Map<number, Map<number, DropdownChoice>>
+		dest: Map<number, Map<number, DropdownChoice>>
+	} = { source: new Map(), dest: new Map() }
 	public levels: DropdownChoice<number>[] = []
+
+	/** Matrices this connection controls (always at least one). */
+	public matrices: MatrixDef[] = [{ id: 1, label: 'Matrix 1' }]
+	/** Dropdown choices mirroring {@link matrices}. */
+	public matrixChoices: DropdownChoice<number>[] = [{ id: 1, label: 'Matrix 1' }]
 
 	public selected_source: number = 0
 	public selected_dest: number = 0
+	public selected_matrix: number = 1
 	public selected_level: Level[] = []
 
 	private lastAckAt = 0
@@ -186,15 +201,100 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	/**
-	 * Get  maximum configured matrix for use with non extended mode commands
-	 * @throws if configured matrix exceeds non extended mode range
-	 **/
+	 * Highest legal matrix id for the active protocol mode.
+	 */
+	private get matrixMax(): number {
+		return this.config.extended_support ? 256 : 16
+	}
 
-	private get protocolMatrix(): number {
-		if (!this.config.extended_support && this.effectiveMatrix > 16) {
-			throw new Error('Matrix exceeds protocol limits without extended support')
+	/**
+	 * The primary matrix - the first configured matrix. Keeps the historic
+	 * un-namespaced variables and is the default for actions/feedbacks that were
+	 * saved before multi-matrix support existed.
+	 */
+	public get primaryMatrix(): number {
+		return this.matrices[0]?.id ?? this.effectiveMatrix
+	}
+
+	/**
+	 * True when `matrix` is one this connection is configured to control.
+	 */
+	private isConfiguredMatrix(matrix: number): boolean {
+		return this.matrices.some((m) => m.id === matrix)
+	}
+
+	/**
+	 * Coerce an action/feedback `matrix` option to a usable matrix number,
+	 * falling back to the primary matrix when it is missing or unparseable
+	 * (e.g. an action saved before multi-matrix support).
+	 */
+	public resolveMatrixOption(value: unknown): number {
+		const n = Math.round(Number(value))
+		return Number.isFinite(n) && n >= 1 ? n : this.primaryMatrix
+	}
+
+	/**
+	 * Rebuild {@link matrices} / {@link matrixChoices} from config and clamp
+	 * {@link selected_matrix} into the configured set.
+	 */
+	private setupMatrices(): void {
+		this.matrices = parseMatrices(this.config.matrices ?? '', this.effectiveMatrix, this.matrixMax)
+		this.matrixChoices = this.matrices.map((m) => ({ id: m.id, label: m.label }))
+		if (!this.isConfiguredMatrix(this.selected_matrix)) {
+			this.selected_matrix = this.primaryMatrix
 		}
-		return this.effectiveMatrix
+	}
+
+	/** Per-matrix routemap (dest -> level -> source), created on demand. */
+	private routeMapFor(matrix: number): Map<number, Map<number, number>> {
+		let m = this.routeMap.get(matrix)
+		if (!m) {
+			m = new Map()
+			this.routeMap.set(matrix, m)
+		}
+		return m
+	}
+
+	/** Per-matrix name map for the given kind, created on demand. */
+	private namesFor(kind: 'source' | 'dest', matrix: number): Map<number, DropdownChoice> {
+		const outer = this.namesByMatrix[kind]
+		let m = outer.get(matrix)
+		if (!m) {
+			m = new Map()
+			outer.set(matrix, m)
+		}
+		return m
+	}
+
+	/** Point the primary-matrix name fields at the current primary matrix maps. */
+	private syncPrimaryNames(): void {
+		this.source_names = this.namesFor('source', this.primaryMatrix)
+		this.dest_names = this.namesFor('dest', this.primaryMatrix)
+	}
+
+	/** Names for one matrix (primary by default) - for matrix-aware callers. */
+	public sourceNamesForMatrix(matrix: number = this.primaryMatrix): Map<number, DropdownChoice> {
+		return this.namesFor('source', matrix)
+	}
+	public destNamesForMatrix(matrix: number = this.primaryMatrix): Map<number, DropdownChoice> {
+		return this.namesFor('dest', matrix)
+	}
+
+	/**
+	 * Union of a name kind across every configured matrix, keyed by number.
+	 * The primary matrix's label wins for shared numbers; other matrices fill
+	 * in numbers the primary does not have. Used for the by-name dropdowns,
+	 * which cannot depend on the sibling "matrix" option.
+	 */
+	public mergedNames(kind: 'source' | 'dest'): Map<number, DropdownChoice> {
+		const merged = new Map<number, DropdownChoice>(this.namesFor(kind, this.primaryMatrix))
+		for (const m of this.matrices) {
+			if (m.id === this.primaryMatrix) continue
+			for (const [id, choice] of this.namesFor(kind, m.id)) {
+				if (!merged.has(id)) merged.set(id, choice)
+			}
+		}
+		return merged
 	}
 
 	/**
@@ -313,14 +413,18 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private async readTally(): Promise<void> {
 		if (this.config.extended_support || this.hasCommandSafe(cmds.extendedCrosspointTallyDump)) {
-			this.loadingGate.setTallyLevelsExpected(this.effectiveLevels)
-			for (let i = 0; i < this.effectiveLevels; i++) {
-				await this.sendMessage([cmds.extendedCrosspointTallyDump, this.effectiveMatrix - 1, i])
+			this.loadingGate.setTallyLevelsExpected(this.effectiveLevels * this.matrices.length)
+			for (const m of this.matrices) {
+				for (let i = 0; i < this.effectiveLevels; i++) {
+					await this.sendMessage([cmds.extendedCrosspointTallyDump, m.id - 1, i])
+				}
 			}
 		} else {
-			this.loadingGate.setTallyLevelsExpected(this.protocolLevels)
-			for (let i = 0; i < this.protocolLevels; i++) {
-				await this.sendMessage([cmds.crosspointTallyDump, ((this.effectiveMatrix - 1) << 4) | (i & 0x0f)])
+			this.loadingGate.setTallyLevelsExpected(this.protocolLevels * this.matrices.length)
+			for (const m of this.matrices) {
+				for (let i = 0; i < this.protocolLevels; i++) {
+					await this.sendMessage([cmds.crosspointTallyDump, ((m.id - 1) << 4) | (i & 0x0f)])
+				}
 			}
 		}
 	}
@@ -556,12 +660,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		if (this.socket?.isConnected) {
 			if (this.isConnectionUnhealthy) {
 				this.log('warn', 'Connection looks unhealthy, sending probe')
-				await this.getCrosspoints(1, 1)
+				await this.getCrosspoints(1, 1, this.primaryMatrix)
 				return
 			}
 			// Query crosspoint as proxy for proper keep alive message if the queue is empty
 			if (this.queue.size === 0 && this.queue.pending === 0) {
-				await this.getCrosspoints(1, 1) // Query a crosspoint since there isnt a specificed keep alive message
+				await this.getCrosspoints(1, 1, this.primaryMatrix) // Query a crosspoint since there isnt a specificed keep alive message
 			}
 		}
 	}
@@ -574,14 +678,14 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const dest = ((data[2] & 0x70) << 3) + data[3] + 1
 		const source = ((data[2] & 0x07) << 7) + data[4] + 1
 
-		if (matrix !== this.effectiveMatrix) {
-			this.log('warn', `Ignoring matrix ${matrix}, expected ${this.effectiveMatrix}`)
+		if (!this.isConfiguredMatrix(matrix)) {
+			this.log('debug', `Ignoring crosspoint tally for unconfigured matrix ${matrix}`)
 			return
 		}
 
-		this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
+		this.log('debug', `Source ${source} routed to destination ${dest} on matrix ${matrix} level ${level}`)
 
-		this.update_crosspoints(source, dest, level)
+		this.update_crosspoints(matrix, source, dest, level)
 	}
 
 	private ext_crosspointConnected(data: number[] | Buffer): void {
@@ -590,21 +694,22 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const dest = ((data[3] << 8) | data[4]) + 1
 		const source = ((data[5] << 8) | data[6]) + 1
 
-		if (matrix !== this.effectiveMatrix) {
-			this.log('warn', `Ignoring matrix ${matrix}, expected ${this.effectiveMatrix}`)
+		if (!this.isConfiguredMatrix(matrix)) {
+			this.log('debug', `Ignoring crosspoint tally for unconfigured matrix ${matrix}`)
 			return
 		}
 
-		this.log('debug', `Source ${source} routed to destination ${dest} on level ${level}`)
+		this.log('debug', `Source ${source} routed to destination ${dest} on matrix ${matrix} level ${level}`)
 
-		this.update_crosspoints(source, dest, level)
+		this.update_crosspoints(matrix, source, dest, level)
 	}
 
-	private setRoutemap(source: number, dest: number, level: number): boolean {
-		let map = this.routeMap.get(dest)
+	private setRoutemap(matrix: number, source: number, dest: number, level: number): boolean {
+		const byDest = this.routeMapFor(matrix)
+		let map = byDest.get(dest)
 		if (!map) {
 			map = new Map()
-			this.routeMap.set(dest, map)
+			byDest.set(dest, map)
 		}
 
 		if (map.get(level) === source) return false
@@ -612,10 +717,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		return true
 	}
 
-	public getRoutemapEntries(dest: number): {
+	public getRoutemapEntries(
+		matrix: number,
+		dest: number,
+	): {
 		[k: string]: number
 	} {
-		const map = this.routeMap.get(dest)
+		const map = this.routeMap.get(matrix)?.get(dest)
 		if (map) {
 			const sources = Object.fromEntries(map.entries())
 			return sources
@@ -623,8 +731,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		return {}
 	}
 
-	public hasSourceInAnyLevelRoutemap(dest: number, source: number): boolean {
-		const map = this.routeMap.get(dest)
+	public hasSourceInAnyLevelRoutemap(matrix: number, dest: number, source: number): boolean {
+		const map = this.routeMap.get(matrix)?.get(dest)
 		if (!map) return false
 		for (const entry of map.values()) {
 			if (entry === source) return true
@@ -632,17 +740,17 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		return false
 	}
 
-	public hasSourceInRoutemap(level: number, dest: number, source: number): boolean {
-		return this.routeMap.get(dest)?.get(level) === source
+	public hasSourceInRoutemap(matrix: number, level: number, dest: number, source: number): boolean {
+		return this.routeMap.get(matrix)?.get(dest)?.get(level) === source
 	}
 
-	public getSourceInRoutemap(level: number, dest: number): number | undefined {
-		return this.routeMap.get(dest)?.get(level)
+	public getSourceInRoutemap(matrix: number, level: number, dest: number): number | undefined {
+		return this.routeMap.get(matrix)?.get(dest)?.get(level)
 	}
 
 	// Utility function ie lieu of Feedback subscribe
-	public hasDestInRoutemap(dest: number): boolean {
-		return (this.routeMap.get(dest)?.size ?? 0) > 0
+	public hasDestInRoutemap(matrix: number, dest: number): boolean {
+		return (this.routeMap.get(matrix)?.get(dest)?.size ?? 0) > 0
 	}
 
 	/**
@@ -655,7 +763,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		const level = (data[1] & 0x0f) + 1
 
 		this.processCrosspointTallyDumpData(data, matrix, level, type, 2)
-		this.loadingGate.markTallyLevelReceived(level)
+		this.loadingGate.markTallyLevelReceived(matrix, level)
 	}
 
 	/**
@@ -675,8 +783,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	): void {
 		const tallies = data[offset]
 
-		if (matrix !== this.effectiveMatrix) {
-			this.log('warn', `Ignoring matrix ${matrix}, expected ${this.effectiveMatrix}`)
+		if (!this.isConfiguredMatrix(matrix)) {
+			this.log('debug', `Ignoring tally dump for unconfigured matrix ${matrix}`)
 			return
 		}
 
@@ -712,8 +820,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					break
 				}
 				const source = data.readUInt8(currentOffset) + 1
-				if (this.setRoutemap(source, dest, level)) {
-					Object.assign(variables, this.getCrosspointVariableValues(source, dest, level))
+				if (this.setRoutemap(matrix, source, dest, level)) {
+					Object.assign(variables, this.getCrosspointVariableValues(matrix, source, dest, level))
 					changed = true
 				}
 				dest++
@@ -724,8 +832,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			currentOffset += 2
 			for (let i = 0; i < tallies; i++) {
 				const source = data.readUInt16BE(currentOffset) + 1
-				if (this.setRoutemap(source, dest, level)) {
-					Object.assign(variables, this.getCrosspointVariableValues(source, dest, level))
+				if (this.setRoutemap(matrix, source, dest, level)) {
+					Object.assign(variables, this.getCrosspointVariableValues(matrix, source, dest, level))
 					changed = true
 				}
 				currentOffset += 2
@@ -749,46 +857,67 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		// we only know about word-style extended tally dumps
 		this.processCrosspointTallyDumpData(data, matrix, level, 'word', 3)
-		this.loadingGate.markTallyLevelReceived(level)
+		this.loadingGate.markTallyLevelReceived(matrix, level)
+	}
+
+	/**
+	 * Source label for a source number on a given matrix, '' when unknown.
+	 */
+	private sourceNameLabel(matrix: number, source: number): string {
+		try {
+			return stripNumber(this.namesFor('source', matrix).get(source - 1)?.label || 'N/A')
+		} catch (e: any) {
+			this.log('debug', `Unable to read source name: ${e instanceof Error ? e.message : e.toString()}`)
+			return 'N/A'
+		}
+	}
+
+	/**
+	 * Names for the "selected destination source" variables for one matrix.
+	 * The primary matrix (or, when it is the selected one, the selected matrix)
+	 * also fills the historic un-namespaced `Sel_Dest_Source_*` names.
+	 */
+	private selDestSourceVarNames(matrix: number, level: number): string[] {
+		const scoped = [
+			`Sel_Dest_Source_Matrix_${matrix}_Level_${level}`,
+			`Sel_Dest_Source_Name_Matrix_${matrix}_Level_${level}`,
+		]
+		if (matrix === this.selected_matrix) {
+			return [...scoped, `Sel_Dest_Source_Level_${level}`, `Sel_Dest_Source_Name_Level_${level}`]
+		}
+		return scoped
 	}
 
 	private updateAllCrosspoints(): void {
-		const variables = new Map()
+		const variables = new Map<string, string | number>()
 
 		if (this.selected_dest) {
-			const map = this.routeMap.get(this.selected_dest) ?? new Map<number, number>()
-			const hasSourceNames = this.source_names.size > 0
+			for (const m of this.matrices) {
+				const map = this.routeMap.get(m.id)?.get(this.selected_dest) ?? new Map<number, number>()
+				const hasSourceNames = this.namesFor('source', m.id).size > 0
+				const isSel = m.id === this.selected_matrix
 
-			for (let level = 1; level <= this.effectiveLevels; level++) {
-				if (map.has(level)) {
-					const source = map.get(level) ?? 0
-					variables.set(`Sel_Dest_Source_Level_${level}`, source)
+				for (let level = 1; level <= this.effectiveLevels; level++) {
+					const routed = map.has(level)
+					const source = routed ? (map.get(level) ?? 0) : -1
+					const name = routed ? (hasSourceNames ? this.sourceNameLabel(m.id, source) : undefined) : 'N/A'
 
-					// Hoist the source_names check outside the level loop
-					if (hasSourceNames) {
-						try {
-							variables.set(
-								`Sel_Dest_Source_Name_Level_${level}`,
-								stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
-							)
-						} catch (e: any) {
-							this.log(
-								'debug',
-								`Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`,
-							)
-						}
+					variables.set(`Sel_Dest_Source_Matrix_${m.id}_Level_${level}`, source)
+					if (name !== undefined) variables.set(`Sel_Dest_Source_Name_Matrix_${m.id}_Level_${level}`, name)
+					if (isSel) {
+						variables.set(`Sel_Dest_Source_Level_${level}`, source)
+						if (name !== undefined) variables.set(`Sel_Dest_Source_Name_Level_${level}`, name)
 					}
-				} else {
-					variables.set(`Sel_Dest_Source_Level_${level}`, -1)
-					variables.set(`Sel_Dest_Source_Name_Level_${level}`, 'N/A')
 				}
 			}
 		}
 
 		if (this.config.tally_dump_variables) {
-			for (const [index, levels] of this.routeMap) {
-				for (const [level, source] of levels) {
-					variables.set(getRouteVariableName(level, index), source)
+			for (const [matrix, byDest] of this.routeMap) {
+				for (const [dest, levels] of byDest) {
+					for (const [level, source] of levels) {
+						variables.set(getRouteVariableName(level, dest, matrix, this.primaryMatrix), source)
+					}
 				}
 			}
 		}
@@ -804,36 +933,40 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		)
 	}
 
-	private record_crosspoint(source: number, dest: number, level: number): void {
+	private record_crosspoint(matrix: number, source: number, dest: number, level: number): void {
 		if (this.isRecordingActions) {
 			this.recordAction(
 				{
 					actionId: 'set_crosspoint',
-					options: { level: [level], source: source, dest: dest },
+					options: { matrix: matrix, level: [level], source: source, dest: dest },
 				},
-				`connect dest ${dest} level ${level}`,
+				`connect matrix ${matrix} dest ${dest} level ${level}`,
 			)
 		}
 	}
 
-	private getCrosspointVariableValues(source: number, dest: number, level: number): Record<string, string | number> {
+	private getCrosspointVariableValues(
+		matrix: number,
+		source: number,
+		dest: number,
+		level: number,
+	): Record<string, string | number> {
 		const variables: Record<string, string | number> = {}
 
 		if (dest === this.selected_dest) {
-			variables[`Sel_Dest_Source_Level_${level}`] = source
-			if (this.source_names.size > 0) {
-				try {
-					variables[`Sel_Dest_Source_Name_Level_${level}`] = stripNumber(
-						this.source_names.get(source - 1)?.label || 'N/A',
-					)
-				} catch (e: any) {
-					this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`)
+			const hasNames = this.namesFor('source', matrix).size > 0
+			const name = hasNames ? this.sourceNameLabel(matrix, source) : undefined
+			for (const key of this.selDestSourceVarNames(matrix, level)) {
+				if (key.includes('_Name_')) {
+					if (name !== undefined) variables[key] = name
+				} else {
+					variables[key] = source
 				}
 			}
 		}
 
 		if (this.config.tally_dump_variables) {
-			variables[getRouteVariableName(level, dest)] = source
+			variables[getRouteVariableName(level, dest, matrix, this.primaryMatrix)] = source
 		}
 
 		return variables
@@ -849,16 +982,21 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		)
 	}
 
-	private update_crosspoints(source: number, dest: number, level: number): void {
-		this.setVariableValuesCached(this.getCrosspointVariableValues(source, dest, level))
-		this.setRoutemap(source, dest, level)
+	private update_crosspoints(matrix: number, source: number, dest: number, level: number): void {
+		this.setVariableValuesCached(this.getCrosspointVariableValues(matrix, source, dest, level))
+		this.setRoutemap(matrix, source, dest, level)
 		this.addCrosspointFeedbacksToCheck()
-		this.record_crosspoint(source, dest, level)
+		this.record_crosspoint(matrix, source, dest, level)
 	}
 
-	public async SetCrosspoint(sourceN: number, destN: number, levelN: number): Promise<void> {
+	public async SetCrosspoint(
+		sourceN: number,
+		destN: number,
+		levelN: number,
+		matrixN: number = this.primaryMatrix,
+	): Promise<void> {
 		const cmd = []
-		this.log('debug', `Crosspoint ${sourceN}>${destN} level ${levelN}`)
+		this.log('debug', `Crosspoint ${sourceN}>${destN} matrix ${matrixN} level ${levelN}`)
 
 		if (Number.isNaN(sourceN) || sourceN <= 0 || sourceN > 65536) {
 			this.log('warn', `Unable to route source ${sourceN}`)
@@ -875,9 +1013,15 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			return
 		}
 
+		if (!Number.isInteger(matrixN) || matrixN < 1 || matrixN > this.matrixMax) {
+			this.log('warn', `Unable to route matrix ${matrixN}`)
+			return
+		}
+
 		const source = sourceN - 1
 		const dest = destN - 1
 		const level = levelN - 1
+		const matrix = matrixN - 1
 
 		if (
 			((source > 1023 || dest > 1023 || level > 15) && this.hasCommand(cmds.extendedCrosspointConnect)) ||
@@ -892,7 +1036,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			// Extended command required
 			cmd.push(cmds.extendedCrosspointConnect)
 			// Matrix
-			cmd.push(this.effectiveMatrix - 1)
+			cmd.push(matrix)
 			// Level
 			cmd.push(level)
 			// Dest DIV 256
@@ -912,10 +1056,18 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				return
 			}
 
+			if (matrixN > 16) {
+				this.log(
+					'error',
+					`Doing a crosspoint connect on matrix ${matrixN}, but that exceeds the standard command range and extended support is not available.`,
+				)
+				return
+			}
+
 			// Standard Command
 			cmd.push(cmds.crosspointConnect)
 			// Matrix and Level
-			cmd.push(((this.protocolMatrix - 1) << 4) | (level & 0x0f))
+			cmd.push((matrix << 4) | (level & 0x0f))
 			// Multiplier if source or dest > 128
 			cmd.push(
 				((source >> 7) & 0x07) | // source DIV 128 Bits 0-2
@@ -930,7 +1082,14 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		await this.sendMessage(cmd)
 	}
 
-	public async getCrosspoints(destN: number, level?: number): Promise<void> {
+	/**
+	 * Interrogate the router for the sources feeding a destination.
+	 *
+	 * @param destN Destination (1-based). 0 means "nothing selected" and is a no-op.
+	 * @param level Optional single level (1-based); omitted = every level.
+	 * @param matrixN Optional matrix (1-based); omitted = every configured matrix.
+	 */
+	public async getCrosspoints(destN: number, level?: number, matrixN?: number): Promise<void> {
 		if (destN === 0) {
 			// 0 means no destination is currently selected, nothing to query
 			return
@@ -942,7 +1101,19 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			this.log('warn', `Unable to get crosspoint destination ${destN}`)
 			return
 		}
+
+		const targets = matrixN === undefined ? this.matrices.map((m) => m.id) : [matrixN]
+		for (const m of targets) {
+			await this.interrogateMatrix(m, destN, level)
+		}
+	}
+
+	/**
+	 * Interrogate one matrix. See {@link getCrosspoints}.
+	 */
+	private async interrogateMatrix(matrixN: number, destN: number, level?: number): Promise<void> {
 		const dest = destN - 1
+		const matrix = matrixN - 1
 
 		if (
 			((this.effectiveLevels > 16 || dest > 1023) && this.hasCommand(cmds.extendedInterrogate)) ||
@@ -955,7 +1126,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					// Extended commands
 					cmds.extendedInterrogate,
 					// Matrix
-					this.effectiveMatrix - 1,
+					matrix,
 					// Level
 					i,
 					// Dest DIV 256
@@ -973,6 +1144,14 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				return
 			}
 
+			if (matrixN > 16) {
+				this.log(
+					'error',
+					`Cannot interrogate matrix ${matrixN}: exceeds standard command range without extended support.`,
+				)
+				return
+			}
+
 			// check requested levels, or all levels if none specified
 			const levels = level === undefined ? Array.from({ length: this.protocolLevels }, (_, i) => i) : [level - 1]
 			for (const i of levels) {
@@ -980,7 +1159,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					// Standard commands
 					cmds.crosspointInterrogate,
 					// Matrix and Level
-					((this.protocolMatrix - 1) << 4) | (i & 0x0f),
+					(matrix << 4) | (i & 0x0f),
 					// Multiplier dest > 128
 					((dest >> 7) & 0x07) << 4, // dest DIV 128 Bits 4-6
 					dest & 0x7f, // Destination MOD 128
@@ -1185,7 +1364,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private processLabels(data: Buffer, options: ProcessLabelsOptions): void {
 		const char_length_table = [4, 8, 12]
 		//let level = 0
-		let matrix: number
+		let matrixWire = this.primaryMatrix - 1
 		let start: number
 		let char_length: number
 		let label_number: number
@@ -1195,11 +1374,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			let idx = 1
 			// byte1 = matrix (in bits 4-7), level (in bits 3-0) per SW-P-08 spec
 			if (options.hasMatrix) {
-				matrix = (data[idx] & 0xf0) >> 4
-				if (matrix !== this.protocolMatrix - 1) {
-					this.log('debug', `Matrix number ${matrix} does not match ${this.protocolMatrix - 1}`)
-					return
-				}
+				matrixWire = (data[idx] & 0xf0) >> 4
 			}
 			// matrix and level share one byte
 			idx++
@@ -1210,11 +1385,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		} else {
 			let idx = 1
 			if (options.hasMatrix) {
-				matrix = data[idx++]
-				if (matrix !== this.effectiveMatrix - 1) {
-					this.log('debug', `Matrix number ${matrix} does not match ${this.effectiveMatrix - 1}`)
-					return
-				}
+				matrixWire = data[idx++]
 			}
 			if (options.hasLevels) {
 				idx++ //level = data[idx++] - advance past unused level byte
@@ -1225,11 +1396,18 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			start = idx
 		}
 
-		this.extractLabels(data, char_length, label_number, labels_in_part, start)
+		const matrixId = matrixWire + 1
+		if (!this.isConfiguredMatrix(matrixId)) {
+			this.log('debug', `Ignoring labels for unconfigured matrix ${matrixId}`)
+			return
+		}
+
+		this.extractLabels(data, matrixId, char_length, label_number, labels_in_part, start)
 	}
 
 	private extractLabels(
 		data: Buffer,
+		matrix: number,
 		char_length: number,
 		label_number: number,
 		labels_in_part: number,
@@ -1241,33 +1419,30 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	this.log('debug', `labels in part: ${labels_in_part}`)
 	*/
 
+		const isDest = data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse
+		const isSource = data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse
+		if (!isDest && !isSource) {
+			this.log('debug', `Unknown label type ${data[0]}`)
+			return
+		}
+		const target = this.namesFor(isDest ? 'dest' : 'source', matrix)
+
 		for (let l = 0; l < labels_in_part; l++) {
 			const pos = l * char_length
 			const labelId = label_number + l + 1
 
-			if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
-				this.dest_names.set(labelId, {
-					id: labelId,
-					label: data
-						.subarray(start + pos, start + pos + char_length)
-						.toString('utf8')
-						.replace(/\0/g, '')
-						.trim(),
-				})
-			} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
-				this.source_names.set(labelId, {
-					id: labelId,
-					label: data
-						.subarray(start + pos, start + pos + char_length)
-						.toString('utf8')
-						.replace(/\0/g, '')
-						.trim(),
-				})
-			} else {
-				this.log('debug', `Unknown label type ${data[0]}`)
-				return
-			}
+			target.set(labelId, {
+				id: labelId,
+				label: data
+					.subarray(start + pos, start + pos + char_length)
+					.toString('utf8')
+					.replace(/\0/g, '')
+					.trim(),
+			})
 		}
+
+		// keep the primary-matrix mirror pointed at the right map
+		this.syncPrimaryNames()
 
 		// update dropdown lists
 		void this.debouncedUpdate()
@@ -1275,20 +1450,25 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	}
 
 	private updateAllNames(): void {
-		const variables = new Map()
+		const variables = new Map<string, string | number>()
 
-		// biome-ignore lint/complexity/noForEach: better for maps
-		this.source_names.forEach((sourceValue) => {
-			variables.set(`Source_${sourceValue.id}`, stripNumber(sourceValue.label))
-		})
+		for (const m of this.matrices) {
+			const isPrimary = m.id === this.primaryMatrix
+			const sourcePrefix = isPrimary ? 'Source_' : `Source_Matrix_${m.id}_`
+			const destPrefix = isPrimary ? 'Destination_' : `Destination_Matrix_${m.id}_`
 
-		// biome-ignore lint/complexity/noForEach: better for maps
-		this.dest_names.forEach((destValue) => {
-			variables.set(`Destination_${destValue.id}`, stripNumber(destValue.label))
-		})
+			// biome-ignore lint/complexity/noForEach: better for maps
+			this.namesFor('source', m.id).forEach((sourceValue) => {
+				variables.set(`${sourcePrefix}${sourceValue.id}`, stripNumber(sourceValue.label))
+			})
+			// biome-ignore lint/complexity/noForEach: better for maps
+			this.namesFor('dest', m.id).forEach((destValue) => {
+				variables.set(`${destPrefix}${destValue.id}`, stripNumber(destValue.label))
+			})
 
-		variables.set('Sources', this.source_names.size)
-		variables.set('Destinations', this.dest_names.size)
+			variables.set(isPrimary ? 'Sources' : `Sources_Matrix_${m.id}`, this.namesFor('source', m.id).size)
+			variables.set(isPrimary ? 'Destinations' : `Destinations_Matrix_${m.id}`, this.namesFor('dest', m.id).size)
+		}
 
 		this.setVariableValuesCached(Object.fromEntries(variables))
 		this.feedbacksToCheck.add(FeedbackIds.DestinationSourceName)
@@ -1316,45 +1496,41 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	public async readNames(): Promise<void> {
 		this.log('info', 'Reading names...')
-		// reset
-		const cmdGetSources: number[] = []
-		const cmdGetDestinations: number[] = []
-		this.source_names = new Map()
-		this.dest_names = new Map()
+		// reset every matrix's maps
+		this.namesByMatrix = { source: new Map(), dest: new Map() }
+		for (const m of this.matrices) {
+			this.namesFor('source', m.id)
+			this.namesFor('dest', m.id)
+		}
+		this.syncPrimaryNames()
 		this.setVariableValuesCached({ Sources: 0, Destinations: 0 })
 
-		if (
+		const useExtended =
 			(this.config.extended_support === true &&
 				(this.hasCommand(cmds.extendedGetSourceNames) || this.hasCommand(cmds.extendedGetDestNames))) ||
 			(this.hasCommandSafe(cmds.extendedGetSourceNames) && this.hasCommandSafe(cmds.extendedGetDestNames))
-		) {
-			// extended commands (only gets source names for level 0)
-			cmdGetSources.push(
-				cmds.extendedGetSourceNames,
-				this.effectiveMatrix - 1, // matrix
-				0, // level
-				Number.parseInt(this.config.name_chars), // name characters
-			)
-			cmdGetDestinations.push(
-				cmds.extendedGetDestNames,
-				this.effectiveMatrix - 1, // matrix
-				Number.parseInt(this.config.name_chars), // name characters
-			)
-		} else {
-			// standard commands
-			cmdGetSources.push(cmds.getSourceNames, (this.protocolMatrix - 1) << 4, Number.parseInt(this.config.name_chars))
-			cmdGetDestinations.push(
-				cmds.getDestNames,
-				(this.protocolMatrix - 1) << 4,
-				Number.parseInt(this.config.name_chars),
-			)
+
+		const nameChars = Number.parseInt(this.config.name_chars)
+
+		for (const m of this.matrices) {
+			const cmdGetSources: number[] = []
+			const cmdGetDestinations: number[] = []
+
+			if (useExtended) {
+				// extended commands (only gets source names for level 0)
+				cmdGetSources.push(cmds.extendedGetSourceNames, m.id - 1, 0, nameChars)
+				cmdGetDestinations.push(cmds.extendedGetDestNames, m.id - 1, nameChars)
+			} else {
+				// standard commands
+				cmdGetSources.push(cmds.getSourceNames, (m.id - 1) << 4, nameChars)
+				cmdGetDestinations.push(cmds.getDestNames, (m.id - 1) << 4, nameChars)
+			}
+
+			// get source names
+			await this.sendMessage(cmdGetSources)
+			// get dest names
+			await this.sendMessage(cmdGetDestinations)
 		}
-
-		// get source names
-		await this.sendMessage(cmdGetSources)
-
-		// get dest names
-		await this.sendMessage(cmdGetDestinations)
 	}
 
 	// variables.js functions
@@ -1373,6 +1549,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			return
 		}
 
+		// Matrices (needs config; primaryMatrix depends on this.matrices)
+		this.setupMatrices()
+		this.selected_matrix = this.primaryMatrix
+
 		const currentLevels = this.effectiveLevels
 
 		this.levels = []
@@ -1382,9 +1562,13 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			this.selected_level.push({ id: i, enabled: true })
 		}
 
-		// Labels
-		this.source_names = new Map()
-		this.dest_names = new Map()
+		// Labels - one map per configured matrix
+		this.namesByMatrix = { source: new Map(), dest: new Map() }
+		for (const m of this.matrices) {
+			this.namesFor('source', m.id)
+			this.namesFor('dest', m.id)
+		}
+		this.syncPrimaryNames()
 
 		this.updateVariableDefinitions()
 
@@ -1394,6 +1578,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 		varList.Source = this.selected_source
 		varList.Destination = this.selected_dest
+		varList.Selected_Matrix = this.selected_matrix
+		varList.Selected_Matrix_Label = this.matrices.find((m) => m.id === this.selected_matrix)?.label ?? ''
 
 		this.setVariableValuesCached(varList as VarList)
 	}
@@ -1424,8 +1610,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private updateVariableDefinitions(): void {
 		const coreVariables: CompanionVariableDefinitions<Record<string, string | number>> = {}
-		const sourceValues = Array.from(this.source_names.values())
-		const destValues = Array.from(this.dest_names.values())
+		const multi = this.matrices.length > 1
 
 		coreVariables['is_loading_ports'] = {
 			name: 'True while initial port data is being loaded from the router',
@@ -1442,6 +1627,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		coreVariables['Destination'] = {
 			name: 'Selected destination',
 		}
+		if (multi) {
+			coreVariables['Selected_Matrix'] = { name: 'Selected matrix number' }
+			coreVariables['Selected_Matrix_Label'] = { name: 'Selected matrix label' }
+		}
 
 		for (let i = 1; i <= this.effectiveLevels; i++) {
 			coreVariables[`Sel_Dest_Source_Level_${i}`] = {
@@ -1452,25 +1641,45 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			}
 		}
 
-		for (let i = 1; i <= sourceValues.length; i++) {
-			coreVariables[`Source_${i}`] = {
-				name: `Source ${i}`,
-			}
-		}
+		for (const m of this.matrices) {
+			const isPrimary = m.id === this.primaryMatrix
+			const sourceCount = this.namesFor('source', m.id).size
+			const destCount = this.namesFor('dest', m.id).size
 
-		for (let i = 1; i <= destValues.length; i++) {
-			coreVariables[`Destination_${i}`] = {
-				name: `Destination ${i}`,
+			if (multi) {
+				coreVariables[`Sources_Matrix_${m.id}`] = { name: `Source name count for matrix ${m.id} (${m.label})` }
+				coreVariables[`Destinations_Matrix_${m.id}`] = {
+					name: `Destination name count for matrix ${m.id} (${m.label})`,
+				}
+				for (let i = 1; i <= this.effectiveLevels; i++) {
+					coreVariables[`Sel_Dest_Source_Matrix_${m.id}_Level_${i}`] = {
+						name: `Selected destination source for matrix ${m.id} level ${i}`,
+					}
+					coreVariables[`Sel_Dest_Source_Name_Matrix_${m.id}_Level_${i}`] = {
+						name: `Selected destination source name for matrix ${m.id} level ${i}`,
+					}
+				}
+			}
+
+			const sourcePrefix = isPrimary ? 'Source_' : `Source_Matrix_${m.id}_`
+			const destPrefix = isPrimary ? 'Destination_' : `Destination_Matrix_${m.id}_`
+			for (let i = 1; i <= sourceCount; i++) {
+				coreVariables[`${sourcePrefix}${i}`] = { name: multi ? `Source ${i} (matrix ${m.id})` : `Source ${i}` }
+			}
+			for (let i = 1; i <= destCount; i++) {
+				coreVariables[`${destPrefix}${i}`] = { name: multi ? `Destination ${i} (matrix ${m.id})` : `Destination ${i}` }
 			}
 		}
 
 		if (this.config.tally_dump_variables) {
-			this.routeMap.forEach((levels, index) => {
-				for (const level of levels?.keys() ?? []) {
-					coreVariables[getRouteVariableName(level, index)] = {
-						name: `Source for destination ${index} at level ${level}`,
+			this.routeMap.forEach((byDest, matrix) => {
+				byDest.forEach((levels, dest) => {
+					for (const level of levels?.keys() ?? []) {
+						coreVariables[getRouteVariableName(level, dest, matrix, this.primaryMatrix)] = {
+							name: `Source for matrix ${matrix} destination ${dest} at level ${level}`,
+						}
 					}
-				}
+				})
 			})
 		}
 

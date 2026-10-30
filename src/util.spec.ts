@@ -23,8 +23,12 @@ describe('stripNumber', () => {
 
 describe('getRouteVariableName', () => {
 	it('builds a stable Route_<level>_<dest> variable name', () => {
-		expect(getRouteVariableName(1, 5)).toBe('Route_1_5')
-		expect(getRouteVariableName(17, 128)).toBe('Route_17_128')
+		expect(getRouteVariableName(1, 5, 1, 1)).toBe('Route_1_5')
+		expect(getRouteVariableName(17, 128, 1, 1)).toBe('Route_17_128')
+	})
+
+	it('scopes the name for a non-primary matrix', () => {
+		expect(getRouteVariableName(1, 5, 2, 1)).toBe('Route_Matrix_2_1_5')
 	})
 })
 

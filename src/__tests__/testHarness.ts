@@ -57,6 +57,7 @@ export function createInstanceContext(): {
 export const baseTestConfig: SwP08Config = {
 	host: '',
 	port: '8910',
+	matrices: '',
 	matrix: 1,
 	matrix_ext: 1,
 	max_levels: 3,

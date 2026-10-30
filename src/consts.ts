@@ -50,6 +50,15 @@ export const feedbackOptions = {
 		choices: [],
 		expressionDescription: 'Expression should return a level number',
 	},
+	matrix: {
+		type: 'dropdown',
+		label: 'Matrix',
+		id: 'matrix',
+		default: 1,
+		choices: [],
+		allowCustom: true,
+		expressionDescription: 'Expression should return a matrix number',
+	},
 	destination: {
 		type: 'number',
 		label: 'Destination',
@@ -102,6 +111,15 @@ export const actionOptions = {
 		default: [1],
 		minSelection: 1,
 		choices: [],
+	},
+	matrix: {
+		type: 'dropdown',
+		label: 'Matrix',
+		id: 'matrix',
+		default: 1,
+		choices: [],
+		allowCustom: true,
+		expressionDescription: 'Expression should return a matrix number',
 	},
 	destination: {
 		type: 'number',

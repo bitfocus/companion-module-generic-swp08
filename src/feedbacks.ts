@@ -6,6 +6,7 @@ import SW_P_08 from './index.js'
 export enum FeedbackIds {
 	SelectedLevel = 'selected_level',
 	SelectedLevelDest = 'selected_level_dest',
+	SelectedMatrix = 'selected_matrix',
 	SelectedDest = 'selected_dest',
 	SelectedSource = 'selected_source',
 	SourceDestRoute = 'source_dest_route',
@@ -30,6 +31,12 @@ export type FeedbackSchema = {
 			dest: number
 		}
 	}
+	[FeedbackIds.SelectedMatrix]: {
+		type: 'boolean'
+		options: {
+			matrix: number
+		}
+	}
 	[FeedbackIds.SelectedDest]: {
 		type: 'boolean'
 		options: {
@@ -45,12 +52,16 @@ export type FeedbackSchema = {
 	[FeedbackIds.SourceDestRoute]: {
 		type: 'boolean'
 		options: {
+			/** optional: absent on feedbacks saved before multi-matrix support */
+			matrix?: number
 			source: number
 		}
 	}
 	[FeedbackIds.CrosspointConnected]: {
 		type: 'boolean'
 		options: {
+			/** optional: absent on feedbacks saved before multi-matrix support */
+			matrix?: number
 			dest: number
 			source: number
 		}
@@ -58,6 +69,8 @@ export type FeedbackSchema = {
 	[FeedbackIds.CrosspointConnectedByLevel]: {
 		type: 'boolean'
 		options: {
+			/** optional: absent on feedbacks saved before multi-matrix support */
+			matrix?: number
 			level: number[]
 			dest: number
 			source: number
@@ -66,6 +79,8 @@ export type FeedbackSchema = {
 	[FeedbackIds.CrosspointConnectedByName]: {
 		type: 'boolean'
 		options: {
+			/** optional: absent on feedbacks saved before multi-matrix support */
+			matrix?: number
 			dest: number
 			source: number
 		}
@@ -73,6 +88,8 @@ export type FeedbackSchema = {
 	[FeedbackIds.DestinationSourceName]: {
 		type: 'value'
 		options: {
+			/** optional: absent on feedbacks saved before multi-matrix support */
+			matrix?: number
 			level: number
 			dest: number
 		}
@@ -86,8 +103,11 @@ export type FeedbackSchema = {
 export function UpdateFeedbacks(self: SW_P_08): void {
 	const feedbackDefinitions: Partial<CompanionFeedbackDefinitions<FeedbackSchema>> = {}
 	const logger = createModuleLogger('SWP08_Feedbacks')
-	const destMax = getHighestKey(self.dest_names) || 0xffff
-	const sourceMax = getHighestKey(self.source_names) || 0xffff
+	const mergedSourceNames = self.mergedNames('source')
+	const mergedDestNames = self.mergedNames('dest')
+	const destMax = getHighestKey(mergedDestNames) || 0xffff
+	const sourceMax = getHighestKey(mergedSourceNames) || 0xffff
+	const matrixOption = { ...feedbackOptions.matrix, choices: self.matrixChoices, default: self.primaryMatrix }
 
 	feedbackDefinitions[FeedbackIds.SelectedLevel] = {
 		name: 'Selected Levels',
@@ -150,6 +170,20 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 		},
 	}
 
+	feedbackDefinitions[FeedbackIds.SelectedMatrix] = {
+		type: 'boolean',
+		name: 'Selected Matrix',
+		description: 'Active on the selected matrix',
+		defaultStyle: {
+			color: colours.black,
+			bgcolor: colours.purple,
+		},
+		options: [matrixOption],
+		callback: (feedback) => {
+			return self.selected_matrix === self.resolveMatrixOption(feedback.options.matrix)
+		},
+	}
+
 	feedbackDefinitions[FeedbackIds.SelectedDest] = {
 		type: 'boolean',
 		name: 'Selected Destination',
@@ -186,18 +220,19 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			color: colours.black,
 			bgcolor: colours.orange,
 		},
-		options: [{ ...feedbackOptions.source, max: sourceMax }],
+		options: [matrixOption, { ...feedbackOptions.source, max: sourceMax }],
 		callback: (feedback) => {
+			const matrix = self.resolveMatrixOption(feedback.options.matrix)
 			// look for self dest in route table
-			logger.debug(`dest:source feedback ${self.selected_dest}:${feedback.options.source}`)
+			logger.debug(`dest:source feedback ${matrix}/${self.selected_dest}:${feedback.options.source}`)
 			if (
 				self.selected_dest !== 0 &&
 				!self.config.tally_dump_and_update &&
-				!self.hasDestInRoutemap(self.selected_dest)
+				!self.hasDestInRoutemap(matrix, self.selected_dest)
 			) {
-				void self.getCrosspoints(self.selected_dest)
+				void self.getCrosspoints(self.selected_dest, undefined, matrix)
 			}
-			return self.hasSourceInAnyLevelRoutemap(self.selected_dest, feedback.options.source)
+			return self.hasSourceInAnyLevelRoutemap(matrix, self.selected_dest, feedback.options.source)
 		},
 	}
 
@@ -210,16 +245,18 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			bgcolor: colours.orange,
 		},
 		options: [
+			matrixOption,
 			{ ...feedbackOptions.destination, max: destMax },
 			{ ...feedbackOptions.source, max: sourceMax },
 		],
 		callback: (feedback) => {
+			const matrix = self.resolveMatrixOption(feedback.options.matrix)
 			// look for self dest in route table
-			logger.debug(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
-			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(feedback.options.dest)) {
-				void self.getCrosspoints(feedback.options.dest)
+			logger.debug(`dest:source feedback ${matrix}/${feedback.options.dest}:${feedback.options.source}`)
+			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(matrix, feedback.options.dest)) {
+				void self.getCrosspoints(feedback.options.dest, undefined, matrix)
 			}
-			return self.hasSourceInAnyLevelRoutemap(feedback.options.dest, feedback.options.source)
+			return self.hasSourceInAnyLevelRoutemap(matrix, feedback.options.dest, feedback.options.source)
 		},
 	}
 
@@ -232,22 +269,24 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			bgcolor: colours.orange,
 		},
 		options: [
+			matrixOption,
 			{ ...feedbackOptions.levels, choices: self.levels },
 			{ ...feedbackOptions.destination, max: destMax },
 			{ ...feedbackOptions.source, max: sourceMax },
 		],
 		callback: (feedback) => {
+			const matrix = self.resolveMatrixOption(feedback.options.matrix)
 			// look for self dest in route table
 			logger.debug(
-				`dest:source feedback ${JSON.stringify(feedback.options.level)}:${feedback.options.dest}:${feedback.options.source}`,
+				`dest:source feedback ${matrix}/${JSON.stringify(feedback.options.level)}:${feedback.options.dest}:${feedback.options.source}`,
 			)
-			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(feedback.options.dest)) {
-				void self.getCrosspoints(feedback.options.dest)
+			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(matrix, feedback.options.dest)) {
+				void self.getCrosspoints(feedback.options.dest, undefined, matrix)
 			}
 			if (feedback.options.level.length !== 0) {
 				let count = 0
 				for (const level of feedback.options.level) {
-					if (self.hasSourceInRoutemap(level, feedback.options.dest, feedback.options.source)) {
+					if (self.hasSourceInRoutemap(matrix, level, feedback.options.dest, feedback.options.source)) {
 						count++
 					}
 				}
@@ -266,26 +305,30 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			bgcolor: colours.orange,
 		},
 		options: [
+			matrixOption,
 			{
 				...feedbackOptions.sourceName,
-				choices: Array.from(self.source_names.values()),
+				choices: Array.from(mergedSourceNames.values()),
 			},
 			{
 				...feedbackOptions.destinationName,
-				choices: Array.from(self.dest_names.values()),
+				choices: Array.from(mergedDestNames.values()),
 			},
 		],
 		callback: async (feedback, _context) => {
 			const source = Math.round(feedback.options.source)
 			const dest = Math.round(feedback.options.dest)
+			const matrix = self.resolveMatrixOption(feedback.options.matrix)
 			checkSourceDestRange(source, FeedbackIds.CrosspointConnectedByName, sourceMax)
 			checkSourceDestRange(dest, FeedbackIds.CrosspointConnectedByName, destMax)
-			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(dest)) {
-				void self.getCrosspoints(dest)
+			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(matrix, dest)) {
+				void self.getCrosspoints(dest, undefined, matrix)
 			}
 			// look for self dest in route table
-			logger.debug(`dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
-			return self.hasSourceInAnyLevelRoutemap(dest, source)
+			logger.debug(
+				`dest:source feedback ${matrix}/${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`,
+			)
+			return self.hasSourceInAnyLevelRoutemap(matrix, dest, source)
 		},
 	}
 
@@ -294,28 +337,32 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 		name: 'Destination Source Name',
 		description: 'Return name of source routed to selected destination',
 		options: [
+			matrixOption,
 			{ ...feedbackOptions.level, choices: self.levels },
 			{
 				...feedbackOptions.destinationName,
-				choices: Array.from(self.dest_names.values()),
+				choices: Array.from(mergedDestNames.values()),
 			},
 		],
 		callback: async (feedback, _context) => {
 			const level = Math.round(feedback.options.level)
 			const dest = Math.round(feedback.options.dest)
+			const matrix = self.resolveMatrixOption(feedback.options.matrix)
 			checkSourceDestRange(
 				level,
 				FeedbackIds.DestinationSourceName,
 				self.config.extended_support ? self.config.max_levels_ext : self.config.max_levels,
 			)
 			checkSourceDestRange(dest, FeedbackIds.CrosspointConnectedByName, destMax)
-			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(dest)) {
-				void self.getCrosspoints(dest)
+			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(matrix, dest)) {
+				void self.getCrosspoints(dest, undefined, matrix)
 			}
 			// look for self dest in route table
-			logger.debug(`${FeedbackIds.DestinationSourceName} feedback ${feedback.options.dest}:${feedback.options.level}`)
-			const source = self.getSourceInRoutemap(level, dest)
-			return source === undefined ? '' : (self.source_names.get(source - 1)?.label ?? '')
+			logger.debug(
+				`${FeedbackIds.DestinationSourceName} feedback ${matrix}/${feedback.options.dest}:${feedback.options.level}`,
+			)
+			const source = self.getSourceInRoutemap(matrix, level, dest)
+			return source === undefined ? '' : (self.sourceNamesForMatrix(matrix).get(source - 1)?.label ?? '')
 		},
 	}
 

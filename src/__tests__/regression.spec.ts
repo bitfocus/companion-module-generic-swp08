@@ -72,12 +72,13 @@ describe('SourceDestRoute feedback - does not poll the router for an unselected 
 
 		feedbackDef.callback({ options: { source: 1 } })
 
-		expect(instance.getCrosspoints).toHaveBeenCalledWith(5)
+		// SourceDestRoute now targets a specific matrix (primary, when the option is absent)
+		expect(instance.getCrosspoints).toHaveBeenCalledWith(5, undefined, instance.primaryMatrix)
 	})
 
 	it('does not poll again once the destination is already in the routemap', () => {
 		instance.selected_dest = 5
-		instance.setRoutemap(1, 5, 1)
+		instance.setRoutemap(instance.primaryMatrix, 1, 5, 1)
 
 		feedbackDef.callback({ options: { source: 1 } })
 
@@ -113,7 +114,7 @@ describe('advanced tally route variables', () => {
 		context.setVariableDefinitions.mockClear()
 		context.setVariableValues.mockClear()
 
-		instance.setRoutemap(10, 20, 1)
+		instance.setRoutemap(instance.primaryMatrix, 10, 20, 1)
 		instance.debouncedCrosspointUpdate()
 		vi.advanceTimersByTime(250)
 
@@ -126,7 +127,7 @@ describe('advanced tally route variables', () => {
 		context.setVariableDefinitions.mockClear()
 		context.setVariableValues.mockClear()
 
-		instance.setRoutemap(10, 20, 1)
+		instance.setRoutemap(instance.primaryMatrix, 10, 20, 1)
 		instance.flushAfterLoad('complete')
 
 		const definitions = context.setVariableDefinitions.mock.calls.at(-1)?.[0]
