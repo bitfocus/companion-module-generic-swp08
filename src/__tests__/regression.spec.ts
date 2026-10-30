@@ -76,13 +76,34 @@ describe('SourceDestRoute feedback - does not poll the router for an unselected 
 		expect(instance.getCrosspoints).toHaveBeenCalledWith(5, undefined, instance.primaryMatrix)
 	})
 
-	it('does not poll again once the destination is already in the routemap', () => {
+	it('polls a destination only once per connection', () => {
 		instance.selected_dest = 5
-		instance.setRoutemap(instance.primaryMatrix, 1, 5, 1)
 
 		feedbackDef.callback({ options: { source: 1 } })
+		feedbackDef.callback({ options: { source: 2 } })
+		instance.setRoutemap(instance.primaryMatrix, 1, 5, 1)
+		feedbackDef.callback({ options: { source: 1 } })
 
-		expect(instance.getCrosspoints).not.toHaveBeenCalled()
+		expect(instance.getCrosspoints).toHaveBeenCalledTimes(1)
+	})
+})
+
+describe('CrosspointConnectedByLevel feedback - learns state when the router skips the tally dump', () => {
+	it('interrogates the destination even with tally dump enabled, then lights from the reply', () => {
+		const created = createTestInstance({ tally_dump_and_update: true })
+		const instance = created.instance
+		UpdateFeedbacks(instance as never)
+		const feedbackDef =
+			created.context.setFeedbackDefinitions.mock.calls.at(-1)?.[0][FeedbackIds.CrosspointConnectedByLevel]
+		instance.getCrosspoints = vi.fn().mockResolvedValue(undefined)
+		const options = { matrix: instance.primaryMatrix, level: [2], dest: 7, source: 3 }
+
+		expect(feedbackDef.callback({ options })).toBe(false)
+		expect(instance.getCrosspoints).toHaveBeenCalledWith(7, undefined, instance.primaryMatrix)
+
+		instance.setRoutemap(instance.primaryMatrix, 3, 7, 2)
+		expect(feedbackDef.callback({ options })).toBe(true)
+		expect(instance.getCrosspoints).toHaveBeenCalledTimes(1)
 	})
 })
 

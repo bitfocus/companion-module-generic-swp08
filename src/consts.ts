@@ -2,6 +2,10 @@ import { combineRgb, SomeCompanionActionInputField, type SomeCompanionFeedbackIn
 
 export const msgDelay = 5
 export const keepAliveTime = 30000
+/** How long to wait for a protocol implementation response before reading names/tally anyway (ms). */
+export const supportedCommandsTimeout = 3000
+/** Delay before interrogating a crosspoint this module just connected (ms). */
+export const crosspointConfirmDelay = 150
 /**
  * How long a queued send waits for the router's data-link ACK/NAK before the attempt is treated as failed.
  * SW-P-88 (Issue 4a) §7.2.2: "a notional 1 second timeout is set for the low level ACK/NAK responses".

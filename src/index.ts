@@ -20,7 +20,20 @@ import {
 import { Buffer } from 'node:buffer'
 import { UpgradeScripts } from './upgrades.js'
 import { GetConfigFields, type SwP08Config } from './config.js'
-import { ACK, NAK, DLE, STX, ETX, cmds, getCommandName, keepAliveTime, ackTimeout, ackMaxAttempts } from './consts.js'
+import {
+	ACK,
+	NAK,
+	DLE,
+	STX,
+	ETX,
+	cmds,
+	getCommandName,
+	keepAliveTime,
+	ackTimeout,
+	ackMaxAttempts,
+	supportedCommandsTimeout,
+	crosspointConfirmDelay,
+} from './consts.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks, FeedbackIds } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
@@ -48,6 +61,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	private isRecordingActions = false
 	private socket: TCPHelper | null = null
 	private keepAliveTimer: NodeJS.Timeout | undefined
+	/** Fallback timer for routers that never answer the protocol implementation request. */
+	private supportedCommandsTimer: NodeJS.Timeout | undefined
 	public feedbacksToCheck: Set<FeedbackIds> = new Set()
 
 	// Primary-matrix name maps. Kept for backwards compatibility: every existing
@@ -142,6 +157,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.debouncedUpdate.cancel()
 		this.loadingGate.reset()
 		this.stopKeepAliveTimer()
+		this.clearSupportedCommandsTimer()
+		this.clearCrosspointConfirmTimers()
 		if (this.socket) {
 			this.socket.destroy()
 		}
@@ -574,10 +591,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				this.log('error', `Network error: ${err.message}`)
 				this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
 				this.stopKeepAliveTimer()
+				this.clearSupportedCommandsTimer()
 			})
 
 			this.socket.on('end', () => {
 				this.stopKeepAliveTimer()
+				this.clearSupportedCommandsTimer()
 				this.log('warn', `Connection to ${this.config.host} ended`)
 				this.ackCallbacks = []
 			})
@@ -588,6 +607,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				this.ackCallbacks = []
 				this.commands = []
 				this.routeMap = new Map()
+				this.interrogatedDests.clear()
 				this.lastVariables = new Map()
 				this.lastVariableDefinitions = new Map()
 				receivebuffer = Buffer.alloc(0)
@@ -602,15 +622,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				// Reconnects: gate stays inactive — keep pushing updates as data arrives
 
 				if (this.config.supported_commands_on_connect === true) {
-					// request protocol implementation
-					this.sendMessage([cmds.protocolImplementation]).catch(() => {})
+					this.requestSupportedCommands()
 				} else {
-					if (this.config.read_names_on_connect) {
-						this.readNames().catch(() => {})
-					}
-					if (this.config.tally_dump_and_update) {
-						this.readTally().catch(() => {})
-					}
+					this.readInitialData()
 				}
 				this.subscribeActions()
 				if (!this.loadingGate.isActive) {
@@ -634,6 +648,42 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					}
 				}
 			})
+		}
+	}
+
+	/** Request names and tally, as enabled in the config. */
+	private readInitialData(): void {
+		if (this.config.read_names_on_connect) {
+			this.readNames().catch(() => {})
+		}
+		if (this.config.tally_dump_and_update) {
+			this.readTally().catch(() => {})
+		}
+	}
+
+	/**
+	 * Ask the router which commands it implements, then read names and tally.
+	 * Routers such as Lawo VSM never answer, so after
+	 * {@link supportedCommandsTimeout} the initial read goes ahead without the
+	 * list (every command is then assumed supported).
+	 */
+	private requestSupportedCommands(): void {
+		this.clearSupportedCommandsTimer()
+		this.supportedCommandsTimer = setTimeout(() => {
+			delete this.supportedCommandsTimer
+			this.log(
+				'warn',
+				'Router did not report its supported commands, continuing without them. Consider disabling "Request supported commands".',
+			)
+			this.readInitialData()
+		}, supportedCommandsTimeout)
+		this.sendMessage([cmds.protocolImplementation]).catch(() => {})
+	}
+
+	private clearSupportedCommandsTimer(): void {
+		if (this.supportedCommandsTimer) {
+			clearTimeout(this.supportedCommandsTimer)
+			delete this.supportedCommandsTimer
 		}
 	}
 
@@ -746,6 +796,22 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	public getSourceInRoutemap(matrix: number, level: number, dest: number): number | undefined {
 		return this.routeMap.get(matrix)?.get(dest)?.get(level)
+	}
+
+	/** `matrix:dest` pairs already interrogated on this connection, see {@link ensureCrosspointsKnown}. */
+	private interrogatedDests = new Set<string>()
+
+	/**
+	 * Interrogate every level of a destination once per connection, so
+	 * crosspoint feedbacks get state even when the router does not answer the
+	 * tally dump (e.g. Lawo VSM). Later changes arrive as crosspoint tallies.
+	 */
+	public ensureCrosspointsKnown(matrix: number, dest: number): void {
+		if (!Number.isInteger(dest) || dest < 1 || !this.isConfiguredMatrix(matrix)) return
+		const key = `${matrix}:${dest}`
+		if (this.interrogatedDests.has(key)) return
+		this.interrogatedDests.add(key)
+		this.getCrosspoints(dest, undefined, matrix).catch(() => {})
 	}
 
 	// Utility function ie lieu of Feedback subscribe
@@ -1080,6 +1146,34 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 
 		await this.sendMessage(cmd)
+		this.scheduleCrosspointConfirm(matrixN, destN, levelN)
+	}
+
+	/** Pending confirm interrogations, keyed `matrix:dest:level`. */
+	private crosspointConfirmTimers = new Map<string, NodeJS.Timeout>()
+
+	/**
+	 * Interrogate a crosspoint shortly after connecting it. Some routers (e.g.
+	 * Lawo VSM) do not send a Crosspoint Connected tally for routes made by this
+	 * controller, so without this the feedback only updates on the next
+	 * keep-alive. Repeated connects to the same crosspoint share one query.
+	 */
+	private scheduleCrosspointConfirm(matrix: number, dest: number, level: number): void {
+		const key = `${matrix}:${dest}:${level}`
+		const pending = this.crosspointConfirmTimers.get(key)
+		if (pending) clearTimeout(pending)
+		this.crosspointConfirmTimers.set(
+			key,
+			setTimeout(() => {
+				this.crosspointConfirmTimers.delete(key)
+				this.getCrosspoints(dest, level, matrix).catch(() => {})
+			}, crosspointConfirmDelay),
+		)
+	}
+
+	private clearCrosspointConfirmTimers(): void {
+		for (const timer of this.crosspointConfirmTimers.values()) clearTimeout(timer)
+		this.crosspointConfirmTimers.clear()
 	}
 
 	/**
@@ -1302,14 +1396,9 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 					`This router implements: ${this.commands.map((c) => `0x${c.toString(16).padStart(2, '0')}: ${getCommandName(c)}`).join(', ')}`,
 				)
 
-				// request names
-				if (this.config.read_names_on_connect) {
-					this.readNames().catch(() => {})
-				}
-
-				// request tally
-				if (this.config.tally_dump_and_update) {
-					this.readTally().catch(() => {})
+				if (this.supportedCommandsTimer) {
+					this.clearSupportedCommandsTimer()
+					this.readInitialData()
 				}
 				break
 

@@ -113,7 +113,7 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			width: 1,
 			default: false,
 			description:
-				'If enabled, the module will request a tally dump on connection and will not (need to) interrogate the router for tally updates.',
+				'If enabled, the module will request a tally dump on connection. Crosspoint feedbacks still interrogate each destination they use once per connection.',
 		},
 		{
 			type: 'checkbox',
