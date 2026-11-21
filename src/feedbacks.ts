@@ -315,7 +315,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			// look for self dest in route table
 			logger.debug(`${FeedbackIds.DestinationSourceName} feedback ${feedback.options.dest}:${feedback.options.level}`)
 			const source = self.getSourceInRoutemap(level, dest)
-			return source === undefined ? '' : (self.source_names.get(source - 1)?.label ?? '')
+			return source === undefined ? '' : (self.source_names.get(source)?.label ?? '')
 		},
 	}
 

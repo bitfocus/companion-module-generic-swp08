@@ -769,7 +769,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 						try {
 							variables.set(
 								`Sel_Dest_Source_Name_Level_${level}`,
-								stripNumber(this.source_names.get(source - 1)?.label || 'N/A'),
+								stripNumber(this.source_names.get(source)?.label || 'N/A'),
 							)
 						} catch (e: any) {
 							this.log(
@@ -823,9 +823,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			variables[`Sel_Dest_Source_Level_${level}`] = source
 			if (this.source_names.size > 0) {
 				try {
-					variables[`Sel_Dest_Source_Name_Level_${level}`] = stripNumber(
-						this.source_names.get(source - 1)?.label || 'N/A',
-					)
+					variables[`Sel_Dest_Source_Name_Level_${level}`] = stripNumber(this.source_names.get(source)?.label || 'N/A')
 				} catch (e: any) {
 					this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`)
 				}

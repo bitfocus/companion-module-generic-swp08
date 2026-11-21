@@ -1,24 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ACK, cmds, DLE, ETX, NAK, STX } from '../consts.js'
-import { createTestInstance, type TestableInstance } from './testHarness.js'
-
-function frame(data: number[]): Buffer {
-	const packet = Array.from(data)
-	const length = data.length
-	let crc = 0
-	for (let j = 0; j < packet.length; ++j) {
-		crc += packet[j]
-		if (packet[j] === DLE) {
-			packet.splice(j, 0, DLE)
-			j++
-		}
-	}
-	crc += length
-	const checksum = (~crc + 1) & 0xff
-	packet.unshift(DLE, STX)
-	packet.push(length, checksum, DLE, ETX)
-	return Buffer.from(packet)
-}
+import { ACK, cmds, DLE, NAK, STX } from '../consts.js'
+import { createTestInstance, frame, type TestableInstance } from './testHarness.js'
 
 describe('decode - packet framing', () => {
 	let instance: TestableInstance
