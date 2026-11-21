@@ -1211,7 +1211,8 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	 * @param {ProcessLabelsOptions} options - Options for label parser
 	 */
 	private processLabels(data: Buffer, options: ProcessLabelsOptions): void {
-		const char_length_table = [4, 8, 12]
+		// Length codes 00-04 (SW-P-08 Issue 32 §3.1.18)
+		const char_length_table = [4, 8, 12, 16, 32]
 		//let level = 0
 		let matrix: number
 		let start: number
@@ -1251,6 +1252,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			label_number = (data[idx++] << 8) | data[idx++]
 			labels_in_part = data[idx++]
 			start = idx
+		}
+
+		if (char_length === undefined) {
+			this.log('warn', `Ignoring ${getCommandName(data[0])} with an unknown name length: ${data.toString('hex')}`)
+			return
 		}
 
 		this.extractLabels(data, char_length, label_number, labels_in_part, start)

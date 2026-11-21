@@ -148,6 +148,33 @@ describe('processMessage - crosspoint tally dump', () => {
 	})
 })
 
+describe('processMessage - names', () => {
+	// SW-P-08 Issue 32 §3.2.19: length codes 03 and 04 are 16 and 32 character names
+	it.each([
+		[0x03, 16],
+		[0x04, 32],
+	])('reads names with length code %i (%i characters)', (code, length) => {
+		const { instance } = createTestInstance()
+		const names = ['A LONG SOURCE NAME', 'ANOTHER ONE']
+		const data = [cmds.sourceNamesResponse, 0x00, code, 0x00, 0x00, names.length]
+		for (const name of names) data.push(...Buffer.from(name.slice(0, length).padEnd(length, ' ')))
+
+		instance.decode(frame(data))
+
+		expect(instance.source_names.get(1)?.label).toBe(names[0].slice(0, length).trim())
+		expect(instance.source_names.get(2)?.label).toBe(names[1])
+	})
+
+	it('ignores a names reply with an unknown length code instead of blanking the names', () => {
+		const { instance } = createTestInstance()
+		instance.decode(frame([cmds.sourceNamesResponse, 0x00, 0x01, 0x00, 0x00, 1, ...Buffer.from('CAM 1   ')]))
+
+		instance.decode(frame([cmds.sourceNamesResponse, 0x00, 0x07, 0x00, 0x00, 1, ...Buffer.from('XXXXXXXX')]))
+
+		expect(instance.source_names.get(1)?.label).toBe('CAM 1')
+	})
+})
+
 describe('processMessage - unrecognised command', () => {
 	it('logs a warning and does not throw', () => {
 		const { instance } = createTestInstance()
