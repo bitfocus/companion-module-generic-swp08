@@ -14,7 +14,7 @@ These settings must be entered before the module can be used.
 - **Levels** This number controls the levels offered in the level selection menus. It is not verified against the hardware and only affects the user interface. All levels are enabled by default, use the Levels actions to modify the selection.
 - **Router has more than 1024 sources or destinations** If you have a large router enable this option to ensure all source and destination names are retrieved. If you don't need the names from the router or your router doesn't support names then this option can be ignored.
 - **Request Supported Commands** By default Companion will ask the router which SW-P-08 commands and responses it supports. If this check fails then it can be disabled using this option.
-- **Request Names** When connection is made to the router ask for the names. Not supported by all routers.
+- **Request Names** When connection is made to the router ask for the names. Not supported by all routers. If the router sends the SW-P-08 _Names Updated_ message when names are edited, the module re-reads the changed source or destination names and updates the variables, dropdowns and presets.
 - **Name Length** Ask the router to return names of this length. Not supported by all routers.
 
 ## Action Commands

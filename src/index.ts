@@ -27,6 +27,7 @@ import { UpdatePresets } from './presets.js'
 import type { AckCallback, Level, ProcessLabelsOptions, VarList, InstanceBaseExt, SWP08Types } from './types.js'
 import { stripNumber, getRouteVariableName } from './util.js'
 import { LoadingGate } from './loadingGate.js'
+import { NamesRefresh, namesUpdatedKinds, type NameKinds } from './namesRefresh.js'
 import _ from 'lodash'
 import PQueue from 'p-queue'
 
@@ -62,11 +63,16 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	private loadingGate = new LoadingGate()
 
+	// Re-reads names when the router reports that some changed (NAMES UPDATED, command 30)
+	private namesRefresh = new NamesRefresh(async (kinds) => this.refreshNames(kinds))
+
 	private debouncedUpdate = _.debounce(
 		async () => {
 			if (this.loadingGate.isActive) return
 			this.updateVariableDefinitions()
 			this.updateAllNames()
+			// A renamed source changes the selected destination's source name too
+			this.setVariableValuesCached(this.getSelectedDestinationSourceNames())
 			this.updateActions()
 			this.updateFeedbacks()
 			this.updatePresets()
@@ -111,6 +117,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.throttledFeedbackCheck.cancel()
 		this.debouncedCrosspointUpdate.cancel()
 		this.debouncedUpdate.cancel()
+		this.namesRefresh.reset()
 		this.updateStatus(InstanceStatus.Connecting)
 
 		this.config = config
@@ -125,6 +132,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		this.throttledFeedbackCheck.cancel()
 		this.debouncedCrosspointUpdate.cancel()
 		this.debouncedUpdate.cancel()
+		this.namesRefresh.reset()
 		this.loadingGate.reset()
 		this.stopKeepAliveTimer()
 		if (this.socket) {
@@ -508,6 +516,11 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 						this.readTally().catch(() => {})
 					}
 				}
+				// Send a names re-read held while the connection was down. With Request Names on,
+				// the full read on connect covers it instead.
+				if (!this.config.read_names_on_connect) {
+					this.namesRefresh.resume()
+				}
 				this.subscribeActions()
 				if (!this.loadingGate.isActive) {
 					this.checkAllFeedbacks()
@@ -766,17 +779,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 					// Hoist the source_names check outside the level loop
 					if (hasSourceNames) {
-						try {
-							variables.set(
-								`Sel_Dest_Source_Name_Level_${level}`,
-								stripNumber(this.source_names.get(source)?.label || 'N/A'),
-							)
-						} catch (e: any) {
-							this.log(
-								'debug',
-								`Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`,
-							)
-						}
+						variables.set(`Sel_Dest_Source_Name_Level_${level}`, this.getSourceNameValue(source))
 					}
 				} else {
 					variables.set(`Sel_Dest_Source_Level_${level}`, -1)
@@ -822,11 +825,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		if (dest === this.selected_dest) {
 			variables[`Sel_Dest_Source_Level_${level}`] = source
 			if (this.source_names.size > 0) {
-				try {
-					variables[`Sel_Dest_Source_Name_Level_${level}`] = stripNumber(this.source_names.get(source)?.label || 'N/A')
-				} catch (e: any) {
-					this.log('debug', `Unable to set Sel_Dest_Source_Name_Level ${e instanceof Error ? e.message : e.toString()}`)
-				}
+				variables[`Sel_Dest_Source_Name_Level_${level}`] = this.getSourceNameValue(source)
 			}
 		}
 
@@ -835,6 +834,28 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 		}
 
 		return variables
+	}
+
+	/**
+	 * Sel_Dest_Source_Name_Level_<n> for the levels with a known route to the selected destination,
+	 * so a renamed source shows there. Levels without one are left as they are.
+	 */
+	private getSelectedDestinationSourceNames(): VarList {
+		const variables: VarList = {}
+		const routes = this.routeMap.get(this.selected_dest)
+		if (!routes || this.source_names.size === 0) return variables
+
+		for (const [level, source] of routes) {
+			if (level <= this.effectiveLevels) {
+				variables[`Sel_Dest_Source_Name_Level_${level}`] = this.getSourceNameValue(source)
+			}
+		}
+		return variables
+	}
+
+	/** A source's name as the Sel_Dest_Source_Name_Level_<n> variables show it. Name keys are 1-based. */
+	private getSourceNameValue(source: number): string {
+		return stripNumber(this.source_names.get(source)?.label || 'N/A')
 	}
 
 	private addCrosspointFeedbacksToCheck(): void {
@@ -1150,6 +1171,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 				this.processLabels(message, { hasMatrix: true, hasLevels: false, extended: true })
 				break
 
+			case cmds.namesUpdated:
+				this.processNamesUpdated(message)
+				break
+
 			case cmds.crosspointTallyDumpByteResponse:
 			case cmds.crosspointTallyDumpWordResponse:
 				// Crosspoint Tally Dump
@@ -1239,37 +1264,61 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	this.log('debug', `labels in part: ${labels_in_part}`)
 	*/
 
+		let names: Map<number, DropdownChoice>
+		if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
+			names = this.dest_names
+		} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
+			names = this.source_names
+		} else {
+			this.log('debug', `Unknown label type ${data[0]}`)
+			return
+		}
+
+		// Names are updated in place, so a re-read only republishes the names that changed
+		let changed = false
 		for (let l = 0; l < labels_in_part; l++) {
 			const pos = l * char_length
 			const labelId = label_number + l + 1
+			const label = data
+				.subarray(start + pos, start + pos + char_length)
+				.toString('utf8')
+				.replace(/\0/g, '')
+				.trim()
 
-			if (data[0] === cmds.destNamesResponse || data[0] === cmds.extendedDestNamesResponse) {
-				this.dest_names.set(labelId, {
-					id: labelId,
-					label: data
-						.subarray(start + pos, start + pos + char_length)
-						.toString('utf8')
-						.replace(/\0/g, '')
-						.trim(),
-				})
-			} else if (data[0] === cmds.sourceNamesResponse || data[0] === cmds.extendedSourceNamesResponse) {
-				this.source_names.set(labelId, {
-					id: labelId,
-					label: data
-						.subarray(start + pos, start + pos + char_length)
-						.toString('utf8')
-						.replace(/\0/g, '')
-						.trim(),
-				})
-			} else {
-				this.log('debug', `Unknown label type ${data[0]}`)
-				return
+			if (names.get(labelId)?.label !== label) {
+				names.set(labelId, { id: labelId, label })
+				changed = true
 			}
 		}
 
-		// update dropdown lists
-		void this.debouncedUpdate()
+		// update variables and dropdown lists. An empty reply still counts: after readNames() cleared
+		// the names, it is what removes the old ones.
+		if (changed || labels_in_part === 0) void this.debouncedUpdate()
 		this.loadingGate.markNamesPacketReceived()
+		this.namesRefresh.markPacketReceived()
+	}
+
+	/**
+	 * NAMES UPDATED (SW-P-08 Issue 32 §3.2.14, command 30). The controller sends it 5 seconds after
+	 * the last name edit, flagging the matrices and name types that changed. It carries no names, so
+	 * re-read the ones it covers.
+	 * @param {Buffer} data
+	 */
+	private processNamesUpdated(data: Buffer): void {
+		const kinds = namesUpdatedKinds(data, this.effectiveMatrix)
+		if (!kinds.sources && !kinds.destinations) {
+			this.log('debug', `Names updated on other matrices or name types: ${data.toString('hex')}`)
+			return
+		}
+
+		if (!this.config.read_names_on_connect && this.source_names.size === 0 && this.dest_names.size === 0) {
+			this.log('debug', 'Router reports updated names, but names are not being read')
+			return
+		}
+
+		const what = [kinds.sources && 'source', kinds.destinations && 'destination'].filter(Boolean).join(' and ')
+		this.log('info', `Router reports updated ${what} names, re-reading them`)
+		this.namesRefresh.request(kinds)
 	}
 
 	private updateAllNames(): void {
@@ -1314,12 +1363,40 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 
 	public async readNames(): Promise<void> {
 		this.log('info', 'Reading names...')
+		this.namesRefresh.fullReadStarted()
 		// reset
-		const cmdGetSources: number[] = []
-		const cmdGetDestinations: number[] = []
 		this.source_names = new Map()
 		this.dest_names = new Map()
 		this.setVariableValuesCached({ Sources: 0, Destinations: 0 })
+
+		const requests = this.getNameRequests()
+
+		// get source names
+		await this.sendMessage(requests.sources)
+
+		// get dest names
+		await this.sendMessage(requests.destinations)
+	}
+
+	/**
+	 * Re-read names in place. Unlike readNames() the current names stay, so the variables never
+	 * blank while the router answers, and only the names that changed are republished.
+	 * @returns false when the connection was down, so the re-read waits for the next connect
+	 */
+	private async refreshNames(kinds: NameKinds): Promise<boolean> {
+		if (!this.socket?.isConnected) return false
+		const config = this.config
+		const requests = this.getNameRequests()
+		if (kinds.sources) await this.sendMessage(requests.sources)
+		// After a config change the rest would go to the new connection, built for the old config
+		if (this.config !== config) return true
+		if (kinds.destinations) await this.sendMessage(requests.destinations)
+		return this.socket?.isConnected === true
+	}
+
+	private getNameRequests(): { sources: number[]; destinations: number[] } {
+		const cmdGetSources: number[] = []
+		const cmdGetDestinations: number[] = []
 
 		if (
 			(this.config.extended_support === true &&
@@ -1348,11 +1425,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			)
 		}
 
-		// get source names
-		await this.sendMessage(cmdGetSources)
-
-		// get dest names
-		await this.sendMessage(cmdGetDestinations)
+		return { sources: cmdGetSources, destinations: cmdGetDestinations }
 	}
 
 	// variables.js functions

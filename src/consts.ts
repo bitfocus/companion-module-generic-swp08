@@ -16,6 +16,8 @@ export const ackMaxAttempts = 2
 /** Max time to wait for initial name/tally load before forcing a Companion push */
 export const initialLoadTimeoutMs = 30000
 export const namesSettleMs = 1000
+/** NAMES UPDATED messages arriving within this long of the first one are re-read together */
+export const namesUpdatedWindowMs = 500
 
 export const DLE = 0x10
 export const STX = 0x02
