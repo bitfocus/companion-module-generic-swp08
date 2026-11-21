@@ -297,6 +297,14 @@ describe('NAMES UPDATED from the router', () => {
 		expect(extended.sendMessage.mock.calls).toEqual([[[cmds.extendedGetSourceNames, 0x00, 0x00, 0x02]]])
 	})
 
+	it('reads a NAMES UPDATED whose bitmap has a byte 10 followed by 03', async () => {
+		// Matrices 1, 2 and 13: 00 00 10 03, sent as 00 00 10 10 03
+		instance.decode(frame(namesUpdated(0x00001003, sourceNames8)))
+		await vi.advanceTimersByTimeAsync(5_000)
+
+		expect(sentNameRequests()).toEqual([getSourceNames])
+	})
+
 	it('holds a re-read while the connection is down and sends it once it is back', async () => {
 		instance.socket.isConnected = false
 		instance.decode(frame(namesUpdated(0b1, sourceNames8)))

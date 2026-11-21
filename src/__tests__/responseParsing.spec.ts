@@ -60,6 +60,22 @@ describe('decode - packet framing', () => {
 	})
 })
 
+describe('decode - DLE stuffing', () => {
+	it('does not end a message at an escaped DLE followed by 03', () => {
+		const { instance } = createTestInstance({ matrix: 1 })
+		const warnSpy = vi.spyOn(instance, 'log')
+		// dest 17 <- source 4: the data bytes 10 03 go out as 10 10 03, which is not DLE ETX
+		const packet = frame([cmds.crosspointConnected, 0x00, 0x00, 0x10, 0x03])
+		expect(packet.includes(Buffer.from([DLE, DLE, 0x03]))).toBe(true)
+
+		const consumed = instance.decode(packet)
+
+		expect(consumed).toBe(packet.length)
+		expect(warnSpy).not.toHaveBeenCalledWith('warn', expect.stringContaining('Invalid packet length'))
+		expect(instance.getRoutemapEntries(17)).toEqual({ 1: 4 })
+	})
+})
+
 describe('processMessage - crosspoint connected (standard)', () => {
 	let instance: TestableInstance
 

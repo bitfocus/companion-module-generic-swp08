@@ -1045,7 +1045,12 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			return 1
 		}
 
-		for (let j = 0; j < data.length - 1; j++) {
+		for (let j = 2; j < data.length - 1; j++) {
+			if (data[j] === DLE && data[j + 1] === DLE) {
+				// An escaped DLE in the data. Skip both, so a data byte 03 after it is not read as ETX.
+				j++
+				continue
+			}
 			if (data[j] === DLE && data[j + 1] === ETX) {
 				// We found ETX, now check the checksum, length, remove DLE escaping, and process message
 				let packet = Buffer.alloc(j)

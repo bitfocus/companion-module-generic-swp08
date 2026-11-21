@@ -196,3 +196,4 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Re-read names in place, so variables never blank while the router answers and only the names that changed are republished
 - Update `Sel_Dest_Source_Name_Level_N` for the routed levels when their source is renamed
 - Fix: `Sel_Dest_Source_Name_Level_N` and the `Source name routed to selected Destination` feedback named the source numbered one below the routed one
+- Fix: a message whose data held an escaped DLE followed by `03` (for example a crosspoint to destination 17 from source 4, or a `Names Updated` bitmap byte `10` before `03`) was cut short at that `03` and rejected
