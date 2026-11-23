@@ -1373,6 +1373,10 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 	// names.js functions
 
 	public async readNames(): Promise<void> {
+		if (!this.socket?.isConnected) {
+			this.log('info', 'Cannot read names, socket is not connected')
+			return
+		}
 		this.log('info', 'Reading names...')
 		this.namesRefresh.fullReadStarted()
 		// reset
