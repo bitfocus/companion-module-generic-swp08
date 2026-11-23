@@ -187,3 +187,14 @@ See [HELP.md](./companion/HELP.md) and [LICENSE](./LICENSE)
 - Send the next queued message as soon as the router ACKs/NAKs the previous one (or the ACK timeout elapses) instead of also holding a fixed 10 ms interval between sends, per SW-P-88 §7.2.2
 - Name the ACK timeout (1 s, the spec's notional value) and the attempts per message (2) as constants
 - Add send-queue tests against a fake SW-P-08 router (immediate / delayed / NAK / silent)
+
+### Version 4.1.2
+
+- Follow name changes on the router: on a `Names Updated` message (command 30, SW-P-08 Issue 32 §3.2.14) re-read the source and/or destination names it flags for the configured matrix, and update the `Source_N` / `Destination_N` variables, dropdowns and presets
+- Coalesce `Names Updated` messages arriving within 500 ms into one re-read, never start one while name responses are still streaming in, and re-read again afterwards if another arrives during a re-read
+- Hold a re-read while the connection is down and send it on reconnect; a full name read (on connect or **Refresh names**) covers any re-read asked for before it
+- Re-read names in place, so variables never blank while the router answers and only the names that changed are republished
+- Update `Sel_Dest_Source_Name_Level_N` for the routed levels when their source is renamed
+- Fix: `Sel_Dest_Source_Name_Level_N` and the `Source name routed to selected Destination` feedback named the source numbered one below the routed one
+- Fix: a message whose data held an escaped DLE followed by `03` (for example a crosspoint to destination 17 from source 4, or a `Names Updated` bitmap byte `10` before `03`) was cut short at that `03` and rejected
+- Fix: read 16 and 32 character names (length codes `03` and `04`), and ignore a names reply with an unknown length code instead of blanking the names it covers

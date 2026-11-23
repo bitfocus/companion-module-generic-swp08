@@ -1,6 +1,48 @@
 import { vi } from 'vitest'
 import SW_P_08 from '../index.js'
 import type { SwP08Config } from '../config.js'
+import { cmds, DLE, ETX, STX } from '../consts.js'
+
+/** Wrap message data (command byte first) in an SW-P-08 frame: DLE STX, DLE-stuffed data, BTC, CHK, DLE ETX */
+export function frame(data: number[]): Buffer {
+	const packet = Array.from(data)
+	const length = data.length
+	let crc = 0
+	for (let j = 0; j < packet.length; ++j) {
+		crc += packet[j]
+		if (packet[j] === DLE) {
+			packet.splice(j, 0, DLE)
+			j++
+		}
+	}
+	crc += length
+	const checksum = (~crc + 1) & 0xff
+	packet.unshift(DLE, STX)
+	packet.push(length, checksum, DLE, ETX)
+	return Buffer.from(packet)
+}
+
+/**
+ * Standard (non-extended) SOURCE NAMES or DESTINATION ASSOCIATION NAMES response with 8 character
+ * names on matrix 1, level 1. `first` is the 1-based number of the first name.
+ */
+export function namesResponse(kind: 'source' | 'destination', first: number, names: string[]): number[] {
+	const command = kind === 'source' ? cmds.sourceNamesResponse : cmds.destNamesResponse
+	const data = [command, 0x00, 0x01, (first - 1) >> 8, (first - 1) & 0xff, names.length]
+	for (const name of names) data.push(...Buffer.from(name.padEnd(8, ' ').slice(0, 8), 'utf8'))
+	return data
+}
+
+/** The most recent value the module published for `name`, or undefined if it never did */
+export function lastVariableValue(
+	context: ReturnType<typeof createInstanceContext>,
+	name: string,
+): string | number | undefined {
+	for (const [values] of [...context.setVariableValues.mock.calls].reverse()) {
+		if (name in values) return values[name]
+	}
+	return undefined
+}
 
 /**
  * Minimal stand-in for the host-side InstanceContext that @companion-module/base's

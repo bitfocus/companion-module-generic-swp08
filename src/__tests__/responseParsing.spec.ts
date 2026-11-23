@@ -1,24 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ACK, cmds, DLE, ETX, NAK, STX } from '../consts.js'
-import { createTestInstance, type TestableInstance } from './testHarness.js'
-
-function frame(data: number[]): Buffer {
-	const packet = Array.from(data)
-	const length = data.length
-	let crc = 0
-	for (let j = 0; j < packet.length; ++j) {
-		crc += packet[j]
-		if (packet[j] === DLE) {
-			packet.splice(j, 0, DLE)
-			j++
-		}
-	}
-	crc += length
-	const checksum = (~crc + 1) & 0xff
-	packet.unshift(DLE, STX)
-	packet.push(length, checksum, DLE, ETX)
-	return Buffer.from(packet)
-}
+import { ACK, cmds, DLE, NAK, STX } from '../consts.js'
+import { createTestInstance, frame, type TestableInstance } from './testHarness.js'
 
 describe('decode - packet framing', () => {
 	let instance: TestableInstance
@@ -75,6 +57,22 @@ describe('decode - packet framing', () => {
 		expect(nakSpy).toHaveBeenCalled()
 		// A bad packet must not be routed as a valid crosspoint update
 		expect(instance.hasDestInRoutemap(3)).toBe(false)
+	})
+})
+
+describe('decode - DLE stuffing', () => {
+	it('does not end a message at an escaped DLE followed by 03', () => {
+		const { instance } = createTestInstance({ matrix: 1 })
+		const warnSpy = vi.spyOn(instance, 'log')
+		// dest 17 <- source 4: the data bytes 10 03 go out as 10 10 03, which is not DLE ETX
+		const packet = frame([cmds.crosspointConnected, 0x00, 0x00, 0x10, 0x03])
+		expect(packet.includes(Buffer.from([DLE, DLE, 0x03]))).toBe(true)
+
+		const consumed = instance.decode(packet)
+
+		expect(consumed).toBe(packet.length)
+		expect(warnSpy).not.toHaveBeenCalledWith('warn', expect.stringContaining('Invalid packet length'))
+		expect(instance.getRoutemapEntries(17)).toEqual({ 1: 4 })
 	})
 })
 
@@ -147,6 +145,33 @@ describe('processMessage - crosspoint tally dump', () => {
 		expect(instance.getRoutemapEntries(10)).toEqual({ 1: 20 })
 		expect(instance.getRoutemapEntries(11)).toEqual({ 1: 21 })
 		expect(instance.getRoutemapEntries(12)).toEqual({ 1: 22 })
+	})
+})
+
+describe('processMessage - names', () => {
+	// SW-P-08 Issue 32 §3.2.19: length codes 03 and 04 are 16 and 32 character names
+	it.each([
+		[0x03, 16],
+		[0x04, 32],
+	])('reads names with length code %i (%i characters)', (code, length) => {
+		const { instance } = createTestInstance()
+		const names = ['A LONG SOURCE NAME', 'ANOTHER ONE']
+		const data = [cmds.sourceNamesResponse, 0x00, code, 0x00, 0x00, names.length]
+		for (const name of names) data.push(...Buffer.from(name.slice(0, length).padEnd(length, ' ')))
+
+		instance.decode(frame(data))
+
+		expect(instance.source_names.get(1)?.label).toBe(names[0].slice(0, length).trim())
+		expect(instance.source_names.get(2)?.label).toBe(names[1])
+	})
+
+	it('ignores a names reply with an unknown length code instead of blanking the names', () => {
+		const { instance } = createTestInstance()
+		instance.decode(frame([cmds.sourceNamesResponse, 0x00, 0x01, 0x00, 0x00, 1, ...Buffer.from('CAM 1   ')]))
+
+		instance.decode(frame([cmds.sourceNamesResponse, 0x00, 0x07, 0x00, 0x00, 1, ...Buffer.from('XXXXXXXX')]))
+
+		expect(instance.source_names.get(1)?.label).toBe('CAM 1')
 	})
 })
 
