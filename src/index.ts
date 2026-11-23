@@ -553,7 +553,7 @@ export default class SW_P_08 extends InstanceBase<SWP08Types> implements Instanc
 			clearInterval(this.keepAliveTimer)
 		}
 		this.keepAliveTimer = setInterval(() => {
-			void this.keepAlive()
+			this.keepAlive().catch(() => {})
 		}, keepAliveTime)
 	}
 

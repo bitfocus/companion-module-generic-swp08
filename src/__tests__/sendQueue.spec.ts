@@ -6,8 +6,9 @@
 // no fixed inter-message interval, never more than one message outstanding, retry once on NAK, and a
 // bounded wait when the router never answers.
 import { createServer, type Server, type Socket } from 'node:net'
-import { afterEach, describe, expect, it } from 'vitest'
-import { ACK, DLE, ETX, NAK, STX } from '../consts.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ACK, DLE, ETX, keepAliveTime, NAK, STX } from '../consts.js'
+import { FeedbackIds, UpdateFeedbacks } from '../feedbacks.js'
 import { createTestInstance, type TestableInstance } from './testHarness.js'
 
 type AckMode = { kind: 'immediate' } | { kind: 'delayed'; ms: number } | { kind: 'nak-first' } | { kind: 'never' }
@@ -224,5 +225,87 @@ describe('send queue - ACK-gated pacing', () => {
 		expect(elapsed).toBeLessThan(2 * 2 * ackTimeoutMs + 200)
 		expect(instance.consecutiveAckFailures).toBe(4)
 		expect(instance.ackCallbacks).toHaveLength(0)
+	})
+})
+
+/** Collect unhandled rejections until the returned stop function is called. */
+function watchUnhandledRejections(): { reasons: unknown[]; stop: () => void } {
+	const reasons: unknown[] = []
+	const listener = (reason: unknown): void => {
+		reasons.push(reason)
+	}
+	process.on('unhandledRejection', listener)
+	return { reasons, stop: () => process.off('unhandledRejection', listener) }
+}
+
+/** Let rejections settle, and give Node the turn it needs to report any that went unhandled. */
+async function settle(): Promise<void> {
+	for (let i = 0; i < 3; i++) await new Promise((resolve) => setImmediate(resolve))
+}
+
+// p-queue 10 rejects the tasks a clear() drops, where 9.x left them pending for good. Companion's
+// module process has no unhandledRejection handler, so on Node's default a dropped send that nothing
+// catches crashes the module.
+describe('send queue - a cleared queue does not leave unhandled rejections', () => {
+	let router: FakeRouter | undefined
+	let instance: TestableInstance | undefined
+	let watcher: ReturnType<typeof watchUnhandledRejections> | undefined
+
+	afterEach(async () => {
+		watcher?.stop()
+		vi.useRealTimers()
+		await instance?.destroy()
+		await router?.close()
+		router = undefined
+		instance = undefined
+	})
+
+	it("catches a feedback's interrogation dropped by a config change", async () => {
+		// A router that never ACKs keeps the first send in flight, so later ones wait in the queue
+		router = new FakeRouter({ kind: 'never' })
+		await router.listen()
+		const created = createTestInstance({ host: '127.0.0.1', port: String(router.port) })
+		instance = created.instance
+		instance.init_tcp()
+		await waitFor(() => instance?.socket?.isConnected === true)
+		instance.ackTimeoutMs = 500
+
+		UpdateFeedbacks(instance as never)
+		const definitions = created.context.setFeedbackDefinitions.mock.calls.at(-1)?.[0]
+		const crosspointConnected = definitions[FeedbackIds.CrosspointConnected]
+
+		// Destination 5 is not in the route map, so the callback interrogates it without waiting
+		crosspointConnected.callback({ options: { dest: 5, source: 1 } })
+		crosspointConnected.callback({ options: { dest: 6, source: 1 } })
+		await waitFor(() => instance?.queue.size > 0)
+
+		watcher = watchUnhandledRejections()
+		await instance.configUpdated({ ...instance.config })
+		await settle()
+
+		expect(watcher.reasons).toEqual([])
+	})
+
+	it('catches a keepalive dropped by a config change', async () => {
+		vi.useFakeTimers()
+		const created = createTestInstance()
+		instance = created.instance
+		// A plain function, not vi.fn(): vitest's mock attaches its own handler to the promises it
+		// returns, which would hide the unhandled rejection this test is looking for
+		let calls = 0
+		instance.keepAlive = async (): Promise<void> => {
+			calls++
+			throw new DOMException('The queue was cleared', 'AbortError')
+		}
+
+		watcher = watchUnhandledRejections()
+		instance.startKeepAliveTimer()
+		await vi.advanceTimersByTimeAsync(keepAliveTime)
+		instance.stopKeepAliveTimer()
+		vi.useRealTimers()
+		await settle()
+
+		expect(calls).toBe(1)
+		expect(watcher.reasons).toEqual([])
 	})
 })
