@@ -195,7 +195,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 				!self.config.tally_dump_and_update &&
 				!self.hasDestInRoutemap(self.selected_dest)
 			) {
-				void self.getCrosspoints(self.selected_dest)
+				self.getCrosspoints(self.selected_dest).catch(() => {})
 			}
 			return self.hasSourceInAnyLevelRoutemap(self.selected_dest, feedback.options.source)
 		},
@@ -217,7 +217,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			// look for self dest in route table
 			logger.debug(`dest:source feedback ${feedback.options.dest}:${feedback.options.source}`)
 			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(feedback.options.dest)) {
-				void self.getCrosspoints(feedback.options.dest)
+				self.getCrosspoints(feedback.options.dest).catch(() => {})
 			}
 			return self.hasSourceInAnyLevelRoutemap(feedback.options.dest, feedback.options.source)
 		},
@@ -242,7 +242,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 				`dest:source feedback ${JSON.stringify(feedback.options.level)}:${feedback.options.dest}:${feedback.options.source}`,
 			)
 			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(feedback.options.dest)) {
-				void self.getCrosspoints(feedback.options.dest)
+				self.getCrosspoints(feedback.options.dest).catch(() => {})
 			}
 			if (feedback.options.level.length !== 0) {
 				let count = 0
@@ -281,7 +281,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			checkSourceDestRange(source, FeedbackIds.CrosspointConnectedByName, sourceMax)
 			checkSourceDestRange(dest, FeedbackIds.CrosspointConnectedByName, destMax)
 			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(dest)) {
-				void self.getCrosspoints(dest)
+				self.getCrosspoints(dest).catch(() => {})
 			}
 			// look for self dest in route table
 			logger.debug(`dest:source feedback ${feedback.options.dest}:${feedback.options.source} (${dest}:${source})`)
@@ -310,7 +310,7 @@ export function UpdateFeedbacks(self: SW_P_08): void {
 			)
 			checkSourceDestRange(dest, FeedbackIds.CrosspointConnectedByName, destMax)
 			if (!self.config.tally_dump_and_update && !self.hasDestInRoutemap(dest)) {
-				void self.getCrosspoints(dest)
+				self.getCrosspoints(dest).catch(() => {})
 			}
 			// look for self dest in route table
 			logger.debug(`${FeedbackIds.DestinationSourceName} feedback ${feedback.options.dest}:${feedback.options.level}`)
