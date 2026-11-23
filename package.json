@@ -14,7 +14,8 @@
 		"lint": "run lint:raw .",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"test:types": "tsc -p tsconfig.json --noEmit"
 	},
 	"license": "MIT",
 	"repository": {
